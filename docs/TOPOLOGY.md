@@ -5,10 +5,12 @@
 **init-chain.sh dev-mode flags (GAP-T4):**
 
 `scripts/init-chain.sh` enforces the following for local dev:
-- `pruning = "nothing"` — retains all historical blocks (unsustainable for testnet)
-- `iavl-disable-fastnode = true` — disables IAVL fast-node optimization
+- Enables gRPC and binds it to `0.0.0.0:9090` so hub + dashboard can reach the node from Docker.
+- Sets `pruning = "custom"` with `pruning-keep-recent = 100` and `pruning-interval = 10`, balancing stability with disk usage.
+- Forces `minimum-gas-prices = "0.025uvibe"`, matching the hub's fee calculator and preventing `insufficient fee` errors during dogfood.
+- Disables IAVL fast-node optimization (`iavl-disable-fastnode = true`) to avoid transient `version does not exist` errors while iterating on state.
 
-**Why:** These settings avoid transient `version does not exist` errors during local dev block turnover. Coupled to the Comet RPC `broadcast_tx_sync` retry policy (D-13.12).
+**Why:** These settings keep the local node reachable, deterministic, and in sync with fee expectations used by the dogfood pipeline and `wevibe-hub` broadcast client.
 
 **Status:** Pre-MVP only. These settings are unacceptable for testnet or production (D-13.13).
 

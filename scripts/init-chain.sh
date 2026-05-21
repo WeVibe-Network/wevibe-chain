@@ -37,12 +37,14 @@ if [ "$(uname)" = "Darwin" ]; then
     sed -i '' 's|^pruning = "default"|pruning = "custom"|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^pruning-keep-recent = ".*"|pruning-keep-recent = "100"|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^pruning-interval = ".*"|pruning-interval = "10"|' "$HOME_DIR/config/app.toml"
+    sed -i '' "s|^minimum-gas-prices = \".*\"|minimum-gas-prices = \"0.025${DENOM}\"|" "$HOME_DIR/config/app.toml"
 else
     sed -i 's|^enable = false.*# grpc|enable = true|' "$HOME_DIR/config/app.toml"
     sed -i 's|^address = "localhost:9090"|address = "0.0.0.0:9090"|' "$HOME_DIR/config/app.toml"
     sed -i 's|^pruning = "default"|pruning = "custom"|' "$HOME_DIR/config/app.toml"
     sed -i 's|^pruning-keep-recent = ".*"|pruning-keep-recent = "100"|' "$HOME_DIR/config/app.toml"
     sed -i 's|^pruning-interval = ".*"|pruning-interval = "10"|' "$HOME_DIR/config/app.toml"
+    sed -i "s|^minimum-gas-prices = \".*\"|minimum-gas-prices = \"0.025${DENOM}\"|" "$HOME_DIR/config/app.toml"
 fi
 
 "$WEVIBED_BINARY" keys add validator \
