@@ -1,0 +1,57 @@
+syntax = "proto3";
+package wevibe.serve.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
+
+import "google/api/annotations.proto";
+import "wevibe/serve/v1/params.proto";
+import "wevibe/serve/v1/state.proto";
+
+service Query {
+  rpc GetEpochServeStats(QueryGetEpochServeStatsRequest) returns (QueryGetEpochServeStatsResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/stats/{org_id}/{epoch}";
+  }
+  rpc GetContributorServes(QueryGetContributorServesRequest) returns (QueryGetContributorServesResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/contributor/{contributor_id}/{epoch}";
+  }
+  rpc GetMemoryServeCount(QueryGetMemoryServeCountRequest) returns (QueryGetMemoryServeCountResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/memory/{org_id}/{content_hash}/{epoch}";
+  }
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/params";
+  }
+}
+
+message QueryGetEpochServeStatsRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetEpochServeStatsResponse {
+  StoredEpochServeStats stats = 1;
+}
+
+message QueryGetContributorServesRequest {
+  string contributor_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetContributorServesResponse {
+  StoredContributorEpochServes serves = 1;
+}
+
+message QueryGetMemoryServeCountRequest {
+  string org_id = 1;
+  bytes content_hash = 2;
+  uint64 epoch = 3;
+}
+
+message QueryGetMemoryServeCountResponse {
+  uint64 count = 1;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}

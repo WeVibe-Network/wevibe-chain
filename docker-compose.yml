@@ -1,0 +1,26 @@
+# Standalone chain dev: brings up only the chain validator.
+# For full WeVibe stack with chain integration, use:
+#   cd ../wevibe-server && make dogfood
+# See DECISIONS.md D-13.10 + CO-253 implementation report for details.
+services:
+  wevibed:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wevibe-validator
+    entrypoint: ["/usr/local/bin/init-chain.sh", "start"]
+    environment:
+      - CHAIN_ID=wevibe-local-1
+      - MONIKER=wevibe-validator
+      - WEVIBED_HOME=/root/.wevibed
+    ports:
+      - "26656:26656"
+      - "26657:26657"
+      - "1317:1317"
+      - "9090:9090"
+    volumes:
+      - wevibed-data:/root/.wevibed
+    restart: unless-stopped
+
+volumes:
+  wevibed-data:

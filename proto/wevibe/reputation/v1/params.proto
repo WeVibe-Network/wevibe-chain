@@ -1,0 +1,12 @@
+syntax = "proto3";
+package wevibe.reputation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/reputation/types";
+
+message Params {
+  bool active = 1;
+  uint32 max_difficulty = 2;
+  uint32 max_quality = 3;
+  uint64 serve_xp_per_serve = 4;
+  uint64 self_serve_xp_per_serve = 5;
+}

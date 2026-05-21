@@ -1,0 +1,46 @@
+syntax = "proto3";
+package wevibe.attestation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/attestation/types";
+
+import "google/api/annotations.proto";
+import "wevibe/attestation/v1/state.proto";
+import "wevibe/attestation/v1/params.proto";
+
+service Query {
+  rpc GetSessionAttestation(QueryGetSessionAttestationRequest) returns (QueryGetSessionAttestationResponse) {
+    option (google.api.http).get = "/wevibe/attestation/v1/session/{org_id}/{session_hash}";
+  }
+
+  rpc ListSessionAttestations(QueryListSessionAttestationsRequest) returns (QueryListSessionAttestationsResponse) {
+    option (google.api.http).get = "/wevibe/attestation/v1/sessions/{org_id}/{epoch}";
+  }
+
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/attestation/v1/params";
+  }
+}
+
+message QueryGetSessionAttestationRequest {
+  string org_id = 1;
+  bytes session_hash = 2;
+}
+
+message QueryGetSessionAttestationResponse {
+  StoredSessionAttestation attestation = 1;
+}
+
+message QueryListSessionAttestationsRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryListSessionAttestationsResponse {
+  repeated StoredSessionAttestation attestations = 1;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}

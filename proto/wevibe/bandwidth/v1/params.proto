@@ -1,0 +1,9 @@
+syntax = "proto3";
+package wevibe.bandwidth.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/bandwidth/types";
+
+message Params {
+  uint64 default_memory_cap_per_epoch = 1;
+  uint64 default_serve_cap_per_epoch = 2;
+}

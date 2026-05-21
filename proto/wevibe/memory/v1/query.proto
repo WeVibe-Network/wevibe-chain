@@ -1,0 +1,106 @@
+syntax = "proto3";
+package wevibe.memory.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/memory/types";
+
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "wevibe/memory/v1/params.proto";
+import "wevibe/memory/v1/state.proto";
+
+service Query {
+  rpc GetMemory(QueryGetMemoryRequest) returns (QueryGetMemoryResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/memory/{org_id}/{content_hash}";
+  }
+  rpc GetPendingCommitments(QueryGetPendingCommitmentsRequest) returns (QueryGetPendingCommitmentsResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/pending/{org_id}";
+  }
+  rpc GetMemoryCount(QueryGetMemoryCountRequest) returns (QueryGetMemoryCountResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/count/{org_id}";
+  }
+  rpc GetEpochMerkleRoot(QueryGetEpochMerkleRootRequest) returns (QueryGetEpochMerkleRootResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/merkle_root/{org_id}/{epoch}";
+  }
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/params";
+  }
+  rpc ListRelationships(QueryListRelationshipsRequest) returns (QueryListRelationshipsResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/relationships/{org_id}/{cid}";
+  }
+  rpc GetValidity(QueryGetValidityRequest) returns (QueryGetValidityResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/validity/{org_id}/{cid}";
+  }
+  rpc GetMemoriesBatch(QueryGetMemoriesBatchRequest) returns (QueryGetMemoriesBatchResponse) {
+    option (google.api.http).get = "/wevibe/memory/v1/memories_batch/{org_id}";
+  }
+}
+
+message QueryGetMemoryRequest {
+  string org_id = 1;
+  bytes content_hash = 2;
+}
+
+message QueryGetMemoryResponse {
+  StoredMemoryCommitment memory = 1;
+}
+
+message QueryGetPendingCommitmentsRequest {
+  string org_id = 1;
+}
+
+message QueryGetPendingCommitmentsResponse {
+  repeated StoredPendingCommitment commitments = 1;
+}
+
+message QueryGetMemoryCountRequest {
+  string org_id = 1;
+}
+
+message QueryGetMemoryCountResponse {
+  uint64 count = 1;
+}
+
+message QueryGetEpochMerkleRootRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetEpochMerkleRootResponse {
+  bytes merkle_root = 1;
+  uint64 memory_count = 2;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}
+
+message QueryListRelationshipsRequest {
+  string org_id = 1;
+  string cid = 2;
+}
+
+message QueryListRelationshipsResponse {
+  repeated StoredMemoryRelationship relationships = 1;
+}
+
+message QueryGetValidityRequest {
+  string org_id = 1;
+  string cid = 2;
+}
+
+message QueryGetValidityResponse {
+  StoredValidityMetadata metadata = 1;
+  bool found = 2;
+}
+
+message QueryGetMemoriesBatchRequest {
+  string org_id = 1;
+  repeated bytes content_hashes = 2;
+}
+
+message QueryGetMemoriesBatchResponse {
+  repeated StoredMemoryCommitment memories = 1;
+  repeated bytes not_found = 2;
+}

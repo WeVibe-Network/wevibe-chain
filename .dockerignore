@@ -1,0 +1,12 @@
+vendor/
+**/*.test
+echod
+build/
+dist/
+*.log
+data/
+.git/
+.gitignore
+.vscode/
+.idea/
+.DS_Store

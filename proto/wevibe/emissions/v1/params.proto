@@ -1,0 +1,14 @@
+syntax = "proto3";
+package wevibe.emissions.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/emissions/types";
+
+message Params {
+  uint64 daily_mint_amount = 1;
+  uint64 operator_share_percent = 2;
+  uint64 validator_share_percent = 3;
+  uint64 storage_weight_percent = 4;
+  uint64 retrieval_weight_percent = 5;
+  string rarity_multiplier_cap = 6;
+  uint64 bootstrap_duration_epochs = 7;
+}

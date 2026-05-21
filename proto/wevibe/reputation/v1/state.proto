@@ -1,0 +1,77 @@
+syntax = "proto3";
+package wevibe.reputation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/reputation/types";
+
+message StoredReputationStats {
+  string developer_id = 1;
+  uint64 memory_count = 2;
+  repeated uint64 difficulty_bucket = 3;
+  map<string, uint64> domain_tags = 4;
+  map<string, uint64> provenance_breakdown = 5;
+  uint64 xp = 6;
+  uint64 serve_count = 7;
+  uint64 self_serve_count = 8;
+  uint64 org_breadth = 9;
+  uint64 first_seen_epoch = 10;
+  uint64 serve_xp = 11;
+}
+
+message StoredAttestedMemory {
+  bytes developer = 1;
+  string memory_cid = 2;
+  uint32 difficulty = 3;
+  uint32 quality = 4;
+  repeated string domain_tags = 5;
+  string provenance = 6;
+}
+
+message StoredContributorOrgSet {
+  string contributor_id = 1;
+  repeated string org_ids = 2;
+}
+
+message OrgMembership {
+  string org_id = 1;
+  string role = 2;
+  uint64 joined_epoch = 3;
+  bool active = 4;
+}
+
+message StoredContributorProfile {
+  string contributor_id = 1;
+  uint64 total_approved_memories = 2;
+  uint64 total_serves_received = 3;
+  uint64 total_denials_received = 4;
+  uint64 total_reports_filed_against = 5;
+  uint64 total_reports_upheld_against = 6;
+  repeated OrgMembership memberships = 7;
+  uint64 first_contribution_epoch = 8;
+  uint64 last_contribution_epoch = 9;
+}
+
+message StoredModeratorProfile {
+  string moderator_pubkey = 1;
+  string org_id = 2;
+  uint64 total_approvals = 3;
+  uint64 approvals_later_upheld_count = 4;
+  repeated bytes approved_memory_hashes = 5;
+  uint64 first_approval_epoch = 6;
+  uint64 last_approval_epoch = 7;
+}
+
+message EpochRotation {
+  uint64 epoch = 1;
+  string reason = 2;
+  int64 timestamp = 3;
+}
+
+message StoredLeaderProfile {
+  string leader_pubkey = 1;
+  string org_id = 2;
+  uint64 total_chain_commits_signed = 3;
+  uint64 total_upheld_reports_committed = 4;
+  repeated EpochRotation epoch_rotations = 5;
+  uint64 first_leadership_epoch = 6;
+  bool current_leader = 7;
+}

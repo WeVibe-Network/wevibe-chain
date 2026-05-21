@@ -1,0 +1,21 @@
+syntax = "proto3";
+package wevibe.memory.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/memory/types";
+
+message Params {
+  uint64 max_pending_per_org = 1;
+  uint64 pending_retention_epochs = 2;
+  uint64 max_blob_size_bytes = 3;
+  uint32 max_keywords_per_memory = 4;
+  uint64 min_retrieval_decay_bps = 5;
+  reserved 6, 7, 8;
+  reserved "stable_threshold_bps", "degraded_threshold_bps", "dormant_threshold_bps";
+  uint64 initial_confidence_bps = 9;
+  uint64 contest_window_epochs = 10;
+  uint64 idle_decay_rate_bps = 11;
+  uint64 denial_decay_bps = 12;
+  uint64 serve_boost_bps = 13;
+  uint64 max_serve_boost_per_epoch = 14;
+  uint64 bootstrap_grace_epochs = 15;
+}

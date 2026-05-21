@@ -1,0 +1,24 @@
+syntax = "proto3";
+package wevibe.attestation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/attestation/types";
+
+enum ProviderType {
+  PROVIDER_TYPE_UNSPECIFIED = 0;
+  PROVIDER_TYPE_LOCAL = 1;
+  PROVIDER_TYPE_CLOUD = 2;
+}
+
+message StoredSessionAttestation {
+  string org_id = 1;
+  bytes session_hash = 2;
+  string model_id = 3;
+  uint32 turn_count = 4;
+  uint32 token_count = 5;
+  ProviderType provider_type = 6;
+  bytes commitllm_receipt_hash = 7;
+  bytes provider_signature_hash = 8;
+  string contributor_id = 9;
+  uint64 epoch = 10;
+  uint64 submitted_at_height = 11;
+}

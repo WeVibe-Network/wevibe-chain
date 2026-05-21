@@ -1,0 +1,57 @@
+syntax = "proto3";
+package wevibe.bandwidth.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/bandwidth/types";
+
+import "google/api/annotations.proto";
+import "wevibe/bandwidth/v1/params.proto";
+import "wevibe/bandwidth/v1/state.proto";
+
+service Query {
+  rpc GetBandwidthState(QueryGetBandwidthStateRequest) returns (QueryGetBandwidthStateResponse) {
+    option (google.api.http).get = "/wevibe/bandwidth/v1/state/{org_id}/{epoch}";
+  }
+  rpc GetBandwidthOverride(QueryGetBandwidthOverrideRequest) returns (QueryGetBandwidthOverrideResponse) {
+    option (google.api.http).get = "/wevibe/bandwidth/v1/override/{org_id}";
+  }
+  rpc GetRemainingBandwidth(QueryGetRemainingBandwidthRequest) returns (QueryGetRemainingBandwidthResponse) {
+    option (google.api.http).get = "/wevibe/bandwidth/v1/remaining/{org_id}/{epoch}";
+  }
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/bandwidth/v1/params";
+  }
+}
+
+message QueryGetBandwidthStateRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetBandwidthStateResponse {
+  StoredBandwidthState state = 1;
+}
+
+message QueryGetBandwidthOverrideRequest {
+  string org_id = 1;
+}
+
+message QueryGetBandwidthOverrideResponse {
+  StoredBandwidthOverride override = 1;
+  bool has_override = 2;
+}
+
+message QueryGetRemainingBandwidthRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetRemainingBandwidthResponse {
+  uint64 memory_remaining = 1;
+  uint64 serve_remaining = 2;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}

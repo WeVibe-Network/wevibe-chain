@@ -1,0 +1,45 @@
+syntax = "proto3";
+package wevibe.attestation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/attestation/types";
+
+import "cosmos/msg/v1/msg.proto";
+import "wevibe/attestation/v1/state.proto";
+import "wevibe/attestation/v1/params.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+
+  rpc SubmitSessionAttestation(MsgSubmitSessionAttestation) returns (MsgSubmitSessionAttestationResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+message MsgSubmitSessionAttestation {
+  option (cosmos.msg.v1.signer) = "signer";
+
+  string signer = 1;
+  string org_id = 2;
+  bytes session_hash = 3;
+  string model_id = 4;
+  uint32 turn_count = 5;
+  uint32 token_count = 6;
+  ProviderType provider_type = 7;
+  bytes commitllm_receipt_hash = 8;
+  bytes provider_signature_hash = 9;
+  string contributor_id = 10;
+  uint64 epoch = 11;
+}
+
+message MsgSubmitSessionAttestationResponse {
+  bool accepted = 1;
+  string verification_status = 2;
+}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+
+  string authority = 1;
+  Params params = 2;
+}
+
+message MsgUpdateParamsResponse {}

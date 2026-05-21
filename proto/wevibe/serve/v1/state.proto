@@ -1,0 +1,44 @@
+syntax = "proto3";
+package wevibe.serve.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
+
+message StoredServeAttestation {
+  string org_id = 1;
+  bytes memory_content_hash = 2;
+  string serve_key = 3;
+  string contributor_id = 4;
+  uint64 epoch = 5;
+  bytes nullifier = 6;
+  bool is_self_serve = 7;
+  string model_id = 8;
+  uint32 turn_count = 9;
+}
+
+message StoredDenialAttestation {
+  string org_id = 1;
+  bytes memory_hash = 2;
+  string deny_key = 3;
+  string reason = 4;
+  uint64 epoch = 5;
+  bytes nullifier = 6;
+}
+
+message StoredEpochServeStats {
+  string org_id = 1;
+  uint64 epoch = 2;
+  uint64 total_serves = 3;
+  uint64 unique_memories_served = 4;
+  uint64 unique_serve_keys = 5;
+  uint64 self_serves = 6;
+  map<string, uint64> model_breakdown = 7;
+}
+
+message StoredContributorEpochServes {
+  string contributor_id = 1;
+  uint64 epoch = 2;
+  uint64 serve_count = 3;
+  uint64 self_serve_count = 4;
+  repeated string org_ids = 5;
+  uint64 total_turns = 6;
+}

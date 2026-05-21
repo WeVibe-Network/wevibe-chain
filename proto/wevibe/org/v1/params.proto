@@ -1,0 +1,15 @@
+syntax = "proto3";
+package wevibe.org.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/org/types";
+
+message Params {
+  uint64 min_registration_fee = 1;
+  uint64 annual_renewal_fee = 2;
+  uint64 default_storage_quota = 3;
+  uint64 default_retrieval_budget = 4;
+  uint64 grace_period_epochs = 5;
+  uint64 burn_price_decay_epochs = 6;
+  uint64 base_burn_price = 7;
+  uint64 burn_price_increase_percent = 8;
+}

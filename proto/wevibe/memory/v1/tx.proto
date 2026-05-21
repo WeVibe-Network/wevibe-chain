@@ -1,0 +1,137 @@
+syntax = "proto3";
+package wevibe.memory.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/memory/types";
+
+import "cosmos/msg/v1/msg.proto";
+import "wevibe/memory/v1/params.proto";
+import "wevibe/memory/v1/state.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc SubmitCommitment(MsgSubmitCommitment) returns (MsgSubmitCommitmentResponse);
+  rpc ApproveMemory(MsgApproveMemory) returns (MsgApproveMemoryResponse);
+  rpc RejectMemory(MsgRejectMemory) returns (MsgRejectMemoryResponse);
+  rpc PurgeExpired(MsgPurgeExpired) returns (MsgPurgeExpiredResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+  rpc RelateMemories(MsgRelateMemories) returns (MsgRelateMemoriesResponse);
+  rpc ApproveRelationship(MsgApproveRelationship) returns (MsgApproveRelationshipResponse);
+  rpc SetValidityBounds(MsgSetValidityBounds) returns (MsgSetValidityBoundsResponse);
+  rpc ArchiveMemory(MsgArchiveMemory) returns (MsgArchiveMemoryResponse);
+  rpc ReportMemory(MsgReportMemory) returns (MsgReportMemoryResponse);
+}
+
+message MsgSubmitCommitment {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  bytes content_hash = 3;
+  repeated KeywordWeight keywords = 4;
+  string contributor_id = 5;
+  string contributor_wallet = 6;
+  MemoryType memory_type = 7;
+}
+
+message MsgSubmitCommitmentResponse {}
+
+message MsgApproveMemory {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  bytes content_hash = 3;
+  bytes encrypted_blob = 4;
+  repeated string approvers = 5;
+  string committing_leader = 6;
+  bytes wrapped_dek_enc = 7;
+  MemoryType memory_type = 8;
+}
+
+message MsgApproveMemoryResponse {}
+
+message MsgRejectMemory {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  bytes content_hash = 3;
+}
+
+message MsgRejectMemoryResponse {}
+
+message MsgPurgeExpired {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+}
+
+message MsgPurgeExpiredResponse {
+  uint64 purged_count = 1;
+}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Params params = 2;
+}
+
+message MsgUpdateParamsResponse {}
+
+message MsgRelateMemories {
+  option (cosmos.msg.v1.signer) = "sender";
+  string sender = 1;
+  string org_id = 2;
+  string source_cid = 3;
+  string target_cid = 4;
+  RelationType relation_type = 5;
+}
+
+message MsgRelateMemoriesResponse {}
+
+message MsgApproveRelationship {
+  option (cosmos.msg.v1.signer) = "sender";
+  string sender = 1;
+  string org_id = 2;
+  string source_cid = 3;
+  string target_cid = 4;
+}
+
+message MsgApproveRelationshipResponse {}
+
+message MsgSetValidityBounds {
+  option (cosmos.msg.v1.signer) = "sender";
+  string sender = 1;
+  string org_id = 2;
+  string memory_cid = 3;
+  uint64 valid_after_epoch = 4;
+  uint64 valid_until_epoch = 5;
+  map<string, string> scope_tags = 6;
+}
+
+message MsgSetValidityBoundsResponse {}
+
+message MsgArchiveMemory {
+  option (cosmos.msg.v1.signer) = "sender";
+  string sender = 1;
+  string org_id = 2;
+  string memory_cid = 3;
+}
+
+message MsgArchiveMemoryResponse {}
+
+message MsgReportMemory {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  bytes content_hash = 3;
+  string contributor_pubkey = 4;
+  repeated string approving_moderators = 5;
+  repeated string upholding_moderators = 6;
+  string reporter_pubkey = 7;
+  string reason = 8;
+  bytes plaintext = 9;
+  bytes ciphertext = 10;
+  bytes capsule = 11;
+  bytes plaintext_hash = 12;
+  bool plaintext_oversized = 13;
+}
+
+message MsgReportMemoryResponse {}

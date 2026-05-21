@@ -1,0 +1,12 @@
+syntax = "proto3";
+package wevibe.serve.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
+
+message Params {
+  uint32 max_serves_per_batch = 1;
+  uint32 self_serve_discount_percent = 2;
+  uint32 max_serves_per_memory_per_epoch = 3;
+  uint64 min_org_age_epochs = 4;
+  uint64 diminishing_returns_threshold = 5;
+}

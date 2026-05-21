@@ -1,0 +1,216 @@
+syntax = "proto3";
+package wevibe.reputation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/reputation/types";
+
+import "google/api/annotations.proto";
+import "cosmos/base/query/v1beta1/pagination.proto";
+import "wevibe/reputation/v1/params.proto";
+import "wevibe/reputation/v1/state.proto";
+
+service Query {
+  rpc GetReputation(QueryGetReputationRequest) returns (QueryGetReputationResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/reputation/{developer}";
+  }
+  rpc GetXP(QueryGetXPRequest) returns (QueryGetXPResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/xp/{developer}";
+  }
+  rpc IsActive(QueryIsActiveRequest) returns (QueryIsActiveResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/active";
+  }
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/params";
+  }
+  rpc GetServeStats(QueryGetServeStatsRequest) returns (QueryGetServeStatsResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/serve_stats/{developer}";
+  }
+  rpc GetContributorOrgSet(QueryGetContributorOrgSetRequest) returns (QueryGetContributorOrgSetResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/org_set/{developer}";
+  }
+  rpc GetCrossOrgProfile(QueryGetCrossOrgProfileRequest) returns (QueryGetCrossOrgProfileResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/profile/{developer}";
+  }
+  rpc GetContributorProfile(QueryGetContributorProfileRequest) returns (QueryGetContributorProfileResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/contributor/{contributor_id}";
+  }
+  rpc ModeratorProfile(QueryModeratorProfileRequest) returns (QueryModeratorProfileResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/moderator/{moderator_pubkey}";
+  }
+  rpc LeaderProfile(QueryLeaderProfileRequest) returns (QueryLeaderProfileResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/leader/{leader_pubkey}";
+  }
+  rpc UpheldReportsByContributor(QueryUpheldReportsByContributorRequest) returns (QueryUpheldReportsByContributorResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/upheld_reports/contributor/{contributor_id}";
+  }
+  rpc UpheldReportsByModerator(QueryUpheldReportsByModeratorRequest) returns (QueryUpheldReportsByModeratorResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/upheld_reports/moderator/{moderator_pubkey}";
+  }
+  rpc UpheldReportsByLeader(QueryUpheldReportsByLeaderRequest) returns (QueryUpheldReportsByLeaderResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/upheld_reports/leader/{leader_pubkey}";
+  }
+  rpc VerifyUpheldReport(QueryVerifyUpheldReportRequest) returns (QueryVerifyUpheldReportResponse) {
+    option (google.api.http).get = "/wevibe/reputation/v1/verify_upheld_report/{org_id}/{content_hash}";
+  }
+}
+
+message QueryGetReputationRequest {
+  bytes developer = 1;
+}
+
+message QueryGetReputationResponse {
+  string developer_id = 1;
+  uint64 memory_count = 2;
+  uint64 xp = 3;
+}
+
+message QueryGetXPRequest {
+  bytes developer = 1;
+}
+
+message QueryGetXPResponse {
+  uint64 xp = 1;
+}
+
+message QueryIsActiveRequest {}
+
+message QueryIsActiveResponse {
+  bool active = 1;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}
+
+message QueryGetServeStatsRequest {
+  bytes developer = 1;
+}
+message QueryGetServeStatsResponse {
+  uint64 serve_count = 1;
+  uint64 self_serve_count = 2;
+  uint64 org_breadth = 3;
+  uint64 serve_xp = 4;
+  uint64 first_seen_epoch = 5;
+}
+
+message QueryGetContributorOrgSetRequest {
+  bytes developer = 1;
+}
+message QueryGetContributorOrgSetResponse {
+  repeated string org_ids = 1;
+}
+
+message QueryGetCrossOrgProfileRequest {
+  bytes developer = 1;
+}
+message QueryGetCrossOrgProfileResponse {
+  string developer_id = 1;
+  uint64 memory_count = 2;
+  uint64 xp = 3;
+  uint64 serve_count = 4;
+  uint64 self_serve_count = 5;
+  uint64 org_breadth = 6;
+  uint64 serve_xp = 7;
+  uint64 first_seen_epoch = 8;
+  repeated string org_ids = 9;
+  map<string, uint64> domain_tags = 10;
+}
+
+message QueryGetContributorProfileRequest {
+  string contributor_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetContributorProfileResponse {
+  string contributor_id = 1;
+  uint64 xp = 2;
+  uint64 serve_xp = 3;
+  uint64 memory_count = 4;
+  uint64 serve_count = 5;
+  uint64 self_serve_count = 6;
+  uint64 org_breadth = 7;
+  uint64 first_seen_epoch = 8;
+  repeated uint64 difficulty_histogram = 9;
+  repeated string top_domains = 10;
+  map<string, uint64> provenance_breakdown = 11;
+  repeated string org_ids = 12;
+  uint64 epoch_serves = 13;
+  uint64 epoch_self_serves = 14;
+  uint64 epoch_total_turns = 15;
+}
+
+message QueryModeratorProfileRequest {
+  string moderator_pubkey = 1;
+  string org_id = 2;
+}
+
+message QueryModeratorProfileResponse {
+  StoredModeratorProfile profile = 1;
+}
+
+message QueryLeaderProfileRequest {
+  string leader_pubkey = 1;
+  string org_id = 2;
+}
+
+message QueryLeaderProfileResponse {
+  StoredLeaderProfile profile = 1;
+}
+
+message QueryUpheldReportsByContributorRequest {
+  string contributor_id = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+message QueryUpheldReportsByContributorResponse {
+  repeated UpheldReportEntry reports = 1;
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+message QueryUpheldReportsByModeratorRequest {
+  string moderator_pubkey = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+message QueryUpheldReportsByModeratorResponse {
+  repeated UpheldReportEntry reports = 1;
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+message QueryUpheldReportsByLeaderRequest {
+  string leader_pubkey = 1;
+  cosmos.base.query.v1beta1.PageRequest pagination = 2;
+}
+
+message QueryUpheldReportsByLeaderResponse {
+  repeated UpheldReportEntry reports = 1;
+  cosmos.base.query.v1beta1.PageResponse pagination = 2;
+}
+
+message UpheldReportEntry {
+  string org_id = 1;
+  bytes content_hash = 2;
+  string contributor_pubkey = 3;
+  repeated string approving_moderators = 4;
+  repeated string upholding_moderators = 5;
+  string reporter_pubkey = 6;
+  string reason = 7;
+  uint64 upheld_at_epoch = 8;
+}
+
+message QueryVerifyUpheldReportRequest {
+  string org_id = 1;
+  bytes content_hash = 2;
+}
+
+message QueryVerifyUpheldReportResponse {
+  bytes plaintext = 1;
+  bytes ciphertext = 2;
+  bytes capsule = 3;
+  bytes plaintext_hash = 4;
+  bool plaintext_oversized = 5;
+  repeated string approving_moderators = 6;
+  repeated string upholding_moderators = 7;
+  uint64 upheld_at_epoch = 8;
+}

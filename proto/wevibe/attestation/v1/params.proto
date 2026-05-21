@@ -1,0 +1,9 @@
+syntax = "proto3";
+package wevibe.attestation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/attestation/types";
+
+message Params {
+  uint64 max_attestations_per_epoch = 1;
+  bool require_attestation_for_serve = 2;
+}

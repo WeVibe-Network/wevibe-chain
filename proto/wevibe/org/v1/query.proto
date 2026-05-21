@@ -1,0 +1,132 @@
+syntax = "proto3";
+package wevibe.org.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/org/types";
+
+import "google/api/annotations.proto";
+import "wevibe/org/v1/params.proto";
+import "wevibe/org/v1/state.proto";
+
+service Query {
+  rpc GetOrg(QueryGetOrgRequest) returns (QueryGetOrgResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/org/{org_id}";
+  }
+  rpc GetMembers(QueryGetMembersRequest) returns (QueryGetMembersResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/members/{org_id}";
+  }
+  rpc IsMember(QueryIsMemberRequest) returns (QueryIsMemberResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/is_member/{org_id}/{pubkey}";
+  }
+  rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/params";
+  }
+  rpc GetTreasury(QueryGetTreasuryRequest) returns (QueryGetTreasuryResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/treasury/{org_id}";
+  }
+  rpc GetRepTiers(QueryGetRepTiersRequest) returns (QueryGetRepTiersResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/rep_tiers/{org_id}";
+  }
+  rpc GetOrgConfig(QueryGetOrgConfigRequest) returns (QueryGetOrgConfigResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/config/{org_id}";
+  }
+  rpc GetOrgProfile(QueryGetOrgProfileRequest) returns (QueryGetOrgProfileResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/profile/{org_id}";
+  }
+}
+
+message QueryGetOrgRequest {
+  string org_id = 1;
+}
+
+message QueryGetOrgResponse {
+  string org_id = 1;
+  string leader = 2;
+  uint64 created_at = 3;
+  uint64 renewal_height = 4;
+  uint64 storage_quota = 5;
+  uint64 retrieval_budget = 6;
+  int32 status = 7;
+  string domain = 8;
+}
+
+message QueryGetMembersRequest {
+  string org_id = 1;
+}
+
+message MemberInfo {
+  string org_id = 1;
+  string pubkey = 2;
+  string role = 3;
+}
+
+message QueryGetMembersResponse {
+  repeated MemberInfo members = 1;
+}
+
+message QueryIsMemberRequest {
+  string org_id = 1;
+  string pubkey = 2;
+}
+
+message QueryIsMemberResponse {
+  bool is_member = 1;
+}
+
+message QueryParamsRequest {}
+
+message QueryParamsResponse {
+  Params params = 1;
+}
+
+message QueryGetTreasuryRequest {
+  string org_id = 1;
+}
+
+message QueryGetTreasuryResponse {
+  string balance = 1;
+}
+
+message QueryGetRepTiersRequest {
+  string org_id = 1;
+}
+
+message QueryGetRepTiersResponse {
+  repeated RepTier tiers = 1;
+}
+
+message QueryGetOrgConfigRequest {
+  string org_id = 1;
+}
+
+message QueryGetOrgConfigResponse {
+  bool serve_attestation_required = 1;
+  uint64 min_contributions_per_epoch = 2;
+  uint64 contest_stake_vibe = 3;
+}
+
+message QueryGetOrgProfileRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryGetOrgProfileResponse {
+  string org_id = 1;
+  string leader = 2;
+  string domain = 3;
+  int32 status = 4;
+  uint64 created_at = 5;
+  uint64 member_count = 6;
+  uint64 moderator_count = 7;
+  uint64 approved_memory_count = 8;
+  uint64 total_serves = 9;
+  uint64 unique_memories_served = 10;
+  uint64 self_serves = 11;
+  string treasury_balance = 12;
+  uint64 memory_bandwidth_used = 13;
+  uint64 memory_bandwidth_cap = 14;
+  uint64 serve_bandwidth_used = 15;
+  uint64 serve_bandwidth_cap = 16;
+  map<string, uint64> model_breakdown = 17;
+  uint64 storage_quota = 18;
+  uint64 retrieval_budget = 19;
+}

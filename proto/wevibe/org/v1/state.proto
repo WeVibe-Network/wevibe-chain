@@ -1,0 +1,57 @@
+syntax = "proto3";
+package wevibe.org.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/org/types";
+
+message StoredOrg {
+  string org_id = 1;
+  string leader = 2;
+  uint64 created_at = 3;
+  uint64 renewal_height = 4;
+  uint64 storage_quota = 5;
+  uint64 retrieval_budget = 6;
+  int32 status = 7;
+  string domain = 8;
+  uint64 total_committed_memories = 9;
+  uint64 total_active_members = 10;
+  uint64 total_epoch_rotations = 11;
+  uint64 total_upheld_reports = 12;
+  uint64 last_activity_epoch = 13;
+}
+
+message StoredMemberRecord {
+  string org_id = 1;
+  string pubkey = 2;
+  string role = 3;
+}
+
+message StoredDynamicPrice {
+  uint64 price = 1;
+  uint64 last_creation = 2;
+  uint64 creation_count = 3;
+}
+
+message StoredTreasury {
+  string org_id = 1;
+  string balance = 2;
+}
+
+message StoredRepTierConfig {
+  string org_id = 1;
+  repeated RepTier tiers = 2;
+}
+
+message RepTier {
+  uint64 min_reputation = 1;
+  uint64 max_reputation = 2;
+  uint64 max_contributions_per_epoch = 3;
+  string payout_per_memory = 4;
+}
+
+message StoredOrgConfig {
+  string org_id = 1;
+  bool serve_attestation_required = 2;
+  reserved 3;
+  uint64 contest_stake_vibe = 4;
+  uint64 min_contributions_per_epoch = 10;
+}

@@ -1,0 +1,19 @@
+syntax = "proto3";
+package wevibe.bandwidth.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/bandwidth/types";
+
+message StoredBandwidthState {
+  string org_id = 1;
+  uint64 epoch = 2;
+  uint64 memory_used = 3;
+  uint64 memory_cap = 4;
+  uint64 serve_used = 5;
+  uint64 serve_cap = 6;
+}
+
+message StoredBandwidthOverride {
+  string org_id = 1;
+  uint64 memory_cap = 2;
+  uint64 serve_cap = 3;
+}

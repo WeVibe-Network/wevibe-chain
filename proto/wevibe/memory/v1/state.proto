@@ -1,0 +1,111 @@
+syntax = "proto3";
+package wevibe.memory.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/memory/types";
+
+enum MemoryType {
+  MEMORY_TYPE_UNSPECIFIED = 0;
+  MEMORY_TYPE_CORRECT_IMPLEMENTATION = 1;
+  MEMORY_TYPE_NEGATIVE_SIGNAL = 2;
+}
+
+enum MemoryState {
+  MEMORY_STATE_UNSPECIFIED = 0;
+  MEMORY_STATE_PENDING = 1;
+  MEMORY_STATE_PENDING_KEYWORD = 2;
+  MEMORY_STATE_PENDING_CHAIN = 3;
+  MEMORY_STATE_COMMITTED = 4;
+  MEMORY_STATE_DENIED = 5;
+  MEMORY_STATE_ARCHIVED = 6;
+  MEMORY_STATE_REPORTED_DELETED = 7;
+}
+
+enum RelationType {
+  RELATION_TYPE_UNSPECIFIED = 0;
+  RELATION_TYPE_CONTRADICTS = 1;
+  RELATION_TYPE_REPLACES = 2;
+  RELATION_TYPE_DEPRECATES = 3;
+  RELATION_TYPE_SUPERSEDES = 4;
+}
+
+message KeywordWeight {
+  string keyword = 1;
+  string weight = 2;
+  uint64 serve_count = 3;
+  uint64 denial_count = 4;
+}
+
+message StoredPendingCommitment {
+  string org_id = 1;
+  bytes content_hash = 2;
+  repeated KeywordWeight keywords = 3;
+  string contributor_id = 4;
+  uint64 epoch = 5;
+  uint64 submitted_at_height = 6;
+  MemoryType memory_type = 7;
+}
+
+message StoredMemoryCommitment {
+  string org_id = 1;
+  bytes content_hash = 2;
+  bytes encrypted_blob = 3;
+  repeated KeywordWeight keywords = 4;
+  string contributor_pubkey = 5;
+  uint64 epoch = 6;
+  uint64 committed_at_height = 7;
+  repeated string approvers = 8;
+  string committing_leader_pubkey = 9;
+  MemoryState state = 10;
+  uint64 last_active_epoch = 11;
+  bytes wrapped_dek_enc = 12;
+  MemoryType memory_type = 13;
+  uint64 approved_at_epoch = 14;
+}
+
+message StoredMemoryRelationship {
+  string org_id = 1;
+  string source_cid = 2;
+  string target_cid = 3;
+  RelationType relation_type = 4;
+  string proposer = 5;
+  bool approved = 6;
+  uint64 epoch = 7;
+}
+
+message StoredValidityMetadata {
+  string org_id = 1;
+  string memory_cid = 2;
+  uint64 valid_after_epoch = 3;
+  uint64 valid_until_epoch = 4;
+  bytes scope_tags_bz = 5;
+}
+
+message StoredEpochMerkleRoot {
+  string org_id = 1;
+  uint64 epoch = 2;
+  bytes merkle_root = 3;
+  uint64 memory_count = 4;
+}
+
+message StoredMemoryReport {
+  string org_id = 1;
+  bytes content_hash = 2;
+  string contributor_pubkey = 3;
+  repeated string approving_moderators = 4;
+  repeated string upholding_moderators = 5;
+  string reporter_pubkey = 6;
+  string committing_leader_pubkey = 7;
+  string reason = 8;
+  // plaintext: max 4096 bytes (4KB). Empty if plaintext_oversized=true.
+  bytes plaintext = 9;
+  // ciphertext: max 8192 bytes
+  bytes ciphertext = 10;
+  // capsule: ~200 bytes
+  bytes capsule = 11;
+  // SHA256 of plaintext — always present
+  bytes plaintext_hash = 12;
+  // True if plaintext exceeded 4KB limit
+  bool plaintext_oversized = 13;
+  uint64 upheld_at_epoch = 14;
+  int64 upheld_at_timestamp = 15;
+}

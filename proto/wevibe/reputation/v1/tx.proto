@@ -1,0 +1,70 @@
+syntax = "proto3";
+package wevibe.reputation.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/reputation/types";
+
+import "cosmos/msg/v1/msg.proto";
+import "wevibe/reputation/v1/params.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc UpdateReputation(MsgUpdateReputation) returns (MsgUpdateReputationResponse);
+  rpc IncrementContribution(MsgIncrementContribution) returns (MsgIncrementContributionResponse);
+  rpc IncrementServe(MsgIncrementServe) returns (MsgIncrementServeResponse);
+  rpc RecordBan(MsgRecordBan) returns (MsgRecordBanResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+message MsgUpdateReputation {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  bytes developer = 2;
+  string memory_cid = 3;
+  uint32 difficulty = 4;
+  uint32 quality = 5;
+  repeated string domain_tags = 6;
+  string provenance = 7;
+}
+
+message MsgUpdateReputationResponse {
+  uint64 xp = 1;
+}
+
+message MsgIncrementContribution {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string contributor_id = 2;
+  string org_id = 3;
+  string memory_cid = 4;
+}
+
+message MsgIncrementContributionResponse {}
+
+message MsgIncrementServe {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string contributor_id = 2;
+  string org_id = 3;
+  string memory_cid = 4;
+  uint64 serve_count = 5;
+}
+
+message MsgIncrementServeResponse {}
+
+message MsgRecordBan {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string contributor_id = 2;
+  string org_id = 3;
+  string memory_cid = 4;
+}
+
+message MsgRecordBanResponse {}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Params params = 2;
+}
+
+message MsgUpdateParamsResponse {}

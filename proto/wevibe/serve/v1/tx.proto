@@ -1,0 +1,66 @@
+syntax = "proto3";
+package wevibe.serve.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
+
+import "cosmos/msg/v1/msg.proto";
+import "wevibe/serve/v1/params.proto";
+
+service Msg {
+  option (cosmos.msg.v1.service) = true;
+  rpc SubmitServeBatch(MsgSubmitServeBatch) returns (MsgSubmitServeBatchResponse);
+  rpc SubmitDenialBatch(MsgSubmitDenialBatch) returns (MsgSubmitDenialBatchResponse);
+  rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+}
+
+message ServeEntry {
+  bytes memory_content_hash = 1;
+  string serve_key = 2;
+  string contributor_id = 3;
+  bytes nullifier = 4;
+  string model_id = 5;
+  uint32 turn_count = 6;
+  string contributor_wallet = 7;
+}
+
+message MsgSubmitServeBatch {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  uint64 epoch = 3;
+  repeated ServeEntry serves = 4;
+}
+
+message MsgSubmitServeBatchResponse {
+  uint64 accepted = 1;
+  uint64 rejected_duplicate = 2;
+  uint64 rejected_invalid = 3;
+}
+
+message DenialEntry {
+  bytes memory_hash = 1;
+  bytes nullifier = 2;
+  string deny_key = 3;
+  string reason = 4;
+}
+
+message MsgSubmitDenialBatch {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  uint64 epoch = 3;
+  repeated DenialEntry entries = 4;
+}
+
+message MsgSubmitDenialBatchResponse {
+  uint64 accepted = 1;
+  uint64 rejected = 2;
+}
+
+message MsgUpdateParams {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  Params params = 2;
+}
+
+message MsgUpdateParamsResponse {}
