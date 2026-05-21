@@ -11,7 +11,7 @@ WeVibe Chain is the Cosmos SDK application anchoring WeVibe Network's encrypted 
 - **Tendermint RPC** — Block and transaction gossip
 - **gRPC-gateway REST** — Derived from protobuf services in `proto/wevibe/**`
 
-Client authentication uses bech32 addresses with the `wevibe` prefix. Fees are denominated in `vibe`. Governance retains authority over critical parameters via the `gov` module address.
+Client authentication uses bech32 addresses with the `wevibe` prefix. Fees are denominated in `uvibe`. Governance retains authority over critical parameters via the `gov` module address.
 
 ### WeVibe Hub
 
@@ -43,7 +43,7 @@ The org module manages organization registration, membership, and treasuries.
 | `org/` | `StoredOrg` | Organization metadata (leader, creation height, renewal height, storage quota, retrieval budget, status, domain) |
 | `member/{org}/{pubkey}` | `StoredMemberRecord` | Membership roles (leader plus custom roles) |
 | `dynprice/` | `StoredDynamicPrice` | Dynamic burn price inputs for new registrations |
-| `treasury/{org}` | `StoredTreasury` | Organization treasury balance in string-encoded `vibe` |
+| `treasury/{org}` | `StoredTreasury` | Organization treasury balance in string-encoded `uvibe` |
 | `reptier/{org}` | `StoredRepTierConfig` | Ordered payout tiers keyed by reputation bounds |
 | `orgconfig/{org}` | `StoredOrgConfig` | Runtime toggles (serve_attestation_required, decay_rate_bps, contest_stake_vibe) |
 | `params` | `Params` | Module-level fees, quota defaults, burn behavior |
@@ -52,7 +52,7 @@ The org module manages organization registration, membership, and treasuries.
 
 | Message | Description |
 |---------|-------------|
-| `MsgRegisterOrg` | Burn WEVIBE at dynamic price, create org with designated leader |
+| `MsgRegisterOrg` | Burn VIBE at dynamic price, create org with designated leader |
 | `MsgAddMember` | Add member to organization with assigned role |
 | `MsgRemoveMember` | Remove member from organization's roster |
 | `MsgFundTreasury` | Add funds from signer to org treasury |
@@ -391,7 +391,7 @@ This order ensures each keeper's dependencies are constructed before injection.
 ### Organization Registration
 
 1. Leader submits `MsgRegisterOrg` via Dashboard
-2. Org keeper validates, checks dynamic price, burns `vibe` via `BankKeeper`
+2. Org keeper validates, checks dynamic price, burns `uvibe` via `BankKeeper`
 3. Leader inserted as member with `leader` role
 4. Dynamic price counter increments
 5. Hub queries `/wevibe/org/v1/org/{org_id}` and broadcasts to clients
@@ -436,7 +436,7 @@ This order ensures each keeper's dependencies are constructed before injection.
 
 | Module | Permissions | Purpose |
 |--------|-------------|---------|
-| `org` | `Burner` | Burn WEVIBE on org registration |
+| `org` | `Burner` | Burn VIBE on org registration |
 | `memory` | `Burner` | Burn contest escrow on rejected contests |
 
 Standard Cosmos module permissions (staking, mint, distribution, gov, fee_collector) follow Cosmos SDK defaults.

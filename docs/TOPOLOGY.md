@@ -28,7 +28,7 @@ Behavior:
 ### WeVibe Chain
 WeVibe Chain is the Cosmos SDK application that anchors Sprint 23 functionality. It couples the staking, governance, bank, epochs, and distribution foundations with purpose-built modules that orchestrate organization onboarding, memory curation, serving attestations, contributor reputation, bandwidth throttling, and emission incentives. The app wiring in `app/app.go` binds Cosmos services such as the consensus parameter keeper, staking hooks, and message routers while mounting the custom store keys `attestation`, `bandwidth`, `emissions`, `memory`, `org`, `reputation`, and `serve`. Each block processes ABCI messages through `BaseApp`, so all module state transitions participate in the same deterministic state machine.
 
-WeVibe Chain exposes two public APIs: Tendermint RPC for block and transaction gossip, and gRPC-gateway REST routes derived from the protobuf services in `proto/wevibe/**`. Clients authenticate through bech32 addresses with the `wevibe` prefix, and fees are denominated in `vibe`. Governance retains authority over critical parameters by injecting the `gov` module address into keepers that enforce privileged updates.
+WeVibe Chain exposes two public APIs: Tendermint RPC for block and transaction gossip, and gRPC-gateway REST routes derived from the protobuf services in `proto/wevibe/**`. Clients authenticate through bech32 addresses with the `wevibe` prefix, and fees are denominated in `uvibe`. Governance retains authority over critical parameters by injecting the `gov` module address into keepers that enforce privileged updates.
 
 ## Sprint 24 Updates (CO-240)
 
@@ -57,7 +57,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - `org/`: `StoredOrg` records authoritative metadata (leader, creation height, renewal height, storage quota, retrieval budget, status, domain).
   - `member/{org}/{pubkey}`: `StoredMemberRecord` snapshots membership roles (leader plus custom roles).
   - `dynprice/`: `StoredDynamicPrice` tracks the adaptive burn price inputs for new registrations.
-  - `treasury/{org}`: `StoredTreasury` mirrors each organization treasury balance in string-encoded `vibe`.
+  - `treasury/{org}`: `StoredTreasury` mirrors each organization treasury balance in string-encoded `uvibe`.
   - `reptier/{org}`: `StoredRepTierConfig` stores ordered payout tiers keyed by reputation bounds.
   - `orgconfig/{org}`: `StoredOrgConfig` persists runtime toggles (currently `serve_attestation_required`).
   - `params`: module-level `Params` (fees, quota defaults, burn behavior).
@@ -208,7 +208,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 
 1. **Organization registration**
    1. A leader submits `MsgRegisterOrg` through the dashboard.
-   2. The org keeper validates the payload, checks the dynamic price, burns the `vibe` fee using `BankKeeper`, and stores the org metadata under `org/{org_id}`.
+   2. The org keeper validates the payload, checks the dynamic price, burns the `uvibe` fee using `BankKeeper`, and stores the org metadata under `org/{org_id}`.
    3. During registration the leader is inserted into `member/{org}/{pubkey}` with role `leader`, and the dynamic price counter increments.
    4. Genesis or runtime watchers (Hub) query `/wevibe/org/v1/org/{org_id}` and `/wevibe/org/v1/config/{org_id}` to broadcast the new organization to clients.
 

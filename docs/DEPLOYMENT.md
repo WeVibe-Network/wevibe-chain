@@ -74,7 +74,7 @@ wevibed init my-node --chain-id wevibe-local-1 --home /var/lib/wevibed
 wevibed keys add operator --keyring-backend file --home /var/lib/wevibed
 
 # Add genesis account
-wevibed genesis add-genesis-account $(wevibed keys show operator -a --keyring-backend file --home /var/lib/wevibed) 1000000000vibe --home /var/lib/wevibed
+wevibed genesis add-genesis-account $(wevibed keys show operator -a --keyring-backend file --home /var/lib/wevibed) 1000000000uvibe --home /var/lib/wevibed
 ```
 
 ### Configure Epoch Duration
@@ -186,7 +186,7 @@ wevibed init validator-1 --chain-id wevibe-1 --home /var/lib/wevibed
 wevibed keys add validator --keyring-backend file --home /var/lib/wevibed
 
 # Add to genesis (pre-launch only)
-wevibed genesis add-genesis-account $(wevibed keys show validator -a --keyring-backend file --home /var/lib/wevibed) 1000000000vibe --home /var/lib/wevibed
+wevibed genesis add-genesis-account $(wevibed keys show validator -a --keyring-backend file --home /var/lib/wevibed) 1000000000uvibe --home /var/lib/wevibed
 ```
 
 #### 2. Create Validator Metadata
@@ -208,7 +208,7 @@ EOF
 
 ```bash
 # Create gentx (pre-launch)
-wevibed genesis gentx validator 500000000vibe \
+wevibed genesis gentx validator 500000000uvibe \
   --chain-id wevibe-1 \
   --home /var/lib/wevibed \
   --keyring-backend file \
@@ -382,11 +382,11 @@ wevibed genesis validate-genesis /var/lib/wevibed/config/genesis.json
 
 ```bash
 # /etc/wevibed/environment
-WEVIBED_HOME=/var/lib/wevibed
-WEVIBED_LOG_LEVEL=info
-WEVIBED_PRUNING=syncable
-WEVIBED_MIN_GAS_PRICE=0.0001vibe
-WEVIBED_HALT_HEIGHT=0
+WEVIBE_HOME=/var/lib/wevibed
+WEVIBE_LOG_LEVEL=info
+WEVIBE_PRUNING=syncable
+WEVIBE_MIN_GAS_PRICE=0.0001uvibe
+WEVIBE_HALT_HEIGHT=0
 ```
 
 ### Application Configuration

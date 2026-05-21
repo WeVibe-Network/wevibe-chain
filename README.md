@@ -54,7 +54,7 @@ WeVibe Chain couples the staking, governance, bank, epochs, and distribution fou
 
 ### Organizations
 
-Organizations register on WeVibe Chain by burning WEVIBE tokens via a dynamic pricing curve. Each org maintains:
+Organizations register on WeVibe Chain by burning VIBE tokens via a dynamic pricing curve. Each org maintains:
 - A **leader** who controls approvals and configuration
 - **Members** with roles for collaborative management
 - A **treasury** funded by org administrators for incentive payouts
@@ -158,8 +158,8 @@ wevibed tx wevibe org register-org [args...]
 
 ### Denomination
 
-- **Token**: WEVIBE
-- **Smallest unit**: vibe (1 WEVIBE = 1,000,000 vibe)
+- **Token**: VIBE
+- **Smallest unit**: uvibe (1 VIBE = 1,000,000 uvibe)
 - **Address prefix**: `wevibe`
 
 ### Epoch Configuration
@@ -175,7 +175,7 @@ Configure via `scripts/init-chain.sh` using the `EPOCH_DURATION` environment var
 Governance controls critical module parameters. Default periods for local development:
 - **Voting period**: 172,800 seconds (2 days)
 - **Deposit period**: 172,800 seconds (2 days)
-- **Minimum deposit**: 10,000,000 vibe
+- **Minimum deposit**: 10,000,000 uvibe
 
 ## Network Topology
 

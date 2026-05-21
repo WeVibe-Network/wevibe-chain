@@ -32,7 +32,7 @@ WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's 
 │  Consensus Layer: WeVibe Chain (Cosmos SDK + CometBFT)       │
 │  - Sovereign state machine, all critical transitions         │
 │  - bech32 addresses with 'wevibe' prefix                     │
-│  - Fees denominated in 'uvibe' (1 WEVIBE = 1,000,000 vibe)  │
+│  - Fees denominated in 'uvibe' (1 VIBE = 1,000,000 uvibe)  │
 ├─────────────────────────────────────────────────────────────┤
 │  Indexing Layer: WeVibe Hub (off-chain Go service)           │
 │  - WebSocket subscriptions to new blocks                   │
@@ -49,17 +49,17 @@ WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's 
 
 ### 2.2 Organization Registration Economics
 
-Organizations register by burning WEVIBE via a **dynamic pricing curve**:
+Organizations register by burning VIBE via a **dynamic pricing curve**:
 
 ```
 Price = base_burn_price × (1 + burn_price_increase_percent / 100) ^ creation_count
 ```
 
-- `base_burn_price` = 1,000,000 vibe
+- `base_burn_price` = 1,000,000 uvibe
 - `burn_price_increase_percent` = 10% per org
 - Compounding resets after `burn_price_decay_epochs` (default: 30)
 
-Example: After 5 organizations, price = 1,000,000 × 1.10⁵ = 1,610,510 vibe
+Example: After 5 organizations, price = 1,000,000 × 1.10⁵ = 1,610,510 uvibe
 
 This creates economic friction against spam registrations while remaining affordable for legitimate orgs. The decay prevents permanent price inflation as the ecosystem matures.
 
@@ -318,7 +318,7 @@ These accumulate in `StoredAttestedMemory` for provenance tracking.
 
 ```
 MsgMintDailyEmission (authority):
-1. Mint daily_mint_amount (default: 1,000,000 vibe)
+1. Mint daily_mint_amount (default: 1,000,000 uvibe)
 2. Update pool: total_supply += daily_mint
 3. Record StoredDailyEmission for epoch
 4. Split: operator_share (10%), validator_share (5%)
@@ -599,7 +599,7 @@ AfterEpochEnd (Emissions)
 
 | Module | Message | Purpose |
 |--------|---------|---------|
-| `x/org` | `MsgRegisterOrg` | Burn WEVIBE, create org, auto-add leader |
+| `x/org` | `MsgRegisterOrg` | Burn VIBE, create org, auto-add leader |
 | | `MsgAddMember` / `MsgRemoveMember` | Roster management |
 | | `MsgFundTreasury` / `MsgWithdrawTreasury` | Treasury operations |
 | | `MsgSetRepTiers` | Configure payout tiers |
@@ -625,13 +625,13 @@ AfterEpochEnd (Emissions)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `min_registration_fee` | 1,000,000 vibe | Minimum burn |
-| `annual_renewal_fee` | 100,000 vibe | Renewal cost |
+| `min_registration_fee` | 1,000,000 uvibe | Minimum burn |
+| `annual_renewal_fee` | 100,000 uvibe | Renewal cost |
 | `default_storage_quota` | 1,000,000 | Storage units |
 | `default_retrieval_budget` | 500,000 | Retrieval budget |
 | `grace_period_epochs` | 365 | Inactivity grace period |
 | `burn_price_decay_epochs` | 30 | Dynamic price reset |
-| `base_burn_price` | 1,000,000 vibe | Starting price |
+| `base_burn_price` | 1,000,000 uvibe | Starting price |
 | `burn_price_increase_percent` | 10 | Per-org compounding |
 
 ### 15.2 Memory Module
@@ -680,7 +680,7 @@ AfterEpochEnd (Emissions)
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `daily_mint_amount` | 1,000,000 vibe | Daily mint |
+| `daily_mint_amount` | 1,000,000 uvibe | Daily mint |
 | `operator_share_percent` | 10 | Operator allocation |
 | `validator_share_percent` | 5 | Validator allocation |
 | `storage_weight_percent` | 40 | Storage score weight |

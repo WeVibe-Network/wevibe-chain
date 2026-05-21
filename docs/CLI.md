@@ -56,7 +56,7 @@ wevibed start [flags]
 | `--grpc-address` | string | `0.0.0.0:9090` | gRPC server address |
 | `--grpc-web.address` | string | `0.0.0.0:9091` | gRPC-web server address |
 | `--api.address` | string | `0.0.0.0:1317` | REST API server address |
-| `--minimum-gas-prices` | string | `0.0001vibe` | Minimum gas price |
+| `--minimum-gas-prices` | string | `0.0001uvibe` | Minimum gas price |
 | `--rpc.laddr` | string | `0.0.0.0:26657` | RPC server address |
 
 **Example:**
@@ -595,7 +595,7 @@ wevibed tx org fund-treasury [org_id] [amount] [flags]
 
 **Example:**
 ```bash
-wevibed tx org fund-treasury my-org 1000000vibe --from my-key
+wevibed tx org fund-treasury my-org 1000000uvibe --from my-key
 ```
 
 #### wevibed tx org withdraw-treasury
@@ -1004,7 +1004,7 @@ wevibed genesis add-genesis-account [address_or_key_name] [coin denominations] [
 
 **Example:**
 ```bash
-wevibed genesis add-genesis-account my-key 1000000000vibe --home ~/.wevibed
+wevibed genesis add-genesis-account my-key 1000000000uvibe --home ~/.wevibed
 ```
 
 ### genesis gentx
@@ -1017,7 +1017,7 @@ wevibed genesis gentx [key_name] [stake_amount] [flags]
 
 **Example:**
 ```bash
-wevibed genesis gentx validator 500000000vibe --chain-id wevibe-local-1
+wevibed genesis gentx validator 500000000uvibe --chain-id wevibe-local-1
 ```
 
 ### genesis collect-gentxs
@@ -1104,7 +1104,7 @@ wevibed tx bank send [from_key_or_address] [to_address] [amount] [flags]
 
 **Example:**
 ```bash
-wevibed tx bank send my-key wevibe1abc... 100000vibe --chain-id wevibe-local-1
+wevibed tx bank send my-key wevibe1abc... 100000uvibe --chain-id wevibe-local-1
 ```
 
 ### query bank balances

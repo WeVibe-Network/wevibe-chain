@@ -58,9 +58,9 @@ Organization registration, membership, treasury, and payout configuration.
 #### min_registration_fee
 
 **Type:** uint64  
-**Default:** 1,000,000 vibe
+**Default:** 1,000,000 uvibe
 
-Minimum WEVIBE tokens burned when registering an organization. This creates economic friction to prevent spam registrations.
+Minimum VIBE tokens burned when registering an organization. This creates economic friction to prevent spam registrations.
 
 ```bash
 wevibed tx org update-params [authority] '{"min_registration_fee":"2000000"}' --from gov
@@ -69,7 +69,7 @@ wevibed tx org update-params [authority] '{"min_registration_fee":"2000000"}' --
 #### annual_renewal_fee
 
 **Type:** uint64  
-**Default:** 100,000 vibe
+**Default:** 100,000 uvibe
 
 Annual fee for organization renewal. Collected to maintain active status.
 
@@ -104,7 +104,7 @@ Number of epochs after which the dynamic burn price creation count decays (compo
 #### base_burn_price
 
 **Type:** uint64  
-**Default:** 1,000,000 vibe
+**Default:** 1,000,000 uvibe
 
 Starting burn price before compounding. Each registration within the decay window multiplies the price.
 
@@ -122,7 +122,7 @@ Price = base_burn_price * (1 + burn_price_increase_percent/100) ^ creation_count
 
 With default values after 5 orgs created:
 ```
-1,000,000 * (1.10)^5 = 1,610,510 vibe
+1,000,000 * (1.10)^5 = 1,610,510 uvibe
 ```
 
 ---
@@ -424,7 +424,7 @@ Daily minting, payout distribution, and work score calculation.
 #### daily_mint_amount
 
 **Type:** uint64  
-**Default:** 1,000,000 vibe
+**Default:** 1,000,000 uvibe
 
 Amount of new tokens minted daily as part of the emission schedule. Added to total supply and emission pool.
 
@@ -487,7 +487,7 @@ Standard Cosmos SDK governance parameters.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `min_deposit` | 10,000,000 vibe | Minimum deposit for proposal |
+| `min_deposit` | 10,000,000 uvibe | Minimum deposit for proposal |
 | `max_deposit_period` | 172,800s (2 days) | Maximum deposit period |
 
 ### Voting Parameters

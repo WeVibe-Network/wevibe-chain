@@ -14,7 +14,7 @@ Date: 2026-05-10
 
 WeVibe is a three-layer organizational memory network. WeVibe Chain is the Cosmos SDK appchain that anchors consensus, persistent state, and the custom modules that enforce the protocol. WeVibe Hub is the off-chain Go service that ingests encrypted knowledge from contributors, surfaces it for retrieval, and orchestrates serve attestations from serving agents. WeVibe Dashboard is the web interface administrators use to register organizations, curate memories, configure payout tiers, and monitor treasuries.
 
-Organizations register on WeVibe Chain by burning WEVIBE (vibe) via a dynamic pricing curve. Each organization maintains an on-chain treasury that they fund and withdraw through the x/org module. Memory contributors submit commitments that become payable only after an org leader approves them; approval emits ciphertext storage and indexes keywords for off-chain discovery. Serving agents batch the memories they deliver and attest to them through x/serve; the module deduplicates nullifiers, tracks first-serve events, and records per-epoch contributor statistics. Bandwidth limits from x/bandwidth rate-limit pending commitments and serve batches to prevent spam while still allowing overrides for trusted orgs.
+Organizations register on WeVibe Chain by burning VIBE (uvibe) via a dynamic pricing curve. Each organization maintains an on-chain treasury that they fund and withdraw through the x/org module. Memory contributors submit commitments that become payable only after an org leader approves them; approval emits ciphertext storage and indexes keywords for off-chain discovery. Serving agents batch the memories they deliver and attest to them through x/serve; the module deduplicates nullifiers, tracks first-serve events, and records per-epoch contributor statistics. Bandwidth limits from x/bandwidth rate-limit pending commitments and serve batches to prevent spam while still allowing overrides for trusted orgs.
 
 At the end of every `wevibe_epoch`, the x/emissions module mints a daily emission snapshot, scans every org that requires attestations, tallies serve counts per contributor for the epoch, and debits the org’s treasury according to the configured reputation tiers. Reputation data is tracked in x/reputation: every serve updates XP, self-serve counts, and cross-org breadth, and org admins can configure tiers that gate payouts. Once the epoch hook finishes, x/memory builds Merkle roots over the epoch’s approved memories so hubs can prove inclusion to downstream verifiers. Treasury-funded payouts, serve attestation checks, and Merkle proofs are therefore all derived from the on-chain state, while Hub and Dashboard ensure real-world usability.
 
@@ -41,7 +41,7 @@ At the end of every `wevibe_epoch`, the x/emissions module mints a daily emissio
 `InitGenesis` loads orgs, members, treasuries, dynamic burn state, rep tiers, and org configs exactly as supplied. Anything omitted falls back to defaults (e.g., no serve attestation requirement). `ExportGenesis` mirrors those collections back out.
 
 **Notable logic:**  
-Registration burns WEVIBE at the dynamic price computed from `BaseBurnPrice`, compounded percentage increases, and epoch-based decay. Each registration automatically grants the leader membership with the `leader` role. Treasury balances are tracked as strings to preserve arbitrary precision; helper methods parse into `math.Int` before arithmetic. The keeper can debit the treasury directly (`DebitTreasury`) for epoch payouts without routing funds through bank accounts.
+Registration burns VIBE at the dynamic price computed from `BaseBurnPrice`, compounded percentage increases, and epoch-based decay. Each registration automatically grants the leader membership with the `leader` role. Treasury balances are tracked as strings to preserve arbitrary precision; helper methods parse into `math.Int` before arithmetic. The keeper can debit the treasury directly (`DebitTreasury`) for epoch payouts without routing funds through bank accounts.
 
 ### x/memory (Organizational Memory)
 
@@ -200,7 +200,7 @@ These hooks leave the store prepared for hubs to fetch Merkle proofs and for das
 
 | Module | Message | Description |
 | --- | --- | --- |
-| org | MsgRegisterOrg | Burn WEVIBE at the dynamic price and create a new organization with a designated leader. |
+| org | MsgRegisterOrg | Burn VIBE at the dynamic price and create a new organization with a designated leader. |
 | org | MsgAddMember | Add a member to an organization, assigning the provided role. |
 | org | MsgRemoveMember | Remove a member from an organization’s roster. |
 | org | MsgFundTreasury | Move funds from the signer into the organization’s treasury balance. |
@@ -231,7 +231,7 @@ These hooks leave the store prepared for hubs to fetch Merkle proofs and for das
 
 ## Economic Model
 
-**Org registration burn:** The dynamic pricing curve starts from `BaseBurnPrice` and multiplies by `(1 + BurnPriceIncreasePercent/100)` for each org created within the tracked window. `BurnPriceDecayEpochs` decrements the creation count over time, letting demand surges cool off. Registration burns WEVIBE from the registrant’s account through the org module account, so chain supply decreases accordingly.
+**Org registration burn:** The dynamic pricing curve starts from `BaseBurnPrice` and multiplies by `(1 + BurnPriceIncreasePercent/100)` for each org created within the tracked window. `BurnPriceDecayEpochs` decrements the creation count over time, letting demand surges cool off. Registration burns VIBE from the registrant’s account through the org module account, so chain supply decreases accordingly.
 
 **Treasury-funded payouts:** Organizations decide when and how much to fund their treasuries using `MsgFundTreasury`. Epoch payouts never mint to contributors; instead, x/emissions debits org treasuries for each contributor based on serve counts and tiered payout rates. The hook stops when a treasury lacks sufficient funds, preventing negative balances. Because payouts derive from the org’s balance rather than the daily emission mint, orgs retain full control over their reward schedule by choosing tier rates and deposit cadence.
 
@@ -266,7 +266,7 @@ Module account permissions defined in `app/app.go`:
 - `staking` bonded and not-bonded pools carry `Burner` and `Staking` permissions to support slashing and redelegation.  
 - `gov` is granted `Burner` to support deposit burns where needed.  
 - `memory` has the `Burner` permission so the contest keeper can escrow stake in the memory module account and burn it on rejected contests.  
-- `org` retains the `Burner` permission so `MsgRegisterOrg` can burn WEVIBE when creating new orgs.
+- `org` retains the `Burner` permission so `MsgRegisterOrg` can burn VIBE when creating new orgs.
 
 ## Genesis State
 
@@ -287,8 +287,8 @@ This leaves all module state empty, relying on defaults at startup. Because x/em
 
 `scripts/init-chain.sh` orchestrates a full single-validator bootstrap for local or containerized environments:
 
-- Initializes a validator and hub-submitter account, each funded with 1,000,000,000 vibe.  
-- Generates a staking gentx for 500,000,000 vibe and collects it.  
+- Initializes a validator and hub-submitter account, each funded with 1,000,000,000 uvibe.  
+- Generates a staking gentx for 500,000,000 uvibe and collects it.  
 - Appends the `wevibe_epoch` definition to the epochs module with a configurable `EPOCH_DURATION` environment variable (defaults to `60s`).  
 - Tightens governance voting and deposit periods to 2 days for fast iteration.  
 - Sets x/mint inflation parameters to zero so only x/emissions tracks supply.  

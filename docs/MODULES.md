@@ -46,7 +46,7 @@ message StoredMemberRecord {
 #### StoredDynamicPrice
 ```protobuf
 message StoredDynamicPrice {
-  uint64 price = 1;           // Current burn price in vibe
+  uint64 price = 1;           // Current burn price in uvibe
   uint64 last_creation = 2;    // Epoch of last org creation
   uint64 creation_count = 3;   // Orgs created in current window
 }
@@ -97,7 +97,7 @@ message Params {
 
 | Parameter | Description |
 |-----------|-------------|
-| `min_registration_fee` | Minimum WEVIBE burned on registration |
+| `min_registration_fee` | Minimum VIBE burned on registration |
 | `annual_renewal_fee` | Annual fee for org renewal |
 | `default_storage_quota` | Default storage allocation |
 | `default_retrieval_budget` | Default retrieval budget |
@@ -109,7 +109,7 @@ message Params {
 ### Messages
 
 #### MsgRegisterOrg
-Burns WEVIBE at dynamic price and creates a new organization.
+Burns VIBE at dynamic price and creates a new organization.
 
 ```protobuf
 message MsgRegisterOrg {
@@ -129,7 +129,7 @@ message MsgRegisterOrg {
 - `storage_quota`: Maximum storage allocation
 - `retrieval_budget`: Retrieval budget allocation
 
-**Authorization:** Signer must have sufficient WEVIBE balance.
+**Authorization:** Signer must have sufficient VIBE balance.
 
 #### MsgAddMember
 Adds a member to an organization with specified role.
