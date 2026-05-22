@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	logv2 "cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
 	sdkmath "cosmossdk.io/math"
 	abci "github.com/cometbft/cometbft/abci/types"
 	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -50,7 +50,7 @@ func NewTestSuite(t *testing.T) *TestSuite {
 	ensureIntegrationBootstrap()
 
 	db := dbm.NewMemDB()
-	wevibeApp := app.NewWeVibeApp(logv2.NewNopLogger(), db, true, simtestutil.EmptyAppOptions{}, baseapp.SetChainID("wevibe-test-1"))
+	wevibeApp := app.NewWeVibeApp(log.NewNopLogger(), db, true, simtestutil.EmptyAppOptions{}, baseapp.SetChainID("wevibe-test-1"))
 
 	validatorKey := secp256k1.GenPrivKey()
 	validatorAddr := sdk.AccAddress(validatorKey.PubKey().Address())
@@ -152,8 +152,8 @@ func NewTestSuite(t *testing.T) *TestSuite {
 
 	return &TestSuite{
 		T:             t,
-		WeVibeApp:       wevibeApp,
-		Ctx:           wevibeApp.BaseApp.NewNextBlockContext(cmtproto.Header{Height: 2}),
+		WeVibeApp:     wevibeApp,
+		Ctx:           wevibeApp.BaseApp.NewUncachedContext(false, cmtproto.Header{Height: 2}),
 		ValidatorKey:  validatorKey,
 		ValidatorAddr: validatorAddr,
 		UserKey:       userKey,

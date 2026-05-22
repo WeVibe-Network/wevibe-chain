@@ -5,7 +5,7 @@ import (
 	"crypto/sha256"
 	"testing"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/testutil/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"

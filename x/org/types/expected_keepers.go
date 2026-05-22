@@ -3,8 +3,8 @@ package types
 import (
 	"context"
 
+	"cosmossdk.io/x/feegrant"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
 )
 
 type BankKeeper interface {

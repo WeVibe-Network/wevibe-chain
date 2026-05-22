@@ -7,8 +7,16 @@ import (
 	"path/filepath"
 	"sync"
 
+	// SDK foundation: Cosmos SDK v0.53.5 + CometBFT v0.38.20 (D-S29-SDK-V053).
+	// Do NOT bump to v0.54.x - that line uses store/v2 in baseapp and breaks
+	// cosmossdk.io/x/upgrade compatibility. See CO-008 implementation report.
 	"cosmossdk.io/core/appmodule"
-	logv2 "cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
+	feegrant "cosmossdk.io/x/feegrant"
+	feegrantkeeper "cosmossdk.io/x/feegrant/keeper"
+	feegrantmodule "cosmossdk.io/x/feegrant/module"
+	signingtypes "cosmossdk.io/x/tx/signing"
 	"github.com/cometbft/cometbft/abci/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
@@ -23,7 +31,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/server/config"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/std"
-	storev2types "github.com/cosmos/cosmos-sdk/store/v2/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/cosmos/cosmos-sdk/version"
@@ -46,9 +53,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/epochs"
 	epochskeeper "github.com/cosmos/cosmos-sdk/x/epochs/keeper"
 	epochstypes "github.com/cosmos/cosmos-sdk/x/epochs/types"
-	feegrant "github.com/cosmos/cosmos-sdk/x/feegrant"
-	feegrantkeeper "github.com/cosmos/cosmos-sdk/x/feegrant/keeper"
-	feegrantmodule "github.com/cosmos/cosmos-sdk/x/feegrant/module"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutilTypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
 	"github.com/cosmos/cosmos-sdk/x/gov"
@@ -63,7 +67,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/staking"
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
-	signingtypes "github.com/cosmos/cosmos-sdk/x/tx/signing"
 	gogoproto "github.com/cosmos/gogoproto/proto"
 
 	attestationkeeper "github.com/wevibe-network/wevibe-chain/x/attestation/keeper"
@@ -159,7 +162,7 @@ type WeVibeApp struct {
 	txConfig          client.TxConfig
 	interfaceRegistry codectypes.InterfaceRegistry
 
-	keys map[string]*storev2types.KVStoreKey
+	keys map[string]*storetypes.KVStoreKey
 
 	AccountKeeper         authkeeper.AccountKeeper
 	BankKeeper            bankkeeper.BaseKeeper
@@ -190,7 +193,7 @@ var (
 )
 
 func NewWeVibeApp(
-	logger logv2.Logger,
+	logger log.Logger,
 	db dbm.DB,
 	loadLatest bool,
 	appOpts servertypes.AppOptions,
@@ -209,7 +212,7 @@ func NewWeVibeApp(
 	bApp.SetInterfaceRegistry(interfaceRegistry)
 	bApp.SetTxEncoder(txConfig.TxEncoder())
 
-	keys := storev2types.NewKVStoreKeys(
+	keys := storetypes.NewKVStoreKeys(
 		authTypes.StoreKey,
 		bankTypes.StoreKey,
 		stakingTypes.StoreKey,
@@ -233,7 +236,7 @@ func NewWeVibeApp(
 		panic(err)
 	}
 
-	wevibeKeys := map[string]*storev2types.KVStoreKey{
+	wevibeKeys := map[string]*storetypes.KVStoreKey{
 		"bandwidth":   keys["bandwidth"],
 		"emissions":   keys["emissions"],
 		"memory":      keys["memory"],
@@ -338,11 +341,11 @@ func NewWeVibeApp(
 		runtime.NewKVStoreService(keys[govtypes.StoreKey]),
 		app.AccountKeeper,
 		app.BankKeeper,
+		app.StakingKeeper,
 		app.DistributionKeeper,
 		bApp.MsgServiceRouter(),
 		govConfig,
 		authTypes.NewModuleAddress(govtypes.ModuleName).String(),
-		nil,
 	)
 
 	app.EpochsKeeper = epochskeeper.NewKeeper(
@@ -400,7 +403,7 @@ func NewWeVibeApp(
 		mintTypes.ModuleName:           mintModule,
 		consensusparamTypes.ModuleName: consensusModule,
 		genutilTypes.ModuleName:        genutilModule,
-		epochstypes.ModuleName:         epochs.NewAppModule(&app.EpochsKeeper),
+		epochstypes.ModuleName:         epochs.NewAppModule(app.EpochsKeeper),
 		govtypes.ModuleName:            govModule,
 		feegrant.ModuleName:            feegrantMod,
 
@@ -480,6 +483,9 @@ func NewWeVibeApp(
 	app.SetAnteHandler(anteHandler)
 
 	app.SetInitChainer(app.InitChainer)
+	app.ModuleManager.SetOrderPreBlockers(
+		authTypes.ModuleName,
+	)
 	app.SetPreBlocker(app.PreBlocker)
 	app.SetBeginBlocker(app.BeginBlocker)
 	app.SetEndBlocker(app.EndBlocker)
@@ -542,9 +548,7 @@ func (app *WeVibeApp) RegisterTendermintService(clientCtx client.Context) {
 }
 
 func (app *WeVibeApp) RegisterNodeService(clientCtx client.Context, cfg config.Config) {
-	nodeservice.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg, func() int64 {
-		return app.LastBlockHeight()
-	})
+	nodeservice.RegisterNodeService(clientCtx, app.GRPCQueryRouter(), cfg)
 }
 
 func (app *WeVibeApp) LegacyAmino() *codec.LegacyAmino {
@@ -571,12 +575,12 @@ func (app *WeVibeApp) SimulationManager() *module.SimulationManager {
 	return nil
 }
 
-func (app *WeVibeApp) GetKey(storeKey string) *storev2types.KVStoreKey {
+func (app *WeVibeApp) GetKey(storeKey string) *storetypes.KVStoreKey {
 	return app.keys[storeKey]
 }
 
-func (app *WeVibeApp) GetStoreKeys() []storev2types.StoreKey {
-	keys := make([]storev2types.StoreKey, 0, len(app.keys))
+func (app *WeVibeApp) GetStoreKeys() []storetypes.StoreKey {
+	keys := make([]storetypes.StoreKey, 0, len(app.keys))
 	for _, key := range app.keys {
 		keys = append(keys, key)
 	}

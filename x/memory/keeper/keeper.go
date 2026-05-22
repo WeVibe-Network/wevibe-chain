@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
@@ -150,21 +150,21 @@ func (k *Keeper) ReportMemory(ctx context.Context, orgID string, contentHash []b
 	}
 
 	report := &types.StoredMemoryReport{
-		OrgId:                 orgID,
-		ContentHash:           contentHash,
-		ContributorPubkey:     contributorPubkey,
-		ApprovingModerators:   approvingModerators,
-		UpholdingModerators:   upholdingModerators,
-		ReporterPubkey:        reporterPubkey,
+		OrgId:                  orgID,
+		ContentHash:            contentHash,
+		ContributorPubkey:      contributorPubkey,
+		ApprovingModerators:    approvingModerators,
+		UpholdingModerators:    upholdingModerators,
+		ReporterPubkey:         reporterPubkey,
 		CommittingLeaderPubkey: committingLeader,
-		Reason:                reason,
-		Plaintext:             plaintext,
-		Ciphertext:           ciphertext,
-		Capsule:              capsule,
-		PlaintextHash:         plaintextHash,
-		PlaintextOversized:   plaintextOversized,
-		UpheldAtEpoch:        epoch,
-		UpheldAtTimestamp:    0,
+		Reason:                 reason,
+		Plaintext:              plaintext,
+		Ciphertext:             ciphertext,
+		Capsule:                capsule,
+		PlaintextHash:          plaintextHash,
+		PlaintextOversized:     plaintextOversized,
+		UpheldAtEpoch:          epoch,
+		UpheldAtTimestamp:      0,
 	}
 
 	bz, err := proto.Marshal(report)
@@ -367,18 +367,18 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 
 	currentEpoch := pending.Epoch
 	approved := &types.MemoryCommitment{
-		OrgID:               orgID,
-		ContentHash:         contentHash,
-		EncryptedBlob:       encryptedBlob,
-		Keywords:            pending.Keywords,
-		Contributor:         pending.Contributor,
-		Epoch:               currentEpoch,
-		CommittedAtHeight:   pending.SubmittedAt,
-		Approvers:           approvers,
-		CommittingLeader:    committingLeader,
-		State:               types.MemoryState_MEMORY_STATE_COMMITTED,
-		LastActiveEpoch:     currentEpoch,
-		MemoryType:          memoryType,
+		OrgID:             orgID,
+		ContentHash:       contentHash,
+		EncryptedBlob:     encryptedBlob,
+		Keywords:          pending.Keywords,
+		Contributor:       pending.Contributor,
+		Epoch:             currentEpoch,
+		CommittedAtHeight: pending.SubmittedAt,
+		Approvers:         approvers,
+		CommittingLeader:  committingLeader,
+		State:             types.MemoryState_MEMORY_STATE_COMMITTED,
+		LastActiveEpoch:   currentEpoch,
+		MemoryType:        memoryType,
 	}
 
 	bz, err = proto.Marshal(memoryToStored(approved))
@@ -904,37 +904,37 @@ func storedToPending(stored types.StoredPendingCommitment) types.PendingCommitme
 func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 	return &types.StoredMemoryCommitment{
 		OrgId:                  con.OrgID,
-		ContentHash:           con.ContentHash,
-		EncryptedBlob:         con.EncryptedBlob,
-		Keywords:              con.Keywords,
-		ContributorPubkey:     con.Contributor,
-		Epoch:                 con.Epoch,
-		CommittedAtHeight:     con.CommittedAtHeight,
-		Approvers:             con.Approvers,
+		ContentHash:            con.ContentHash,
+		EncryptedBlob:          con.EncryptedBlob,
+		Keywords:               con.Keywords,
+		ContributorPubkey:      con.Contributor,
+		Epoch:                  con.Epoch,
+		CommittedAtHeight:      con.CommittedAtHeight,
+		Approvers:              con.Approvers,
 		CommittingLeaderPubkey: con.CommittingLeader,
-		State:                 con.State,
-		LastActiveEpoch:       con.LastActiveEpoch,
-		WrappedDekEnc:         con.WrappedDekEnc,
-		MemoryType:            con.MemoryType,
-		ApprovedAtEpoch:       con.ApprovedAtEpoch,
+		State:                  con.State,
+		LastActiveEpoch:        con.LastActiveEpoch,
+		WrappedDekEnc:          con.WrappedDekEnc,
+		MemoryType:             con.MemoryType,
+		ApprovedAtEpoch:        con.ApprovedAtEpoch,
 	}
 }
 
 func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment {
 	return types.MemoryCommitment{
-		OrgID:               stored.OrgId,
-		ContentHash:        stored.ContentHash,
-		EncryptedBlob:      stored.EncryptedBlob,
-		Keywords:           stored.Keywords,
-		Contributor:        stored.ContributorPubkey,
-		Epoch:              stored.Epoch,
-		CommittedAtHeight:  stored.CommittedAtHeight,
-		Approvers:          stored.Approvers,
-		CommittingLeader:   stored.CommittingLeaderPubkey,
-		State:              stored.State,
-		LastActiveEpoch:    stored.LastActiveEpoch,
-		WrappedDekEnc:      stored.WrappedDekEnc,
-		MemoryType:         stored.MemoryType,
+		OrgID:             stored.OrgId,
+		ContentHash:       stored.ContentHash,
+		EncryptedBlob:     stored.EncryptedBlob,
+		Keywords:          stored.Keywords,
+		Contributor:       stored.ContributorPubkey,
+		Epoch:             stored.Epoch,
+		CommittedAtHeight: stored.CommittedAtHeight,
+		Approvers:         stored.Approvers,
+		CommittingLeader:  stored.CommittingLeaderPubkey,
+		State:             stored.State,
+		LastActiveEpoch:   stored.LastActiveEpoch,
+		WrappedDekEnc:     stored.WrappedDekEnc,
+		MemoryType:        stored.MemoryType,
 		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
 	}
 }

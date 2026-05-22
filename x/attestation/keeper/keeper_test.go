@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	logv2 "cosmossdk.io/log/v2"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	logv2 "cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 	"github.com/stretchr/testify/require"
 
 	testkeeper "github.com/wevibe-network/wevibe-chain/testutil/keeper"
@@ -39,14 +39,14 @@ func TestSetGetSessionAttestation(t *testing.T) {
 	}
 
 	att := &types.StoredSessionAttestation{
-		OrgId:         "org-1",
-		SessionHash:   sessionHash,
-		ModelId:       "qwen3:4b",
-		TurnCount:     5,
-		TokenCount:    1200,
-		ProviderType:  types.ProviderType_PROVIDER_TYPE_LOCAL,
-		ContributorId: "contributor-1",
-		Epoch:         1,
+		OrgId:             "org-1",
+		SessionHash:       sessionHash,
+		ModelId:           "qwen3:4b",
+		TurnCount:         5,
+		TokenCount:        1200,
+		ProviderType:      types.ProviderType_PROVIDER_TYPE_LOCAL,
+		ContributorId:     "contributor-1",
+		Epoch:             1,
 		SubmittedAtHeight: 100,
 	}
 
@@ -73,14 +73,14 @@ func TestListSessionAttestations(t *testing.T) {
 		sessionHash := make([]byte, 32)
 		sessionHash[0] = byte(i)
 		att := &types.StoredSessionAttestation{
-			OrgId:         "org-1",
-			SessionHash:   sessionHash,
-			ModelId:       "qwen3:4b",
-			TurnCount:     uint32(i + 1),
-			TokenCount:    uint32((i + 1) * 500),
-			ProviderType:  types.ProviderType_PROVIDER_TYPE_LOCAL,
-			ContributorId: "contributor-1",
-			Epoch:         1,
+			OrgId:             "org-1",
+			SessionHash:       sessionHash,
+			ModelId:           "qwen3:4b",
+			TurnCount:         uint32(i + 1),
+			TokenCount:        uint32((i + 1) * 500),
+			ProviderType:      types.ProviderType_PROVIDER_TYPE_LOCAL,
+			ContributorId:     "contributor-1",
+			Epoch:             1,
 			SubmittedAtHeight: uint64(100 + i),
 		}
 		err := k.SetSessionAttestation(ctx, att)
@@ -129,14 +129,14 @@ func TestGenesisRoundtrip(t *testing.T) {
 	sessionHash := make([]byte, 32)
 	sessionHash[0] = 0xAB
 	att := &types.StoredSessionAttestation{
-		OrgId:         "org-1",
-		SessionHash:   sessionHash,
-		ModelId:       "claude-sonnet-4-20250514",
-		TurnCount:     10,
-		TokenCount:    3000,
-		ProviderType:  types.ProviderType_PROVIDER_TYPE_CLOUD,
-		ContributorId: "contributor-2",
-		Epoch:         5,
+		OrgId:             "org-1",
+		SessionHash:       sessionHash,
+		ModelId:           "claude-sonnet-4-20250514",
+		TurnCount:         10,
+		TokenCount:        3000,
+		ProviderType:      types.ProviderType_PROVIDER_TYPE_CLOUD,
+		ContributorId:     "contributor-2",
+		Epoch:             5,
 		SubmittedAtHeight: 500,
 	}
 	err := k.SetSessionAttestation(ctx, att)

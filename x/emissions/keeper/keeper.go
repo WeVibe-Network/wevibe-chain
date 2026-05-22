@@ -6,8 +6,8 @@ import (
 	"strconv"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/emissions/types"

@@ -5,10 +5,11 @@ import (
 	"testing"
 
 	corestore "cosmossdk.io/core/store"
-	logv2 "cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
+	"cosmossdk.io/store/metrics"
+	"cosmossdk.io/store/rootmulti"
+	storetypes "cosmossdk.io/store/types"
 	dbm "github.com/cosmos/cosmos-db"
-	storev2 "github.com/cosmos/cosmos-sdk/store/v2"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
 )
 
 type testStoreService struct {
@@ -60,7 +61,7 @@ func NewTestStoreService(t *testing.T, key *storetypes.KVStoreKey) (corestore.KV
 	t.Helper()
 	db := dbm.NewMemDB()
 
-	cms := storev2.NewCommitMultiStore(db, logv2.NewNopLogger())
+	cms := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	cms.MountStoreWithDB(key, storetypes.StoreTypeIAVL, nil)
 	if err := cms.LoadLatestVersion(); err != nil {
 		t.Fatalf("failed to load latest version: %v", err)
@@ -81,7 +82,7 @@ func NewTestStoreServiceWithCMS(t *testing.T, key *storetypes.KVStoreKey, cms st
 
 func NewTestStoreServiceWithDB(t *testing.T, key *storetypes.KVStoreKey, db dbm.DB) corestore.KVStoreService {
 	t.Helper()
-	cms := storev2.NewCommitMultiStore(db, logv2.NewNopLogger())
+	cms := rootmulti.NewStore(db, log.NewNopLogger(), metrics.NewNoOpMetrics())
 	cms.MountStoreWithDB(key, storetypes.StoreTypeIAVL, nil)
 	if err := cms.LoadLatestVersion(); err != nil {
 		t.Fatalf("failed to load latest version: %v", err)
@@ -90,8 +91,8 @@ func NewTestStoreServiceWithDB(t *testing.T, key *storetypes.KVStoreKey, db dbm.
 	return &testStoreService{key: key, db: db, cms: cms, kv: kv}
 }
 
-func NewTestLogger() logv2.Logger {
-	return logv2.NewNopLogger()
+func NewTestLogger() log.Logger {
+	return log.NewNopLogger()
 }
 
 func NewTestDB() dbm.DB {

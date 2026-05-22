@@ -7,9 +7,9 @@ import (
 	"math/big"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
 	"cosmossdk.io/math"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	storetypes "cosmossdk.io/store/types"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
@@ -37,8 +37,8 @@ func NewKeeper(storeService store.KVStoreService, logger log.Logger, authority s
 	}
 }
 
-func (k *Keeper) SetMemoryKeeper(mk types.MemoryKeeper)    { k.memoryKeeper = mk }
-func (k *Keeper) SetServeKeeper(sk types.ServeKeeper)      { k.serveKeeper = sk }
+func (k *Keeper) SetMemoryKeeper(mk types.MemoryKeeper)       { k.memoryKeeper = mk }
+func (k *Keeper) SetServeKeeper(sk types.ServeKeeper)         { k.serveKeeper = sk }
 func (k *Keeper) SetBandwidthKeeper(bk types.BandwidthKeeper) { k.bandwidthKeeper = bk }
 
 func (k *Keeper) getStore(ctx context.Context) store.KVStore {
@@ -704,7 +704,7 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 		return &types.OrgConfig{
 			OrgID:                    orgID,
 			ServeAttestationRequired: false,
-			ContestStakeVibe:        0,
+			ContestStakeVibe:         0,
 			MinContributionsPerEpoch: 0,
 		}, nil
 	}
@@ -716,7 +716,7 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 	return &types.OrgConfig{
 		OrgID:                    stored.OrgId,
 		ServeAttestationRequired: stored.ServeAttestationRequired,
-		ContestStakeVibe:        stored.ContestStakeVibe,
+		ContestStakeVibe:         stored.ContestStakeVibe,
 		MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 	}, nil
 }
@@ -726,7 +726,7 @@ func (k *Keeper) SetOrgConfig(ctx context.Context, orgID string, cfg *types.OrgC
 	bz, err := proto.Marshal(&types.StoredOrgConfig{
 		OrgId:                    cfg.OrgID,
 		ServeAttestationRequired: cfg.ServeAttestationRequired,
-		ContestStakeVibe:        cfg.ContestStakeVibe,
+		ContestStakeVibe:         cfg.ContestStakeVibe,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
 	})
 	if err != nil {
@@ -954,7 +954,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		orgConfigs = append(orgConfigs, &types.OrgConfig{
 			OrgID:                    stored.OrgId,
 			ServeAttestationRequired: stored.ServeAttestationRequired,
-			ContestStakeVibe:        stored.ContestStakeVibe,
+			ContestStakeVibe:         stored.ContestStakeVibe,
 			MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 		})
 	}

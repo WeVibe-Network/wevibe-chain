@@ -8,8 +8,8 @@ import (
 	"math/big"
 	"strings"
 
+	storetypes "cosmossdk.io/store/types"
 	"github.com/cosmos/gogoproto/proto"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
 
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
 )

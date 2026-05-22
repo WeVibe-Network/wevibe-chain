@@ -5,17 +5,17 @@ import (
 	"fmt"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
 
-	"github.com/wevibe-network/wevibe-chain/x/bandwidth/types"
 	"github.com/cosmos/gogoproto/proto"
+	"github.com/wevibe-network/wevibe-chain/x/bandwidth/types"
 )
 
 type Keeper struct {
 	storeService store.KVStoreService
-	logger      log.Logger
-	authority   string
-	orgKeeper   types.OrgKeeper
+	logger       log.Logger
+	authority    string
+	orgKeeper    types.OrgKeeper
 }
 
 func NewKeeper(storeService store.KVStoreService, logger log.Logger, authority string, orgKeeper types.OrgKeeper) *Keeper {

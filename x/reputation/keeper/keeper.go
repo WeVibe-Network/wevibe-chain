@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/reputation/types"
@@ -28,7 +28,7 @@ func NewKeeper(storeService store.KVStoreService, logger log.Logger, authority s
 	}
 }
 
-func (k *Keeper) SetServeKeeper(sk types.ServeKeeper) { k.serveKeeper = sk }
+func (k *Keeper) SetServeKeeper(sk types.ServeKeeper)   { k.serveKeeper = sk }
 func (k *Keeper) SetMemoryKeeper(mk types.MemoryKeeper) { k.memoryKeeper = mk }
 
 func (k *Keeper) getStore(ctx context.Context) store.KVStore {
@@ -36,10 +36,10 @@ func (k *Keeper) getStore(ctx context.Context) store.KVStore {
 }
 
 var (
-	prefixActive = []byte("active/")
-	prefixStats  = []byte("stats/")
-	prefixMemory = []byte("memory/")
-	prefixOrgSet = []byte("orgset/")
+	prefixActive  = []byte("active/")
+	prefixStats   = []byte("stats/")
+	prefixMemory  = []byte("memory/")
+	prefixOrgSet  = []byte("orgset/")
 	prefixProfile = []byte("profile/")
 )
 
@@ -772,7 +772,7 @@ func (k *Keeper) RecordBan(ctx context.Context, contributorID, orgID, memoryCID 
 }
 
 type ContributorDelta struct {
-	ApprovedMemories      int64
+	ApprovedMemories     int64
 	ServesReceived       int64
 	DenialsReceived      int64
 	ReportsFiledAgainst  int64

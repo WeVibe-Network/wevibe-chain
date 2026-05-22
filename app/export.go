@@ -3,12 +3,13 @@ package app
 import (
 	"encoding/json"
 
+	cmtproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	servertypes "github.com/cosmos/cosmos-sdk/server/types"
 	"github.com/cosmos/cosmos-sdk/x/staking"
 )
 
 func (app *WeVibeApp) ExportAppStateAndValidators(forZeroHeight bool, jailAllowedAddrs []string, modulesToExport []string) (servertypes.ExportedApp, error) {
-	ctx := app.NewContext(false)
+	ctx := app.NewUncachedContext(false, cmtproto.Header{Height: app.LastBlockHeight()})
 
 	genState, err := app.ModuleManager.ExportGenesis(ctx, app.cdc)
 	if err != nil {

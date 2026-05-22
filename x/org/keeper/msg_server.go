@@ -7,8 +7,8 @@ import (
 
 	"cosmossdk.io/math"
 
+	"cosmossdk.io/x/feegrant"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/cosmos-sdk/x/feegrant"
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
 )
 
@@ -221,7 +221,7 @@ func (m *msgServer) SetOrgConfig(ctx context.Context, msg *types.MsgSetOrgConfig
 	cfg := &types.OrgConfig{
 		OrgID:                    msg.OrgId,
 		ServeAttestationRequired: msg.ServeAttestationRequired,
-		ContestStakeVibe:        msg.ContestStakeVibe,
+		ContestStakeVibe:         msg.ContestStakeVibe,
 		MinContributionsPerEpoch: msg.MinContributionsPerEpoch,
 	}
 

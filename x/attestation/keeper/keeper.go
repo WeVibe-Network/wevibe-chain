@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"cosmossdk.io/core/store"
-	"cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
 	"github.com/cosmos/gogoproto/proto"
 
 	"github.com/wevibe-network/wevibe-chain/x/attestation/types"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	logv2 "cosmossdk.io/log/v2"
+	"cosmossdk.io/log"
 	sdkmath "cosmossdk.io/math"
 	types "github.com/cometbft/cometbft/abci/types"
 	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
@@ -25,7 +25,7 @@ import (
 )
 
 func TestNewWeVibeApp(t *testing.T) {
-	logger := logv2.NewNopLogger()
+	logger := log.NewNopLogger()
 	db := dbm.NewMemDB()
 
 	wevibeApp := app.NewWeVibeApp(logger, db, true, simtestutil.EmptyAppOptions{})
@@ -55,7 +55,7 @@ func TestNewWeVibeApp(t *testing.T) {
 }
 
 func TestWeVibeAppInitChainAndExport(t *testing.T) {
-	logger := logv2.NewNopLogger()
+	logger := log.NewNopLogger()
 	db := dbm.NewMemDB()
 
 	wevibeApp := app.NewWeVibeApp(logger, db, true, simtestutil.EmptyAppOptions{})
@@ -141,7 +141,7 @@ func TestWeVibeAppInitChainAndExport(t *testing.T) {
 	stateBytes, err := json.Marshal(genesisState)
 	require.NoError(t, err)
 
-	ctx := wevibeApp.BaseApp.NewNextBlockContext(tmproto.Header{})
+	ctx := wevibeApp.BaseApp.NewUncachedContext(false, tmproto.Header{})
 	_, err = wevibeApp.InitChainer(ctx, &types.RequestInitChain{AppStateBytes: stateBytes})
 	require.NoError(t, err)
 

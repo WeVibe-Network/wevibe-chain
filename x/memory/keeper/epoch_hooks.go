@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	storetypes "cosmossdk.io/store/types"
 )
 
 const WeVibeEpochIdentifier = "wevibe_epoch"

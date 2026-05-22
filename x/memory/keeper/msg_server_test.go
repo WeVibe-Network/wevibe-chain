@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	storetypes "github.com/cosmos/cosmos-sdk/store/v2/types"
+	storetypes "cosmossdk.io/store/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/testutil/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
@@ -201,13 +201,13 @@ func TestMsgApproveMemory_Unauthorized(t *testing.T) {
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 
 	approveMsg := &types.MsgApproveMemory{
-		Signer:        "signer",
-		OrgId:         "test-org",
-		ContentHash:   []byte("12345678901234567890123456789012"),
-		EncryptedBlob: []byte("encrypted blob"),
-		Approvers:     []string{"not-leader"},
+		Signer:           "signer",
+		OrgId:            "test-org",
+		ContentHash:      []byte("12345678901234567890123456789012"),
+		EncryptedBlob:    []byte("encrypted blob"),
+		Approvers:        []string{"not-leader"},
 		CommittingLeader: "not-leader",
-		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:       types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
 	}
 
 	_, err := srv.ApproveMemory(ctx, approveMsg)
