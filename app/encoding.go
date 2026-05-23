@@ -3,6 +3,7 @@ package app
 import (
 	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	signingtypes "cosmossdk.io/x/tx/signing"
+	upgrade "cosmossdk.io/x/upgrade"
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
 	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
@@ -16,6 +17,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/x/distribution"
 	"github.com/cosmos/cosmos-sdk/x/genutil"
 	genutiltypes "github.com/cosmos/cosmos-sdk/x/genutil/types"
+	"github.com/cosmos/cosmos-sdk/x/gov"
 	"github.com/cosmos/cosmos-sdk/x/mint"
 	"github.com/cosmos/cosmos-sdk/x/slashing"
 	"github.com/cosmos/cosmos-sdk/x/staking"
@@ -40,6 +42,8 @@ var ModuleBasics = module.NewBasicManager(
 	mint.AppModuleBasic{},
 	consensus.AppModuleBasic{},
 	feegrantmodule.AppModuleBasic{},
+	gov.AppModuleBasic{},
+	upgrade.AppModuleBasic{},
 	genutil.NewAppModuleBasic(genutiltypes.DefaultMessageValidator),
 )
 

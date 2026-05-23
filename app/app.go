@@ -17,10 +17,14 @@ import (
 	feegrantkeeper "cosmossdk.io/x/feegrant/keeper"
 	feegrantmodule "cosmossdk.io/x/feegrant/module"
 	signingtypes "cosmossdk.io/x/tx/signing"
+	upgrade "cosmossdk.io/x/upgrade"
+	upgradekeeper "cosmossdk.io/x/upgrade/keeper"
+	upgradetypes "cosmossdk.io/x/upgrade/types"
 	"github.com/cometbft/cometbft/abci/types"
 	dbm "github.com/cosmos/cosmos-db"
 	"github.com/cosmos/cosmos-sdk/baseapp"
 	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/client/flags"
 	"github.com/cosmos/cosmos-sdk/client/grpc/cmtservice"
 	nodeservice "github.com/cosmos/cosmos-sdk/client/grpc/node"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -68,7 +72,9 @@ import (
 	stakingkeeper "github.com/cosmos/cosmos-sdk/x/staking/keeper"
 	stakingTypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	gogoproto "github.com/cosmos/gogoproto/proto"
+	"github.com/spf13/cast"
 
+	v2 "github.com/wevibe-network/wevibe-chain/app/upgrades/v2"
 	attestationkeeper "github.com/wevibe-network/wevibe-chain/x/attestation/keeper"
 	attestationmodule "github.com/wevibe-network/wevibe-chain/x/attestation/module"
 	attestationTypes "github.com/wevibe-network/wevibe-chain/x/attestation/types"
@@ -174,6 +180,7 @@ type WeVibeApp struct {
 	EpochsKeeper          epochskeeper.Keeper
 	GovKeeper             *govkeeper.Keeper
 	FeegrantKeeper        feegrantkeeper.Keeper
+	UpgradeKeeper         *upgradekeeper.Keeper
 
 	ModuleManager *module.Manager
 	BasicManager  module.BasicManager
@@ -223,6 +230,7 @@ func NewWeVibeApp(
 		epochstypes.StoreKey,
 		govtypes.StoreKey,
 		feegrant.StoreKey,
+		upgradetypes.StoreKey,
 		"bandwidth",
 		"emissions",
 		"memory",
@@ -354,6 +362,23 @@ func NewWeVibeApp(
 	)
 
 	govAuthority := authTypes.NewModuleAddress("gov").String()
+	skipUpgradeHeights := make(map[int64]bool)
+	for _, height := range cast.ToIntSlice(appOpts.Get(server.FlagUnsafeSkipUpgrades)) {
+		skipUpgradeHeights[int64(height)] = true
+	}
+	homePath := cast.ToString(appOpts.Get(flags.FlagHome))
+	if homePath == "" {
+		homePath = DefaultNodeHome
+	}
+
+	app.UpgradeKeeper = upgradekeeper.NewKeeper(
+		skipUpgradeHeights,
+		runtime.NewKVStoreService(keys[upgradetypes.StoreKey]),
+		appCodec,
+		homePath,
+		bApp,
+		govAuthority,
+	)
 
 	app.OrgKeeper = orgkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["org"]), logger, govAuthority, app.BankKeeper, app.FeegrantKeeper)
 	app.BandwidthKeeper = bandwidthkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["bandwidth"]), logger, govAuthority, app.OrgKeeper)
@@ -385,6 +410,7 @@ func NewWeVibeApp(
 	genutilModule := genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app, txConfig)
 	govModule := gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper, nil)
 	feegrantMod := feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeegrantKeeper, app.interfaceRegistry)
+	upgradeModule := upgrade.NewAppModule(app.UpgradeKeeper, app.AccountKeeper.AddressCodec())
 
 	emissionsMod := emissionsmodule.NewModule(app.EmissionsKeeper)
 	bandwidthMod := bandwidthmodule.NewModule(app.BandwidthKeeper)
@@ -406,6 +432,7 @@ func NewWeVibeApp(
 		epochstypes.ModuleName:         epochs.NewAppModule(app.EpochsKeeper),
 		govtypes.ModuleName:            govModule,
 		feegrant.ModuleName:            feegrantMod,
+		upgradetypes.ModuleName:        upgradeModule,
 
 		"bandwidth":   bandwidthMod,
 		"emissions":   emissionsMod,
@@ -432,6 +459,7 @@ func NewWeVibeApp(
 		distrTypes.ModuleName,
 		stakingTypes.ModuleName,
 		slashingTypes.ModuleName,
+		upgradetypes.ModuleName,
 		govtypes.ModuleName,
 		feegrant.ModuleName,
 		mintTypes.ModuleName,
@@ -466,6 +494,10 @@ func NewWeVibeApp(
 	)
 
 	configurator := module.NewConfigurator(appCodec, bApp.MsgServiceRouter(), bApp.GRPCQueryRouter())
+	app.UpgradeKeeper.SetUpgradeHandler(
+		v2.UpgradeName,
+		v2.CreateUpgradeHandler(app.ModuleManager, configurator),
+	)
 	if err := app.ModuleManager.RegisterServices(configurator); err != nil {
 		panic(err)
 	}
@@ -484,6 +516,7 @@ func NewWeVibeApp(
 
 	app.SetInitChainer(app.InitChainer)
 	app.ModuleManager.SetOrderPreBlockers(
+		upgradetypes.ModuleName,
 		authTypes.ModuleName,
 	)
 	app.SetPreBlocker(app.PreBlocker)
@@ -491,6 +524,26 @@ func NewWeVibeApp(
 	app.SetEndBlocker(app.EndBlocker)
 
 	app.MountKVStores(keys)
+
+	// CO-005c: Wire UpgradeStoreLoader so baseapp's LoadLatestVersion is upgrade-aware.
+	// When the pre-upgrade binary halts at the upgrade height, x/upgrade's PreBlocker
+	// writes /root/.wevibed/data/upgrade-info.json. On startup of the post-upgrade binary,
+	// we must read that file and tell baseapp to use the upgrade store loader before
+	// LoadLatestVersion runs. Without this, baseapp uses DefaultStoreLoader, which fails
+	// to load state across the upgrade boundary with "version does not exist."
+	// See DECISIONS.md D-S29-UPGRADE-STORE-LOADER.
+	upgradeInfo, err := app.UpgradeKeeper.ReadUpgradeInfoFromDisk()
+	if err != nil {
+		panic(fmt.Sprintf("failed to read upgrade info from disk: %s", err))
+	}
+
+	if upgradeInfo.Name == v2.UpgradeName && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		storeUpgrades := storetypes.StoreUpgrades{
+			// v2 is a no-op upgrade — no store renames, additions, or deletions.
+			// Future upgrades that add/remove module stores populate these slices.
+		}
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, &storeUpgrades))
+	}
 
 	if loadLatest {
 		if err := bApp.LoadLatestVersion(); err != nil {
@@ -501,12 +554,66 @@ func NewWeVibeApp(
 	return app
 }
 
+// genesisInitMarkerKey is a sentinel key written to every mounted KV store
+// during InitChainer to ensure no module's IAVL tree is empty after init.
+//
+// Background (CO-005d, D-S29-CHAIN-RESTART-FOUNDATION):
+//
+// On chain restart, cosmos store/rootmulti.LoadLatestVersion calls
+// iavl.LoadStoreWithOpts → MutableTree.LoadVersion(commitID.Version) for
+// every mounted store. For trees that received zero user writes across all
+// versions, the on-disk root key resolves to ErrVersionDoesNotExist
+// (cosmos/iavl@v1.3.4/nodedb.go:891), causing baseapp to panic with
+// "failed to load store: version does not exist".
+//
+// WeVibe modules (bandwidth, emissions, memory, org, serve, attestation,
+// reputation) implement only the AppModule marker interface — not
+// appmodule.HasGenesis — so the SDK's ModuleManager.InitGenesis silently
+// skips their genesis path (no interface match) and their stores receive
+// zero writes during InitChain. Several SDK modules without populated
+// default state (feegrant, upgrade, consensusparam) similarly land with
+// empty trees. This marker writes one byte to every mounted store under a
+// 4-byte 0xFF sentinel key — well outside any module's collections.Prefix()
+// namespace (collections prefixes are typically single bytes 0x00..0xFE).
+var genesisInitMarkerKey = []byte{0xFF, 0xFF, 0xFF, 0xFF}
+var genesisInitMarkerValue = []byte{0x01}
+
 func (app *WeVibeApp) InitChainer(ctx sdk.Context, req *types.RequestInitChain) (*types.ResponseInitChain, error) {
 	var genesisState map[string]json.RawMessage
 	if err := json.Unmarshal(req.AppStateBytes, &genesisState); err != nil {
 		return nil, err
 	}
-	return app.ModuleManager.InitGenesis(ctx, app.cdc, genesisState)
+
+	resp, err := app.ModuleManager.InitGenesis(ctx, app.cdc, genesisState)
+	if err != nil {
+		return nil, err
+	}
+
+	// CO-005e: Persist the module version map so future ApplyUpgrade reads a
+	// non-empty fromVM and RunMigrations runs per-module migrations rather
+	// than re-running InitGenesis on already-initialized state.
+	//
+	// For app-wired (depinject) chains, x/upgrade's PopulateVersionMap is
+	// invoked at construction time and the upgrade module's AppModule.InitGenesis
+	// (cosmossdk.io/x/upgrade@v0.2.0/module.go:127-148) persists the map as a
+	// side effect of ModuleManager.InitGenesis above. wevibe-chain is manually
+	// wired, so GetInitVersionMap() returns nil and that side effect does not
+	// fire. The official guidance for this case is the comment at
+	// upgrade@v0.2.0/module.go:130-131:
+	//   "chains can still use a custom init chainer for setting the version map"
+	//
+	// See DECISIONS.md D-S29-INITCHAINER-VERSION-MAP.
+	if err := app.UpgradeKeeper.SetModuleVersionMap(ctx, app.ModuleManager.GetVersionMap()); err != nil {
+		return nil, err
+	}
+
+	// CO-005d: Write a genesis init marker to every mounted KV store so no
+	// module's IAVL tree is empty after InitChain. See D-S29-CHAIN-RESTART-FOUNDATION.
+	for _, key := range app.keys {
+		ctx.KVStore(key).Set(genesisInitMarkerKey, genesisInitMarkerValue)
+	}
+
+	return resp, nil
 }
 
 func (app *WeVibeApp) PreBlocker(ctx sdk.Context, req *types.RequestFinalizeBlock) (*sdk.ResponsePreBlock, error) {
@@ -604,6 +711,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	mintTypes.RegisterInterfaces(registry)
 	consensusparamTypes.RegisterInterfaces(registry)
 	feegrant.RegisterInterfaces(registry)
+	upgradetypes.RegisterInterfaces(registry)
 
 	emissionsTypes.RegisterInterfaces(registry)
 	bandwidthTypes.RegisterInterfaces(registry)
