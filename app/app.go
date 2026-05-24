@@ -45,6 +45,9 @@ import (
 	authsims "github.com/cosmos/cosmos-sdk/x/auth/simulation"
 	tx "github.com/cosmos/cosmos-sdk/x/auth/tx"
 	authTypes "github.com/cosmos/cosmos-sdk/x/auth/types"
+	"github.com/cosmos/cosmos-sdk/x/authz"
+	authzkeeper "github.com/cosmos/cosmos-sdk/x/authz/keeper"
+	authzmodule "github.com/cosmos/cosmos-sdk/x/authz/module"
 	"github.com/cosmos/cosmos-sdk/x/bank"
 	bankkeeper "github.com/cosmos/cosmos-sdk/x/bank/keeper"
 	bankTypes "github.com/cosmos/cosmos-sdk/x/bank/types"
@@ -180,6 +183,7 @@ type WeVibeApp struct {
 	EpochsKeeper          epochskeeper.Keeper
 	GovKeeper             *govkeeper.Keeper
 	FeegrantKeeper        feegrantkeeper.Keeper
+	AuthzKeeper           authzkeeper.Keeper
 	UpgradeKeeper         *upgradekeeper.Keeper
 
 	ModuleManager *module.Manager
@@ -230,6 +234,7 @@ func NewWeVibeApp(
 		epochstypes.StoreKey,
 		govtypes.StoreKey,
 		feegrant.StoreKey,
+		authzkeeper.StoreKey,
 		upgradetypes.StoreKey,
 		"bandwidth",
 		"emissions",
@@ -294,6 +299,13 @@ func NewWeVibeApp(
 	app.FeegrantKeeper = feegrantkeeper.NewKeeper(
 		appCodec,
 		runtime.NewKVStoreService(keys[feegrant.StoreKey]),
+		app.AccountKeeper,
+	).SetBankKeeper(app.BankKeeper)
+
+	app.AuthzKeeper = authzkeeper.NewKeeper(
+		runtime.NewKVStoreService(keys[authzkeeper.StoreKey]),
+		appCodec,
+		bApp.MsgServiceRouter(),
 		app.AccountKeeper,
 	).SetBankKeeper(app.BankKeeper)
 
@@ -410,6 +422,7 @@ func NewWeVibeApp(
 	genutilModule := genutil.NewAppModule(app.AccountKeeper, app.StakingKeeper, app, txConfig)
 	govModule := gov.NewAppModule(appCodec, app.GovKeeper, app.AccountKeeper, app.BankKeeper, nil)
 	feegrantMod := feegrantmodule.NewAppModule(appCodec, app.AccountKeeper, app.BankKeeper, app.FeegrantKeeper, app.interfaceRegistry)
+	authzMod := authzmodule.NewAppModule(appCodec, app.AuthzKeeper, app.AccountKeeper, app.BankKeeper, app.interfaceRegistry)
 	upgradeModule := upgrade.NewAppModule(app.UpgradeKeeper, app.AccountKeeper.AddressCodec())
 
 	emissionsMod := emissionsmodule.NewModule(app.EmissionsKeeper)
@@ -432,6 +445,7 @@ func NewWeVibeApp(
 		epochstypes.ModuleName:         epochs.NewAppModule(app.EpochsKeeper),
 		govtypes.ModuleName:            govModule,
 		feegrant.ModuleName:            feegrantMod,
+		authz.ModuleName:               authzMod,
 		upgradetypes.ModuleName:        upgradeModule,
 
 		"bandwidth":   bandwidthMod,
@@ -455,6 +469,7 @@ func NewWeVibeApp(
 
 	app.ModuleManager.SetOrderInitGenesis(
 		authTypes.ModuleName,
+		authz.ModuleName,
 		bankTypes.ModuleName,
 		distrTypes.ModuleName,
 		stakingTypes.ModuleName,
@@ -483,6 +498,7 @@ func NewWeVibeApp(
 		slashingTypes.ModuleName,
 		stakingTypes.ModuleName,
 		authTypes.ModuleName,
+		authz.ModuleName,
 		consensusparamTypes.ModuleName,
 	)
 
@@ -711,6 +727,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	mintTypes.RegisterInterfaces(registry)
 	consensusparamTypes.RegisterInterfaces(registry)
 	feegrant.RegisterInterfaces(registry)
+	authz.RegisterInterfaces(registry)
 	upgradetypes.RegisterInterfaces(registry)
 
 	emissionsTypes.RegisterInterfaces(registry)
