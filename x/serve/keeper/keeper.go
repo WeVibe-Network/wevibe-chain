@@ -218,6 +218,18 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		accepted++
 
+		if err := k.memoryKeeper.ApplyServeBoost(ctx, orgID, serve.MemoryContentHash); err != nil {
+			// Non-fatal: the serve attestation is primary. The boost is a secondary
+			// side effect that may fail if the memory is archived or otherwise
+			// no longer eligible. Match the emissions pattern (payout failures
+			// do not roll back the epoch).
+			k.logger.Warn("ApplyServeBoost failed",
+				"org", orgID,
+				"hash", types.ContentHashToHex(serve.MemoryContentHash),
+				"err", err,
+			)
+		}
+
 		if err := k.reputationKeeper.RecordServe(ctx, []byte(serve.ContributorWallet), orgID, epoch, isSelfServe); err != nil {
 			k.logger.Info("failed to record serve reputation",
 				"contributor", serve.ContributorWallet,

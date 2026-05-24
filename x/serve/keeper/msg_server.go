@@ -83,6 +83,18 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			return nil, err
 		}
 		accepted++
+
+		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, entry.MemoryHash); err != nil {
+			// Non-fatal: the denial attestation is primary. The decay is a
+			// secondary side effect that may fail if the memory is already
+			// archived. Match the emissions pattern (payout failures do not
+			// roll back the epoch).
+			s.keeper.logger.Warn("ApplyDenialDecay failed",
+				"org", msg.OrgId,
+				"hash", types.ContentHashToHex(entry.MemoryHash),
+				"err", err,
+			)
+		}
 	}
 
 	return &types.MsgSubmitDenialBatchResponse{
