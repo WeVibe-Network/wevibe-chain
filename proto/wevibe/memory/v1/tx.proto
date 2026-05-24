@@ -11,13 +11,7 @@ service Msg {
   option (cosmos.msg.v1.service) = true;
   rpc SubmitCommitment(MsgSubmitCommitment) returns (MsgSubmitCommitmentResponse);
   rpc ApproveMemory(MsgApproveMemory) returns (MsgApproveMemoryResponse);
-  rpc RejectMemory(MsgRejectMemory) returns (MsgRejectMemoryResponse);
-  rpc PurgeExpired(MsgPurgeExpired) returns (MsgPurgeExpiredResponse);
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
-  rpc RelateMemories(MsgRelateMemories) returns (MsgRelateMemoriesResponse);
-  rpc ApproveRelationship(MsgApproveRelationship) returns (MsgApproveRelationshipResponse);
-  rpc SetValidityBounds(MsgSetValidityBounds) returns (MsgSetValidityBoundsResponse);
-  rpc ArchiveMemory(MsgArchiveMemory) returns (MsgArchiveMemoryResponse);
   rpc ReportMemory(MsgReportMemory) returns (MsgReportMemoryResponse);
 }
 
@@ -48,25 +42,6 @@ message MsgApproveMemory {
 
 message MsgApproveMemoryResponse {}
 
-message MsgRejectMemory {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-  bytes content_hash = 3;
-}
-
-message MsgRejectMemoryResponse {}
-
-message MsgPurgeExpired {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-}
-
-message MsgPurgeExpiredResponse {
-  uint64 purged_count = 1;
-}
-
 message MsgUpdateParams {
   option (cosmos.msg.v1.signer) = "authority";
   string authority = 1;
@@ -74,48 +49,6 @@ message MsgUpdateParams {
 }
 
 message MsgUpdateParamsResponse {}
-
-message MsgRelateMemories {
-  option (cosmos.msg.v1.signer) = "sender";
-  string sender = 1;
-  string org_id = 2;
-  string source_cid = 3;
-  string target_cid = 4;
-  RelationType relation_type = 5;
-}
-
-message MsgRelateMemoriesResponse {}
-
-message MsgApproveRelationship {
-  option (cosmos.msg.v1.signer) = "sender";
-  string sender = 1;
-  string org_id = 2;
-  string source_cid = 3;
-  string target_cid = 4;
-}
-
-message MsgApproveRelationshipResponse {}
-
-message MsgSetValidityBounds {
-  option (cosmos.msg.v1.signer) = "sender";
-  string sender = 1;
-  string org_id = 2;
-  string memory_cid = 3;
-  uint64 valid_after_epoch = 4;
-  uint64 valid_until_epoch = 5;
-  map<string, string> scope_tags = 6;
-}
-
-message MsgSetValidityBoundsResponse {}
-
-message MsgArchiveMemory {
-  option (cosmos.msg.v1.signer) = "sender";
-  string sender = 1;
-  string org_id = 2;
-  string memory_cid = 3;
-}
-
-message MsgArchiveMemoryResponse {}
 
 message MsgReportMemory {
   option (cosmos.msg.v1.signer) = "signer";

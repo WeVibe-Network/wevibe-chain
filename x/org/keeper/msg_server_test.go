@@ -442,3 +442,353 @@ func TestMsgGrantTrialAllowance_NotLeader(t *testing.T) {
 	_, err = srv.GrantTrialAllowance(ctx, msg)
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
+
+func TestMsgUpdateMemberRole_Success(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: validLeader,
+		OrgId:  "org1",
+		Pubkey: validMember,
+		Role:   "member",
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgUpdateMemberRole{
+		Signer:  validLeader,
+		OrgId:   "org1",
+		Pubkey:  validMember,
+		NewRole: "moderator",
+	}
+
+	resp, err := srv.UpdateMemberRole(ctx, msg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: validLeader,
+		OrgId:  "org1",
+		Pubkey: validMember,
+		Role:   "member",
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgUpdateMemberRole{
+		Signer:  validSigner,
+		OrgId:   "org1",
+		Pubkey:  validMember,
+		NewRole: "moderator",
+	}
+
+	_, err = srv.UpdateMemberRole(ctx, msg)
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgUpdateMemberRole_MemberNotFound(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgUpdateMemberRole{
+		Signer:  validLeader,
+		OrgId:   "org1",
+		Pubkey:  validMember,
+		NewRole: "moderator",
+	}
+
+	_, err = srv.UpdateMemberRole(ctx, msg)
+	require.ErrorIs(t, err, types.ErrMemberNotFound)
+}
+
+func TestMsgUpdateMemberRole_CannotChangeLeaderRole(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgUpdateMemberRole{
+		Signer:  validLeader,
+		OrgId:   "org1",
+		Pubkey:  validLeader,
+		NewRole: "member",
+	}
+
+	_, err = srv.UpdateMemberRole(ctx, msg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot change role of org leader")
+}
+
+func TestMsgRotateEpoch_Success(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgRotateEpoch{
+		Signer: validLeader,
+		OrgId:  "org1",
+	}
+
+	resp, err := srv.RotateEpoch(ctx, msg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, uint64(1), resp.NewEpoch)
+}
+
+func TestMsgRotateEpoch_NotLeader(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgRotateEpoch{
+		Signer: validSigner,
+		OrgId:  "org1",
+	}
+
+	_, err = srv.RotateEpoch(ctx, msg)
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgRotateEpoch_ClosedOrg(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.CloseOrg(ctx, &types.MsgCloseOrg{
+		Signer: validLeader,
+		OrgId:  "org1",
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgRotateEpoch{
+		Signer: validLeader,
+		OrgId:  "org1",
+	}
+
+	_, err = srv.RotateEpoch(ctx, msg)
+	require.ErrorIs(t, err, types.ErrOrgNotActive)
+}
+
+func TestMsgTransferLeadership_Success(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: validLeader,
+		OrgId:  "org1",
+		Pubkey: validMember,
+		Role:   "member",
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgTransferLeadership{
+		Signer:    validLeader,
+		OrgId:     "org1",
+		NewLeader: validMember,
+	}
+
+	resp, err := srv.TransferLeadership(ctx, msg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestMsgTransferLeadership_NotLeader(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgTransferLeadership{
+		Signer:    validSigner,
+		OrgId:     "org1",
+		NewLeader: validMember,
+	}
+
+	_, err = srv.TransferLeadership(ctx, msg)
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgTransferLeadership_NewLeaderNotMember(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgTransferLeadership{
+		Signer:    validLeader,
+		OrgId:     "org1",
+		NewLeader: validMember,
+	}
+
+	_, err = srv.TransferLeadership(ctx, msg)
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "new_leader must be a member of the org")
+}
+
+func TestMsgTransferLeadership_SelfTransfer(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgTransferLeadership{
+		Signer:    validLeader,
+		OrgId:     "org1",
+		NewLeader: validLeader,
+	}
+
+	err = msg.ValidateBasic()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "cannot transfer leadership to self")
+}
+
+func TestMsgCloseOrg_Success(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgCloseOrg{
+		Signer: validLeader,
+		OrgId:  "org1",
+	}
+
+	resp, err := srv.CloseOrg(ctx, msg)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestMsgCloseOrg_NotLeader(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgCloseOrg{
+		Signer: validSigner,
+		OrgId:  "org1",
+	}
+
+	_, err = srv.CloseOrg(ctx, msg)
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgCloseOrg_AlreadyClosed(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.CloseOrg(ctx, &types.MsgCloseOrg{
+		Signer: validLeader,
+		OrgId:  "org1",
+	})
+	require.NoError(t, err)
+
+	msg := &types.MsgCloseOrg{
+		Signer: validLeader,
+		OrgId:  "org1",
+	}
+
+	_, err = srv.CloseOrg(ctx, msg)
+	require.ErrorIs(t, err, types.ErrOrgNotActive)
+}

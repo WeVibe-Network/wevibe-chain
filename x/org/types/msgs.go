@@ -166,3 +166,55 @@ func (m *MsgGrantTrialAllowance) ValidateBasic() error {
 	}
 	return nil
 }
+
+func (m *MsgUpdateMemberRole) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	if m.Pubkey == "" {
+		return fmt.Errorf("pubkey cannot be empty")
+	}
+	if m.NewRole != "member" && m.NewRole != "moderator" {
+		return fmt.Errorf("new_role must be 'member' or 'moderator'")
+	}
+	return nil
+}
+
+func (m *MsgRotateEpoch) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	return nil
+}
+
+func (m *MsgTransferLeadership) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	if m.NewLeader == "" {
+		return fmt.Errorf("new_leader cannot be empty")
+	}
+	if m.Signer == m.NewLeader {
+		return fmt.Errorf("signer cannot transfer leadership to self")
+	}
+	return nil
+}
+
+func (m *MsgCloseOrg) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	return nil
+}

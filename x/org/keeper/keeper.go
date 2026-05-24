@@ -374,6 +374,219 @@ func (k *Keeper) IsModerator(ctx context.Context, orgID, memberPubkey string) (b
 	return member.Role == "moderator", nil
 }
 
+func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, signer string) error {
+	isLeader, err := k.IsLeader(ctx, orgID, signer)
+	if err != nil {
+		return err
+	}
+	if !isLeader {
+		return types.ErrNotLeader
+	}
+
+	member, err := k.GetMember(ctx, orgID, pubkey)
+	if err != nil {
+		return err
+	}
+
+	if member.Role == "leader" {
+		return fmt.Errorf("cannot change role of org leader")
+	}
+
+	member.Role = newRole
+	bz, err := proto.Marshal(memberToStored(member))
+	if err != nil {
+		return fmt.Errorf("marshal member: %w", err)
+	}
+
+	store := k.getStore(ctx)
+	if err := store.Set(memberKey(orgID, pubkey), bz); err != nil {
+		return err
+	}
+
+	k.logger.Info("member role updated",
+		"org_id", orgID,
+		"member", pubkey,
+		"new_role", newRole,
+	)
+	return nil
+}
+
+func (k *Keeper) RotateEpoch(ctx context.Context, orgID, signer string) (uint64, error) {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return 0, err
+	}
+
+	isLeader, err := k.IsLeader(ctx, orgID, signer)
+	if err != nil {
+		return 0, err
+	}
+	if !isLeader {
+		return 0, types.ErrNotLeader
+	}
+
+	if org.Status != types.OrgStatus_ACTIVE {
+		return 0, types.ErrOrgNotActive
+	}
+
+	store := k.getStore(ctx)
+	key := orgKey(orgID)
+	bz, err := store.Get(key)
+	if err != nil {
+		return 0, err
+	}
+
+	var stored types.StoredOrg
+	if err := proto.Unmarshal(bz, &stored); err != nil {
+		return 0, fmt.Errorf("unmarshal org: %w", err)
+	}
+
+	stored.TotalEpochRotations++
+
+	bz, err = proto.Marshal(&stored)
+	if err != nil {
+		return 0, fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(key, bz); err != nil {
+		return 0, err
+	}
+
+	k.logger.Info("epoch rotated",
+		"org_id", orgID,
+		"new_epoch", stored.TotalEpochRotations,
+	)
+	return stored.TotalEpochRotations, nil
+}
+
+func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signer string) error {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return err
+	}
+
+	isLeader, err := k.IsLeader(ctx, orgID, signer)
+	if err != nil {
+		return err
+	}
+	if !isLeader {
+		return types.ErrNotLeader
+	}
+
+	_, err = k.GetMember(ctx, orgID, newLeader)
+	if err != nil {
+		return fmt.Errorf("new_leader must be a member of the org")
+	}
+
+	store := k.getStore(ctx)
+
+	oldLeaderKey := memberKey(orgID, org.Leader)
+	oldLeaderBz, err := store.Get(oldLeaderKey)
+	if err != nil {
+		return err
+	}
+	var oldLeaderStored types.StoredMemberRecord
+	if err := proto.Unmarshal(oldLeaderBz, &oldLeaderStored); err != nil {
+		return fmt.Errorf("unmarshal old leader: %w", err)
+	}
+	oldLeaderStored.Role = "member"
+	oldLeaderBz, err = proto.Marshal(&oldLeaderStored)
+	if err != nil {
+		return fmt.Errorf("marshal old leader: %w", err)
+	}
+	if err := store.Set(oldLeaderKey, oldLeaderBz); err != nil {
+		return err
+	}
+
+	newLeaderKey := memberKey(orgID, newLeader)
+	newLeaderBz, err := store.Get(newLeaderKey)
+	if err != nil {
+		return err
+	}
+	var newLeaderStored types.StoredMemberRecord
+	if err := proto.Unmarshal(newLeaderBz, &newLeaderStored); err != nil {
+		return fmt.Errorf("unmarshal new leader: %w", err)
+	}
+	newLeaderStored.Role = "leader"
+	newLeaderBz, err = proto.Marshal(&newLeaderStored)
+	if err != nil {
+		return fmt.Errorf("marshal new leader: %w", err)
+	}
+	if err := store.Set(newLeaderKey, newLeaderBz); err != nil {
+		return err
+	}
+
+	orgKey := orgKey(orgID)
+	orgBz, err := store.Get(orgKey)
+	if err != nil {
+		return err
+	}
+	var orgStored types.StoredOrg
+	if err := proto.Unmarshal(orgBz, &orgStored); err != nil {
+		return fmt.Errorf("unmarshal org: %w", err)
+	}
+	orgStored.Leader = newLeader
+	orgBz, err = proto.Marshal(&orgStored)
+	if err != nil {
+		return fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(orgKey, orgBz); err != nil {
+		return err
+	}
+
+	k.logger.Info("leadership transferred",
+		"org_id", orgID,
+		"old_leader", org.Leader,
+		"new_leader", newLeader,
+	)
+	return nil
+}
+
+func (k *Keeper) CloseOrg(ctx context.Context, orgID, signer string) error {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return err
+	}
+
+	isLeader, err := k.IsLeader(ctx, orgID, signer)
+	if err != nil {
+		return err
+	}
+	if !isLeader {
+		return types.ErrNotLeader
+	}
+
+	if org.Status != types.OrgStatus_ACTIVE {
+		return types.ErrOrgNotActive
+	}
+
+	store := k.getStore(ctx)
+	key := orgKey(orgID)
+	bz, err := store.Get(key)
+	if err != nil {
+		return err
+	}
+
+	var stored types.StoredOrg
+	if err := proto.Unmarshal(bz, &stored); err != nil {
+		return fmt.Errorf("unmarshal org: %w", err)
+	}
+
+	stored.Status = int32(types.OrgStatus_CLOSED)
+
+	bz, err = proto.Marshal(&stored)
+	if err != nil {
+		return fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(key, bz); err != nil {
+		return err
+	}
+
+	k.logger.Info("org closed",
+		"org_id", orgID,
+	)
+	return nil
+}
+
 func (k *Keeper) UpdateOrgStatus(ctx context.Context, orgID string, status types.OrgStatus) error {
 	store := k.getStore(ctx)
 	key := orgKey(orgID)

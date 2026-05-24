@@ -66,6 +66,10 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 - **Message handlers**
   - `MsgRegisterOrg` burns the dynamic price through `BankKeeper`, writes `StoredOrg`, auto-adds the leader as a member, and refreshes the dynamic price counter via `updateDynamicPriceOnCreation`.
   - `MsgAddMember` and `MsgRemoveMember` gate membership mutations.
+  - `MsgUpdateMemberRole` (CO-011b) lets the leader promote or demote a member's role (member ↔ moderator). Leader role itself cannot be changed via this message.
+  - `MsgRotateEpoch` (CO-011b) increments the epoch rotation counter after member removal. Chain-side record only; cryptographic rotation happens hub-side via Umbral sidecar.
+  - `MsgTransferLeadership` (CO-011b) transfers leadership to another existing member; old leader becomes "member".
+  - `MsgCloseOrg` (CO-011b) permanently closes an org by setting status to `OrgStatus_CLOSED` (3).
   - `MsgUpdateParams` is authority gated and rewrites `Params`.
   - `MsgFundTreasury` and `MsgWithdrawTreasury` move coins between external accounts and the module account, mirroring balances in `StoredTreasury`.
   - `MsgSetRepTiers` and `MsgSetOrgConfig` let leaders update payout configuration (via `payout_per_memory`) and serve expectations.
@@ -101,11 +105,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 - **Message handlers**
   - `MsgSubmitCommitment` validates membership indirectly via the org keeper, consumes memory bandwidth via `BandwidthKeeper.ConsumeMemoryBandwidth`, ensures the pending queue is below `max_pending_per_org`, and writes to `pending/{org}/{hash}`.
   - `MsgApproveMemory` checks leadership, blob size, migrates the record to `approved/{org}/{hash}`, seeds retrieval confidence, increments the `count/{org}` counter, and deletes the pending entry.
-  - `MsgRejectMemory` removes the pending entry without affecting bandwidth tallies.
-  - `MsgPurgeExpired` scans pending entries and deletes those older than the retention window.
-  - `MsgRelateMemories` / `MsgApproveRelationship` create and activate relationship edges, applying confidence penalties or forced state changes when appropriate.
-  - `MsgContestMemory` / `MsgResolveContest` manage stake-backed disputes, escrow/burn funds via the memory module account, and transition memories into or out of `CONTESTED`/`ARCHIVED`.
-  - `MsgSetValidityBounds` establishes retrieval windows; `MsgArchiveMemory` gives leaders a manual archive lever.
+  - `MsgReportMemory` lets authorized reporters submit evidence of memory violations; maintains relationship and validity metadata through epoch hooks.
   - `MsgUpdateParams` is authority guarded and rewrites parameter state (including decay floors and thresholds).
 - **Query endpoints** (`/wevibe/memory/v1/...`)
   - `memory/{org_id}/{content_hash}` returns a stored approved memory with lifecycle metadata.

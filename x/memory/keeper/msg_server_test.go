@@ -244,49 +244,4 @@ func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
 	}
 }
 
-func TestMsgRejectMemory_Success(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
 
-	submitMsg := &types.MsgSubmitCommitment{
-		Signer:        "signer",
-		OrgId:         "test-org",
-		ContentHash:   []byte("12345678901234567890123456789012"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
-		ContributorId: "contributor",
-		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
-	}
-	_, _ = srv.SubmitCommitment(ctx, submitMsg)
-
-	rejectMsg := &types.MsgRejectMemory{
-		Signer:      "leader-pubkey",
-		OrgId:       "test-org",
-		ContentHash: []byte("12345678901234567890123456789012"),
-	}
-
-	resp, err := srv.RejectMemory(ctx, rejectMsg)
-	if err != nil {
-		t.Fatalf("RejectMemory failed: %v", err)
-	}
-	if resp == nil {
-		t.Fatal("expected non-nil response")
-	}
-}
-
-func TestMsgPurgeExpired_Success(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
-
-	purgeMsg := &types.MsgPurgeExpired{
-		Signer: "anyone",
-		OrgId:  "test-org",
-	}
-
-	resp, err := srv.PurgeExpired(ctx, purgeMsg)
-	if err != nil {
-		t.Fatalf("PurgeExpired failed: %v", err)
-	}
-	if resp == nil {
-		t.Fatal("expected non-nil response")
-	}
-}

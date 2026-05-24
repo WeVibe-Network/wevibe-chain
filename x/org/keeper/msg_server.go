@@ -294,3 +294,84 @@ func (m *msgServer) GrantTrialAllowance(ctx context.Context, msg *types.MsgGrant
 
 	return &types.MsgGrantTrialAllowanceResponse{}, nil
 }
+
+func (m *msgServer) UpdateMemberRole(ctx context.Context, msg *types.MsgUpdateMemberRole) (*types.MsgUpdateMemberRoleResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := m.keeper.UpdateMemberRole(ctx, msg.OrgId, msg.Pubkey, msg.NewRole, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgUpdateMemberRoleResponse{}, nil
+}
+
+func (m *msgServer) RotateEpoch(ctx context.Context, msg *types.MsgRotateEpoch) (*types.MsgRotateEpochResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	newEpoch, err := m.keeper.RotateEpoch(ctx, msg.OrgId, msg.Signer)
+	if err != nil {
+		return nil, err
+	}
+
+	return &types.MsgRotateEpochResponse{NewEpoch: newEpoch}, nil
+}
+
+func (m *msgServer) TransferLeadership(ctx context.Context, msg *types.MsgTransferLeadership) (*types.MsgTransferLeadershipResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := m.keeper.TransferLeadership(ctx, msg.OrgId, msg.NewLeader, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgTransferLeadershipResponse{}, nil
+}
+
+func (m *msgServer) CloseOrg(ctx context.Context, msg *types.MsgCloseOrg) (*types.MsgCloseOrgResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := m.keeper.CloseOrg(ctx, msg.OrgId, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgCloseOrgResponse{}, nil
+}

@@ -68,28 +68,6 @@ func parseWeight(s string) dec {
 	return newDec(s)
 }
 
-func (k *Keeper) ArchiveMemory(ctx context.Context, orgID, cid, actor string) error {
-	isLeader, err := k.orgKeeper.IsLeader(ctx, orgID, actor)
-	if err != nil {
-		return err
-	}
-	if !isLeader {
-		return types.ErrUnauthorized
-	}
-
-	memory, err := k.loadMemoryByCID(ctx, orgID, cid)
-	if err != nil {
-		return err
-	}
-
-	if memory.State == types.MemoryState_MEMORY_STATE_ARCHIVED {
-		return nil
-	}
-
-	memory.State = types.MemoryState_MEMORY_STATE_ARCHIVED
-	return k.saveMemoryCommitment(ctx, memory)
-}
-
 func (k *Keeper) saveMemoryCommitment(ctx context.Context, memory *types.MemoryCommitment) error {
 	store := k.getStore(ctx)
 	bz, err := proto.Marshal(memoryToStored(memory))

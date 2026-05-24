@@ -30,6 +30,10 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgSetRepTiers{},
 		&MsgSetOrgConfig{},
 		&MsgGrantTrialAllowance{},
+		&MsgUpdateMemberRole{},
+		&MsgRotateEpoch{},
+		&MsgTransferLeadership{},
+		&MsgCloseOrg{},
 	)
 	msgservice.RegisterMsgServiceDesc(registry, &_Msg_serviceDesc)
 }

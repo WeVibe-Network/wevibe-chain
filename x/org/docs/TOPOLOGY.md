@@ -1,0 +1,68 @@
+# Org Module Topology (CO-011b)
+
+## Messages (as of CO-011b)
+
+### MsgUpdateMemberRole
+Leader can promote or demote a member's role (member ↔ moderator). The "leader" role itself cannot be changed via this message — leadership transfer requires MsgTransferLeadership.
+
+- **Signer authority:** Leader of the org (signer must match org.Leader)
+- **ValidateBasic:** signer not empty, org_id not empty, pubkey not empty, new_role in ["member", "moderator"]
+- **State mutations:**
+  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
+  2. Read StoredMemberRecord from `member/{org_id}/{pubkey}`, verify exists
+  3. Reject if pubkey == leader (cannot change own leader role)
+  4. Update member.Role = new_role, marshal and store
+
+### MsgRotateEpoch
+Leader increments the epoch rotation counter after member removal. This is the chain-side record of a rotation; the actual cryptographic rotation (new keypair, kfrags) happens hub-side via the Umbral sidecar.
+
+- **Signer authority:** Leader of the org
+- **ValidateBasic:** signer not empty, org_id not empty
+- **State mutations:**
+  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
+  2. Verify org.Status == OrgStatus_ACTIVE (cannot rotate a closed/dormant org)
+  3. Increment org.TotalEpochRotations += 1
+  4. Marshal and store updated org
+  5. Return MsgRotateEpochResponse{NewEpoch: org.TotalEpochRotations}
+
+### MsgTransferLeadership
+Leader transfers leadership to another existing member. Old leader's role changes from "leader" to "member".
+
+- **Signer authority:** Leader of the org (wallet-signed per D-1.3)
+- **ValidateBasic:** signer not empty, org_id not empty, new_leader not empty, signer != new_leader
+- **State mutations:**
+  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
+  2. Verify org.Status == OrgStatus_ACTIVE
+  3. Verify new_leader is an existing member (read memberKey(org_id, newLeader))
+  4. Read old leader's StoredMemberRecord, set role = "member", write back
+  5. Read new leader's StoredMemberRecord, set role = "leader", write back
+  6. Update org.Leader = newLeader, marshal and store
+
+### MsgCloseOrg
+Leader permanently closes the org. Hub-side cleanup (kfrag deletion, Qdrant collection removal) is handled by ChainWatcher's processCloseOrgEvent in a future CO.
+
+- **Signer authority:** Leader of the org (wallet-signed per D-1.3)
+- **ValidateBasic:** signer not empty, org_id not empty
+- **State mutations:**
+  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
+  2. Verify org.Status == OrgStatus_ACTIVE (cannot close already-closed orgs)
+  3. Set org.Status = int32(OrgStatus_CLOSED) (= 3)
+  4. Marshal and store updated org
+
+## OrgStatus Constants
+
+| Constant | Value | Description |
+|---|---|---|
+| OrgStatus_ACTIVE | 0 | Org is active and accepting transactions |
+| OrgStatus_DORMANT | 1 | Org is dormant (future use) |
+| OrgStatus_SUSPENDED | 2 | Org is suspended (future use) |
+| OrgStatus_CLOSED | 3 | Org is permanently closed (CO-011b) |
+
+## State Types Retained
+
+- `StoredOrg` — stored at `org/{org_id}`
+- `StoredMemberRecord` — stored at `member/{org_id}/{pubkey}`
+- `StoredDynamicPrice` — stored at `dynprice/`
+- `StoredTreasury` — stored at `treasury/{org_id}`
+- `StoredRepTierConfig` — stored at `reptier/{org_id}`
+- `StoredOrgConfig` — stored at `orgconfig/{org_id}`

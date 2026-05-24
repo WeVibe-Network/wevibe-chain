@@ -56,31 +56,6 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 	return &types.MsgApproveMemoryResponse{}, nil
 }
 
-func (m *msgServer) RejectMemory(ctx context.Context, msg *types.MsgRejectMemory) (*types.MsgRejectMemoryResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
-	if err := m.keeper.RejectMemory(ctx, msg.OrgId, msg.ContentHash, msg.Signer); err != nil {
-		return nil, err
-	}
-
-	return &types.MsgRejectMemoryResponse{}, nil
-}
-
-func (m *msgServer) PurgeExpired(ctx context.Context, msg *types.MsgPurgeExpired) (*types.MsgPurgeExpiredResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
-	count, err := m.keeper.PurgeExpired(ctx, msg.OrgId, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.MsgPurgeExpiredResponse{PurgedCount: count}, nil
-}
-
 func (m *msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {
 	if msg.Authority != m.keeper.authority {
 		return nil, types.ErrUnauthorized
@@ -92,46 +67,6 @@ func (m *msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams
 		return nil, err
 	}
 	return &types.MsgUpdateParamsResponse{}, nil
-}
-
-func (m *msgServer) RelateMemories(ctx context.Context, msg *types.MsgRelateMemories) (*types.MsgRelateMemoriesResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-	if err := m.keeper.ProposeRelationship(ctx, msg); err != nil {
-		return nil, err
-	}
-	return &types.MsgRelateMemoriesResponse{}, nil
-}
-
-func (m *msgServer) ApproveRelationship(ctx context.Context, msg *types.MsgApproveRelationship) (*types.MsgApproveRelationshipResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-	if err := m.keeper.ApproveRelationship(ctx, msg); err != nil {
-		return nil, err
-	}
-	return &types.MsgApproveRelationshipResponse{}, nil
-}
-
-func (m *msgServer) SetValidityBounds(ctx context.Context, msg *types.MsgSetValidityBounds) (*types.MsgSetValidityBoundsResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-	if err := m.keeper.SetValidityBounds(ctx, msg); err != nil {
-		return nil, err
-	}
-	return &types.MsgSetValidityBoundsResponse{}, nil
-}
-
-func (m *msgServer) ArchiveMemory(ctx context.Context, msg *types.MsgArchiveMemory) (*types.MsgArchiveMemoryResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-	if err := m.keeper.ArchiveMemory(ctx, msg.OrgId, msg.MemoryCid, msg.Sender); err != nil {
-		return nil, err
-	}
-	return &types.MsgArchiveMemoryResponse{}, nil
 }
 
 func (m *msgServer) ReportMemory(ctx context.Context, msg *types.MsgReportMemory) (*types.MsgReportMemoryResponse, error) {

@@ -18,6 +18,10 @@ service Msg {
   rpc SetRepTiers(MsgSetRepTiers) returns (MsgSetRepTiersResponse);
   rpc SetOrgConfig(MsgSetOrgConfig) returns (MsgSetOrgConfigResponse);
   rpc GrantTrialAllowance(MsgGrantTrialAllowance) returns (MsgGrantTrialAllowanceResponse);
+  rpc UpdateMemberRole(MsgUpdateMemberRole) returns (MsgUpdateMemberRoleResponse);
+  rpc RotateEpoch(MsgRotateEpoch) returns (MsgRotateEpochResponse);
+  rpc TransferLeadership(MsgTransferLeadership) returns (MsgTransferLeadershipResponse);
+  rpc CloseOrg(MsgCloseOrg) returns (MsgCloseOrgResponse);
 }
 
 message MsgRegisterOrg {
@@ -103,3 +107,36 @@ message MsgGrantTrialAllowance {
   uint64 trial_days = 5;
 }
 message MsgGrantTrialAllowanceResponse {}
+
+message MsgUpdateMemberRole {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  string pubkey = 3;
+  string new_role = 4;
+}
+message MsgUpdateMemberRoleResponse {}
+
+message MsgRotateEpoch {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+}
+message MsgRotateEpochResponse {
+  uint64 new_epoch = 1;
+}
+
+message MsgTransferLeadership {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  string new_leader = 3;
+}
+message MsgTransferLeadershipResponse {}
+
+message MsgCloseOrg {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+}
+message MsgCloseOrgResponse {}

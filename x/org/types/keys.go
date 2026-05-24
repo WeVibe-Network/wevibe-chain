@@ -79,6 +79,7 @@ const (
 	OrgStatus_ACTIVE    OrgStatus = 0
 	OrgStatus_DORMANT   OrgStatus = 1
 	OrgStatus_SUSPENDED OrgStatus = 2
+	OrgStatus_CLOSED    OrgStatus = 3
 )
 
 type MemberRecord struct {

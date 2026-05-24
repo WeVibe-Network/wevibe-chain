@@ -19,56 +19,6 @@ func validityKey(orgID, cid string) []byte {
 	return key
 }
 
-func (k *Keeper) SetValidityBounds(ctx context.Context, msg *types.MsgSetValidityBounds) error {
-	if err := msg.ValidateBasic(); err != nil {
-		return err
-	}
-
-	isLeader, err := k.orgKeeper.IsLeader(ctx, msg.OrgId, msg.Sender)
-	if err != nil {
-		return err
-	}
-	if !isLeader {
-		return types.ErrUnauthorized
-	}
-
-	memory, err := k.loadMemoryByCID(ctx, msg.OrgId, msg.MemoryCid)
-	if err != nil {
-		return err
-	}
-	if !isValidityEligibleState(memory.State) {
-		return types.ErrMemoryNotEligibleForValidity
-	}
-
-	scopeTags := msg.ScopeTags
-	if scopeTags == nil {
-		scopeTags = map[string]string{}
-	}
-	scopeBz, err := json.Marshal(scopeTags)
-	if err != nil {
-		return fmt.Errorf("marshal scope tags: %w", err)
-	}
-
-	stored := &types.StoredValidityMetadata{
-		OrgId:           msg.OrgId,
-		MemoryCid:       msg.MemoryCid,
-		ValidAfterEpoch: msg.ValidAfterEpoch,
-		ValidUntilEpoch: msg.ValidUntilEpoch,
-		ScopeTagsBz:     scopeBz,
-	}
-
-	bz, err := proto.Marshal(stored)
-	if err != nil {
-		return fmt.Errorf("marshal validity metadata: %w", err)
-	}
-
-	if err := k.getStore(ctx).Set(validityKey(msg.OrgId, msg.MemoryCid), bz); err != nil {
-		return fmt.Errorf("store validity metadata: %w", err)
-	}
-
-	return nil
-}
-
 func (k *Keeper) GetValidityMetadata(ctx context.Context, orgID, cid string) (types.ValidityMetadata, bool, error) {
 	bz, err := k.getStore(ctx).Get(validityKey(orgID, cid))
 	if err != nil {
