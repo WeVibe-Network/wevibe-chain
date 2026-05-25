@@ -29,7 +29,7 @@ The following state types and their helper functions are retained because they a
 
 ## Active Message Handlers
 
-- **MsgSubmitCommitment** — Submit a memory commitment for review
+- **MsgSubmitCommitment** — Submit a memory commitment for review; emits `commitment_submitted` event with `{org_id, contributor_id, block_height}` (CO-016)
 - **MsgApproveMemory** — Leader approves a commitment, promoting it to approved state
 - **MsgUpdateParams** — Authority-gated parameter updates
 - **MsgReportMemory** — Report a memory as violating community standards

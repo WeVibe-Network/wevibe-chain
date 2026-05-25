@@ -3,8 +3,10 @@ package keeper
 import (
 	"context"
 	"testing"
+	"time"
 
 	storetypes "cosmossdk.io/store/types"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/testutil/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
@@ -32,9 +34,9 @@ func (m *mockOrgKeeperServer) GetOrgConfig(ctx context.Context, orgID string) (*
 	return &orgtypes.OrgConfig{OrgID: orgID}, nil
 }
 
-func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperServer) {
+func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperServer, context.Context) {
 	storeKey := storetypes.NewKVStoreKey("memory")
-	storeService, _ := keeper.NewTestStoreService(t, storeKey)
+	storeService, cms := keeper.NewTestStoreService(t, storeKey)
 	logger := keeper.NewTestLogger()
 	sdk.DefaultBondDenom = "uvibe"
 	mockOrg := &mockOrgKeeperServer{
@@ -42,7 +44,8 @@ func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperSe
 		leaders: map[string]string{"test-org": "leader-pubkey"},
 	}
 	k := NewKeeper(storeService, logger, "gov", mockOrg, &mockReputationKeeper{})
-	return NewMsgServerImpl(k), k, mockOrg
+	sdkCtx := sdk.NewContext(cms, tmproto.Header{Height: 1, Time: time.Now().UTC()}, false, logger)
+	return NewMsgServerImpl(k), k, mockOrg, sdk.WrapSDKContext(sdkCtx)
 }
 
 func keywordsToKeywordWeights(keywords []string) []*types.KeywordWeight {
@@ -54,7 +57,7 @@ func keywordsToKeywordWeights(keywords []string) []*types.KeywordWeight {
 }
 
 func TestMsgSubmitCommitment_ValidateBasic(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
+	srv, _, _, _ := makeTestMsgServer(t)
 	ctx := context.Background()
 
 	tests := []struct {
@@ -105,8 +108,7 @@ func TestMsgSubmitCommitment_ValidateBasic(t *testing.T) {
 }
 
 func TestMsgSubmitCommitment_Success(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
+	srv, _, _, ctx := makeTestMsgServer(t)
 
 	msg := &types.MsgSubmitCommitment{
 		Signer:        "signer",
@@ -127,8 +129,7 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 }
 
 func TestMsgSubmitCommitment_InvalidMemoryType(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
+	srv, _, _, ctx := makeTestMsgServer(t)
 
 	msg := &types.MsgSubmitCommitment{
 		Signer:        "signer",
@@ -146,8 +147,7 @@ func TestMsgSubmitCommitment_InvalidMemoryType(t *testing.T) {
 }
 
 func TestMsgApproveMemory_Success(t *testing.T) {
-	srv, k, _ := makeTestMsgServer(t)
-	ctx := context.Background()
+	srv, k, _, ctx := makeTestMsgServer(t)
 
 	submitMsg := &types.MsgSubmitCommitment{
 		Signer:        "signer",
@@ -187,8 +187,7 @@ func TestMsgApproveMemory_Success(t *testing.T) {
 }
 
 func TestMsgApproveMemory_Unauthorized(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
+	srv, _, _, ctx := makeTestMsgServer(t)
 
 	submitMsg := &types.MsgSubmitCommitment{
 		Signer:        "signer",
@@ -217,8 +216,7 @@ func TestMsgApproveMemory_Unauthorized(t *testing.T) {
 }
 
 func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
-	srv, _, _ := makeTestMsgServer(t)
-	ctx := context.Background()
+	srv, _, _, ctx := makeTestMsgServer(t)
 
 	submitMsg := &types.MsgSubmitCommitment{
 		Signer:        "signer",

@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
 )
 
@@ -37,6 +39,15 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 	if err := m.keeper.SubmitCommitment(ctx, commitment); err != nil {
 		return nil, err
 	}
+
+	// Emit commitment_submitted event — previously dead code, now wired (CO-016)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeCommitmentSubmitted,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeyContributor, msg.ContributorId),
+		sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+	))
 
 	return &types.MsgSubmitCommitmentResponse{}, nil
 }

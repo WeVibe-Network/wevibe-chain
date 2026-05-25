@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/x/serve/types"
 )
 
@@ -96,6 +98,18 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			)
 		}
 	}
+
+	// Emit denial_batch_submitted event — follows MsgRemoveMember pattern (CO-016)
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeDenialBatchSubmitted,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeySubmitter, msg.Signer),
+		sdk.NewAttribute(types.AttributeKeyEpoch, fmt.Sprintf("%d", msg.Epoch)),
+		sdk.NewAttribute(types.AttributeKeyAcceptedCount, fmt.Sprintf("%d", accepted)),
+		sdk.NewAttribute(types.AttributeKeyRejectedCount, fmt.Sprintf("%d", rejected)),
+		sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+	))
 
 	return &types.MsgSubmitDenialBatchResponse{
 		Accepted: accepted,

@@ -133,6 +133,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - Handler validates: org exists, memories are approved, nullifiers are unique per batch, batch size ≤ `max_serves_per_batch`.
   - Each entry persists a `StoredDenialAttestation`; `MemoryKeeper` queries denial count via `GetMemoryDenialCountForEpoch`.
   - Denials flow into the memory module's dual-vector decay model as the negative-signal vector.
+  - **Event emission** (CO-016): Emits `denial_batch_submitted` event with attributes `{org_id, submitter, epoch, accepted_count, rejected_count, block_height}`. Queryable via CometBFT `tx_search` as `denial_batch_submitted.org_id='<org_id>' AND denial_batch_submitted.submitter='<signer>'`.
 - **Message handlers**
   - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated nullifiers, validates approved memories through the memory keeper, and determines the `is_self_serve` flag. Each `ServeEntry` includes `contributor_wallet` for reputation keying.
   - `MsgUpdateParams` updates configuration under governance authority.

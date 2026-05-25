@@ -11,4 +11,5 @@ const (
 	AttributeKeyContributor  = "contributor_id"
 	AttributeKeyEpoch        = "epoch"
 	AttributeKeyPurgedCount  = "purged_count"
+	AttributeKeyBlockHeight  = "block_height"
 )
