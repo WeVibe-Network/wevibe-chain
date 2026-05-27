@@ -53,7 +53,7 @@ func (o *Org) Validate() error {
 		return ErrInvalidDomain
 	}
 	for _, c := range o.Domain {
-		if c != '-' && c != '_' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
+		if c != '-' && c != '_' && c != '.' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
 			if o.Domain != "" {
 				return ErrInvalidDomain
 			}
