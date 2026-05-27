@@ -213,4 +213,16 @@ message QueryVerifyUpheldReportResponse {
   repeated string approving_moderators = 6;
   repeated string upholding_moderators = 7;
   uint64 upheld_at_epoch = 8;
+  bytes salt = 9;
+  bytes ciphertext_hash = 10;
+  bytes wrapped_dek_hash = 11;
+  bytes contributor_sig = 12;
+  string contributor_pubkey = 13;
+  bytes encrypted_blob = 14;
+  bytes wrapped_dek_enc = 15;
+  bytes content_hash = 16;
+  string org_id = 17;
+  uint64 epoch = 18;
+  string memory_type = 19;
+  bytes canonical_body = 20;
 }

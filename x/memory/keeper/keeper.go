@@ -181,8 +181,7 @@ func (k *Keeper) ReportMemory(ctx context.Context, orgID string, contentHash []b
 	}
 
 	// Update contributor's upheld report count
-	contribCtx := context.Background()
-	if err := k.reputationKeeper.IncrementContribution(contribCtx, contributorPubkey, orgID, types.ContentHashToHex(contentHash)); err != nil {
+	if err := k.reputationKeeper.IncrementContribution(ctx, contributorPubkey, orgID, types.ContentHashToHex(contentHash)); err != nil {
 		return fmt.Errorf("increment contribution: %w", err)
 	}
 
@@ -378,6 +377,7 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 		CommittingLeader:  committingLeader,
 		State:             types.MemoryState_MEMORY_STATE_COMMITTED,
 		LastActiveEpoch:   currentEpoch,
+		WrappedDekEnc:     wrappedDekEnc,
 		MemoryType:        memoryType,
 	}
 
@@ -418,8 +418,7 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 	}
 
 	// Update contributor reputation
-	contribCtx := context.Background()
-	if err := k.reputationKeeper.IncrementContribution(contribCtx, pending.Contributor, orgID, types.ContentHashToHex(contentHash)); err != nil {
+	if err := k.reputationKeeper.IncrementContribution(ctx, pending.Contributor, orgID, types.ContentHashToHex(contentHash)); err != nil {
 		return fmt.Errorf("increment contribution: %w", err)
 	}
 
@@ -839,6 +838,11 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		State:                  con.State,
 		LastActiveEpoch:        con.LastActiveEpoch,
 		WrappedDekEnc:          con.WrappedDekEnc,
+		PlaintextHash:          con.PlaintextHash,
+		Salt:                   con.Salt,
+		CiphertextHash:         con.CiphertextHash,
+		WrappedDekHash:         con.WrappedDekHash,
+		ContributorSig:         con.ContributorSig,
 		MemoryType:             con.MemoryType,
 		ApprovedAtEpoch:        con.ApprovedAtEpoch,
 	}
@@ -858,6 +862,11 @@ func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment 
 		State:             stored.State,
 		LastActiveEpoch:   stored.LastActiveEpoch,
 		WrappedDekEnc:     stored.WrappedDekEnc,
+		PlaintextHash:     stored.PlaintextHash,
+		Salt:              stored.Salt,
+		CiphertextHash:    stored.CiphertextHash,
+		WrappedDekHash:    stored.WrappedDekHash,
+		ContributorSig:    stored.ContributorSig,
 		MemoryType:        stored.MemoryType,
 		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
 	}

@@ -66,37 +66,42 @@ func (pc *PendingCommitment) Validate() error {
 }
 
 type MemoryCommitment struct {
-	OrgID                string
-	ContentHash         []byte
-	EncryptedBlob       []byte
-	Keywords            []*KeywordWeight
-	Contributor         string
-	Epoch               uint64
-	CommittedAtHeight   uint64
-	Approvers           []string
-	CommittingLeader    string
-	State               MemoryState
-	LastActiveEpoch     uint64
-	WrappedDekEnc       []byte
-	MemoryType          MemoryType
-	ApprovedAtEpoch     uint64
+	OrgID             string
+	ContentHash       []byte
+	EncryptedBlob     []byte
+	Keywords          []*KeywordWeight
+	Contributor       string
+	Epoch             uint64
+	CommittedAtHeight uint64
+	Approvers         []string
+	CommittingLeader  string
+	State             MemoryState
+	LastActiveEpoch   uint64
+	WrappedDekEnc     []byte
+	PlaintextHash     []byte
+	Salt              []byte
+	CiphertextHash    []byte
+	WrappedDekHash    []byte
+	ContributorSig    []byte
+	MemoryType        MemoryType
+	ApprovedAtEpoch   uint64
 }
 
 func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, approvers []string, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
 	return &MemoryCommitment{
-		OrgID:              orgID,
-		ContentHash:        contentHash,
-		EncryptedBlob:      encryptedBlob,
-		Keywords:           keywords,
-		Contributor:        contributor,
-		Epoch:              epoch,
-		CommittedAtHeight:  committedAtHeight,
-		Approvers:          approvers,
-		CommittingLeader:   committingLeader,
-		State:              state,
-		LastActiveEpoch:    lastActiveEpoch,
-		MemoryType:         memoryType,
-		ApprovedAtEpoch:    approvedAtEpoch,
+		OrgID:             orgID,
+		ContentHash:       contentHash,
+		EncryptedBlob:     encryptedBlob,
+		Keywords:          keywords,
+		Contributor:       contributor,
+		Epoch:             epoch,
+		CommittedAtHeight: committedAtHeight,
+		Approvers:         approvers,
+		CommittingLeader:  committingLeader,
+		State:             state,
+		LastActiveEpoch:   lastActiveEpoch,
+		MemoryType:        memoryType,
+		ApprovedAtEpoch:   approvedAtEpoch,
 	}
 }
 
@@ -170,38 +175,48 @@ func storedToPending(stored StoredPendingCommitment) PendingCommitment {
 func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
 	return &StoredMemoryCommitment{
 		OrgId:                  mc.OrgID,
-		ContentHash:           mc.ContentHash,
-		EncryptedBlob:         mc.EncryptedBlob,
-		Keywords:              mc.Keywords,
-		ContributorPubkey:     mc.Contributor,
-		Epoch:                 mc.Epoch,
-		CommittedAtHeight:     mc.CommittedAtHeight,
-		Approvers:             mc.Approvers,
+		ContentHash:            mc.ContentHash,
+		EncryptedBlob:          mc.EncryptedBlob,
+		Keywords:               mc.Keywords,
+		ContributorPubkey:      mc.Contributor,
+		Epoch:                  mc.Epoch,
+		CommittedAtHeight:      mc.CommittedAtHeight,
+		Approvers:              mc.Approvers,
 		CommittingLeaderPubkey: mc.CommittingLeader,
-		State:                 mc.State,
-		LastActiveEpoch:       mc.LastActiveEpoch,
-		WrappedDekEnc:         mc.WrappedDekEnc,
-		MemoryType:            mc.MemoryType,
-		ApprovedAtEpoch:       mc.ApprovedAtEpoch,
+		State:                  mc.State,
+		LastActiveEpoch:        mc.LastActiveEpoch,
+		WrappedDekEnc:          mc.WrappedDekEnc,
+		PlaintextHash:          mc.PlaintextHash,
+		Salt:                   mc.Salt,
+		CiphertextHash:         mc.CiphertextHash,
+		WrappedDekHash:         mc.WrappedDekHash,
+		ContributorSig:         mc.ContributorSig,
+		MemoryType:             mc.MemoryType,
+		ApprovedAtEpoch:        mc.ApprovedAtEpoch,
 	}
 }
 
 func storedToMemory(stored StoredMemoryCommitment) MemoryCommitment {
 	return MemoryCommitment{
-		OrgID:               stored.OrgId,
-		ContentHash:         stored.ContentHash,
-		EncryptedBlob:       stored.EncryptedBlob,
-		Keywords:            stored.Keywords,
-		Contributor:        stored.ContributorPubkey,
-		Epoch:              stored.Epoch,
-		CommittedAtHeight:   stored.CommittedAtHeight,
-		Approvers:          stored.Approvers,
-		CommittingLeader:   stored.CommittingLeaderPubkey,
-		State:              stored.State,
-		LastActiveEpoch:    stored.LastActiveEpoch,
-		WrappedDekEnc:      stored.WrappedDekEnc,
-		MemoryType:         stored.MemoryType,
-		ApprovedAtEpoch:    stored.ApprovedAtEpoch,
+		OrgID:             stored.OrgId,
+		ContentHash:       stored.ContentHash,
+		EncryptedBlob:     stored.EncryptedBlob,
+		Keywords:          stored.Keywords,
+		Contributor:       stored.ContributorPubkey,
+		Epoch:             stored.Epoch,
+		CommittedAtHeight: stored.CommittedAtHeight,
+		Approvers:         stored.Approvers,
+		CommittingLeader:  stored.CommittingLeaderPubkey,
+		State:             stored.State,
+		LastActiveEpoch:   stored.LastActiveEpoch,
+		WrappedDekEnc:     stored.WrappedDekEnc,
+		PlaintextHash:     stored.PlaintextHash,
+		Salt:              stored.Salt,
+		CiphertextHash:    stored.CiphertextHash,
+		WrappedDekHash:    stored.WrappedDekHash,
+		ContributorSig:    stored.ContributorSig,
+		MemoryType:        stored.MemoryType,
+		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
 	}
 }
 

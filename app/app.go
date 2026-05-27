@@ -404,6 +404,7 @@ func NewWeVibeApp(
 	app.OrgKeeper.SetServeKeeper(app.ServeKeeper)
 	app.OrgKeeper.SetBandwidthKeeper(app.BandwidthKeeper)
 	app.ReputationKeeper.SetServeKeeper(app.ServeKeeper)
+	app.ReputationKeeper.SetMemoryKeeper(app.MemoryKeeper)
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(

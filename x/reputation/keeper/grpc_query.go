@@ -2,12 +2,16 @@ package keeper
 
 import (
 	"context"
+	"crypto/sha256"
+	"encoding/hex"
+	"fmt"
+	"strings"
 
+	query "github.com/cosmos/cosmos-sdk/types/query"
 	memorytypes "github.com/wevibe-network/wevibe-chain/x/memory/types"
 	"github.com/wevibe-network/wevibe-chain/x/reputation/types"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	query "github.com/cosmos/cosmos-sdk/types/query"
 )
 
 type queryServer struct {
@@ -192,14 +196,14 @@ func (q *queryServer) UpheldReportsByContributor(ctx context.Context, req *types
 	err := q.keeper.memoryKeeper.IterateUpheldReports(ctx, func(report *memorytypes.StoredMemoryReport) bool {
 		if report.ContributorPubkey == req.ContributorId {
 			matching = append(matching, &types.UpheldReportEntry{
-				OrgId:                report.OrgId,
-				ContentHash:          report.ContentHash,
-				ContributorPubkey:    report.ContributorPubkey,
-				ApprovingModerators:  report.ApprovingModerators,
-				UpholdingModerators:  report.UpholdingModerators,
+				OrgId:               report.OrgId,
+				ContentHash:         report.ContentHash,
+				ContributorPubkey:   report.ContributorPubkey,
+				ApprovingModerators: report.ApprovingModerators,
+				UpholdingModerators: report.UpholdingModerators,
 				ReporterPubkey:      report.ReporterPubkey,
-				Reason:               report.Reason,
-				UpheldAtEpoch:        report.UpheldAtEpoch,
+				Reason:              report.Reason,
+				UpheldAtEpoch:       report.UpheldAtEpoch,
 			})
 		}
 		return true
@@ -232,14 +236,14 @@ func (q *queryServer) UpheldReportsByModerator(ctx context.Context, req *types.Q
 		for _, approver := range report.ApprovingModerators {
 			if approver == req.ModeratorPubkey {
 				matching = append(matching, &types.UpheldReportEntry{
-					OrgId:                report.OrgId,
-					ContentHash:          report.ContentHash,
-					ContributorPubkey:    report.ContributorPubkey,
-					ApprovingModerators:  report.ApprovingModerators,
-					UpholdingModerators:  report.UpholdingModerators,
+					OrgId:               report.OrgId,
+					ContentHash:         report.ContentHash,
+					ContributorPubkey:   report.ContributorPubkey,
+					ApprovingModerators: report.ApprovingModerators,
+					UpholdingModerators: report.UpholdingModerators,
 					ReporterPubkey:      report.ReporterPubkey,
-					Reason:               report.Reason,
-					UpheldAtEpoch:        report.UpheldAtEpoch,
+					Reason:              report.Reason,
+					UpheldAtEpoch:       report.UpheldAtEpoch,
 				})
 				break
 			}
@@ -273,14 +277,14 @@ func (q *queryServer) UpheldReportsByLeader(ctx context.Context, req *types.Quer
 	err := q.keeper.memoryKeeper.IterateUpheldReports(ctx, func(report *memorytypes.StoredMemoryReport) bool {
 		if report.CommittingLeaderPubkey == req.LeaderPubkey {
 			matching = append(matching, &types.UpheldReportEntry{
-				OrgId:                report.OrgId,
-				ContentHash:          report.ContentHash,
-				ContributorPubkey:    report.ContributorPubkey,
-				ApprovingModerators:  report.ApprovingModerators,
-				UpholdingModerators:  report.UpholdingModerators,
+				OrgId:               report.OrgId,
+				ContentHash:         report.ContentHash,
+				ContributorPubkey:   report.ContributorPubkey,
+				ApprovingModerators: report.ApprovingModerators,
+				UpholdingModerators: report.UpholdingModerators,
 				ReporterPubkey:      report.ReporterPubkey,
-				Reason:               report.Reason,
-				UpheldAtEpoch:        report.UpheldAtEpoch,
+				Reason:              report.Reason,
+				UpheldAtEpoch:       report.UpheldAtEpoch,
 			})
 		}
 		return true
@@ -311,24 +315,124 @@ func (q *queryServer) VerifyUpheldReport(ctx context.Context, req *types.QueryVe
 		return nil, status.Error(codes.InvalidArgument, "content_hash required")
 	}
 
+	memory, err := q.keeper.memoryKeeper.GetApprovedMemory(ctx, req.OrgId, req.ContentHash)
+	if err != nil {
+		if err == memorytypes.ErrMemoryNotFound {
+			return nil, status.Error(codes.NotFound, "approved memory not found")
+		}
+		return nil, status.Errorf(codes.Internal, "lookup approved memory: %v", err)
+	}
+
 	report, err := q.keeper.memoryKeeper.GetUpheldReport(ctx, req.OrgId, req.ContentHash)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "lookup upheld report: %v", err)
 	}
-	if report == nil {
-		return nil, status.Error(codes.NotFound, "upheld report not found for memory in org")
+
+	if len(memory.PlaintextHash) == 0 || len(memory.Salt) == 0 || len(memory.CiphertextHash) == 0 || len(memory.ContributorSig) == 0 {
+		return nil, status.Error(codes.Internal, "approved memory missing verification fields")
+	}
+
+	wrappedDekHash := sha256.Sum256(memory.WrappedDekEnc)
+	if len(memory.WrappedDekHash) > 0 && !bytesEqual(memory.WrappedDekHash, wrappedDekHash[:]) {
+		return nil, status.Error(codes.Internal, "stored wrapped_dek_hash mismatch")
+	}
+
+	hasher := sha256.New()
+	_, _ = hasher.Write(memory.EncryptedBlob)
+	_, _ = hasher.Write(memory.WrappedDekEnc)
+	submissionHash := hasher.Sum(nil)
+	if !bytesEqual(memory.ContentHash, submissionHash) {
+		return nil, status.Error(codes.Internal, "stored content_hash mismatch")
+	}
+
+	canonicalBody := buildSubmitMemoryCanonicalBody(
+		memory.CiphertextHash,
+		memory.Contributor,
+		memory.Epoch,
+		memory.MemoryType,
+		memory.OrgID,
+		memory.PlaintextHash,
+		memory.Salt,
+		submissionHash,
+		wrappedDekHash[:],
+	)
+
+	var plaintext, ciphertext, capsule []byte
+	var plaintextOversized bool
+	var approvingModerators, upholdingModerators []string
+	var upheldAtEpoch uint64
+	if report != nil {
+		plaintext = report.Plaintext
+		ciphertext = report.Ciphertext
+		capsule = report.Capsule
+		plaintextOversized = report.PlaintextOversized
+		approvingModerators = report.ApprovingModerators
+		upholdingModerators = report.UpholdingModerators
+		upheldAtEpoch = report.UpheldAtEpoch
 	}
 
 	return &types.QueryVerifyUpheldReportResponse{
-		Plaintext:           report.Plaintext,
-		Ciphertext:          report.Ciphertext,
-		Capsule:             report.Capsule,
-		PlaintextHash:       report.PlaintextHash,
-		PlaintextOversized:  report.PlaintextOversized,
-		ApprovingModerators: report.ApprovingModerators,
-		UpholdingModerators: report.UpholdingModerators,
-		UpheldAtEpoch:       report.UpheldAtEpoch,
+		Plaintext:           plaintext,
+		Ciphertext:          ciphertext,
+		Capsule:             capsule,
+		PlaintextHash:       memory.PlaintextHash,
+		PlaintextOversized:  plaintextOversized,
+		ApprovingModerators: approvingModerators,
+		UpholdingModerators: upholdingModerators,
+		UpheldAtEpoch:       upheldAtEpoch,
+		Salt:                memory.Salt,
+		CiphertextHash:      memory.CiphertextHash,
+		WrappedDekHash:      wrappedDekHash[:],
+		ContributorSig:      memory.ContributorSig,
+		ContributorPubkey:   memory.Contributor,
+		EncryptedBlob:       memory.EncryptedBlob,
+		WrappedDekEnc:       memory.WrappedDekEnc,
+		ContentHash:         memory.ContentHash,
+		OrgId:               memory.OrgID,
+		Epoch:               memory.Epoch,
+		MemoryType:          canonicalMemoryType(memory.MemoryType),
+		CanonicalBody:       canonicalBody,
 	}, nil
+}
+
+func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey string, epochID uint64, memoryType memorytypes.MemoryType, orgID string, plaintextHash, salt, submissionHash, wrappedDekHash []byte) []byte {
+	canonicalLines := []string{
+		"wevibe.submit_memory.v1",
+		"ciphertext_hash:" + hex.EncodeToString(ciphertextHash),
+		"contributor_pubkey:" + contributorPubkey,
+		fmt.Sprintf("epoch_id:%d", epochID),
+		"memory_type:" + canonicalMemoryType(memoryType),
+		"org_id:" + orgID,
+		"plaintext_hash:" + hex.EncodeToString(plaintextHash),
+		"salt:" + hex.EncodeToString(salt),
+		"submission_hash:" + hex.EncodeToString(submissionHash),
+		"wrapped_dek_hash:" + hex.EncodeToString(wrappedDekHash),
+	}
+
+	return []byte(strings.Join(canonicalLines, "\n"))
+}
+
+func canonicalMemoryType(memoryType memorytypes.MemoryType) string {
+	switch memoryType {
+	case memorytypes.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION:
+		return "correct_implementation"
+	case memorytypes.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL:
+		return "negative_signal"
+	default:
+		return ""
+	}
+}
+
+func bytesEqual(left, right []byte) bool {
+	if len(left) != len(right) {
+		return false
+	}
+	for i := range left {
+		if left[i] != right[i] {
+			return false
+		}
+	}
+	return true
 }
 
 func paginateReports(reports []*types.UpheldReportEntry, page *query.PageRequest) ([]*types.UpheldReportEntry, *query.PageResponse, error) {

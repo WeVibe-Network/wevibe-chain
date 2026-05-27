@@ -38,6 +38,10 @@ message MsgApproveMemory {
   string committing_leader = 6;
   bytes wrapped_dek_enc = 7;
   MemoryType memory_type = 8;
+  bytes plaintext_hash = 9;
+  bytes salt = 10;
+  bytes ciphertext_hash = 11;
+  bytes contributor_sig = 12;
 }
 
 message MsgApproveMemoryResponse {}

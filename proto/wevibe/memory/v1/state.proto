@@ -60,6 +60,11 @@ message StoredMemoryCommitment {
   bytes wrapped_dek_enc = 12;
   MemoryType memory_type = 13;
   uint64 approved_at_epoch = 14;
+  bytes plaintext_hash = 15;
+  bytes salt = 16;
+  bytes ciphertext_hash = 17;
+  bytes wrapped_dek_hash = 18;
+  bytes contributor_sig = 19;
 }
 
 message StoredMemoryRelationship {

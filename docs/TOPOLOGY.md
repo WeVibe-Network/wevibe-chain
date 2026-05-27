@@ -286,3 +286,63 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 3. **Dashboard clients**: Browser or native clients connect to Hub WebSockets for streaming metrics while issuing direct gRPC calls when they require strongly consistent reads (for example verifying treasury balances before withdrawals). Transaction submission flows through wallet connectors (Keplr, Ledger, etc.) that broadcast to WeVibe Chain RPC endpoints. Dashboard users rely on hub-curated indexes to navigate large datasets but can always drill back to canonical state thanks to the documented query endpoints.
 4. **Data propagation**: Every keeper emits structured logs. Hub enriches them and forwards to analytics sinks. Ecosystem partners can replay the same flows because the wire protocol is gRPC/REST backed by protobuf definitions, ensuring deterministic decoding across languages.
 5. **Security boundaries**: All sensitive transitions remain on-chain. Hub and Dashboard never sign transactions on behalf of users; they only relay prepared payloads and display results. Governance-controlled authorities (`gov` module address) remain the only actors that can mutate critical parameters across modules.
+
+## Signed Canonical Body — Verifiable Plaintext Pathway (CO-029)
+
+The contributor's submit-time Ed25519 signature now covers a 9-field canonical body, joined by `\n` after the domain tag `wevibe.submit_memory.v1`. Field order is alphabetical: `ciphertext_hash`, `contributor_pubkey`, `epoch_id`, `memory_type`, `org_id`, `plaintext_hash`, `salt`, `submission_hash`, `wrapped_dek_hash`. The chain re-derives every hash and verifies the signature at commit time. A consumer holding `(plaintext, salt)` can prove to the chain that the plaintext is the one the contributor signed without revealing it to the hub at submit time.
+
+### Proto changes
+
+`MsgApproveMemory` adds:
+
+| Field | Tag | Type | Notes |
+|---|---|---|---|
+| `plaintext_hash` | 9 | bytes | `sha256(salt || plaintext_utf8)` |
+| `salt` | 10 | bytes | 32 random bytes per submission |
+| `ciphertext_hash` | 11 | bytes | `sha256(encrypted_blob)` |
+| `contributor_sig` | 12 | bytes | Ed25519 signature over the 9-field canonical body |
+
+`StoredMemoryCommitment` adds the same four fields at tags 15–18 plus `wrapped_dek_hash = 18` (derived at commit time from `sha256(wrapped_dek_enc)`) and `contributor_sig = 19`.
+
+### Memory keeper at `MsgApproveMemory`
+
+Before storing `StoredMemoryCommitment`, the keeper:
+
+1. Computes `wrapped_dek_hash = sha256(msg.wrapped_dek_enc)` and `submission_hash = sha256(encrypted_blob || wrapped_dek_enc)`.
+2. Rebuilds the 9-field canonical body via `buildSubmitMemoryCanonicalBody` (`x/memory/keeper/msg_server.go`).
+3. Decodes `pending.Contributor` as hex Ed25519 pubkey (must be 32 bytes).
+4. `ed25519.Verify(pubkey, canonicalBody, msg.ContributorSig)` — rejects on failure.
+5. Verifies `sha256(encrypted_blob) == msg.CiphertextHash` and `sha256(blob||dek) == msg.ContentHash`.
+
+**Partial-batch-success semantics:** Any failure above causes the keeper to return a successful response WITHOUT storing the commitment and WITHOUT consuming the pending entry. Other memories in the same batch transaction continue processing. A malformed-sig memory cannot grief a leader's batch.
+
+After verification passes, the keeper persists `plaintext_hash`, `salt`, `ciphertext_hash`, `wrapped_dek_hash`, and `contributor_sig` onto the stored commitment (`x/memory/keeper/msg_server.go:142-154`).
+
+### VerifyUpheldReport (reputation module)
+
+`/wevibe/reputation/v1/verify_upheld_report/{org_id}/{content_hash}` returns the full Tier 2 evidence set, including data needed even when no report has been filed yet:
+
+- `plaintext_hash`, `salt`, `ciphertext_hash`, `wrapped_dek_hash` (from `StoredMemoryCommitment`)
+- `contributor_sig`, `contributor_pubkey` (Ed25519 verification material)
+- `encrypted_blob`, `wrapped_dek_enc` (full bytes for off-chain re-hashing)
+- `content_hash`, `org_id`, `epoch`, `memory_type`
+- `canonical_body` — convenience field with the 9-field canonical body bytes pre-reconstructed by the query handler (verifiers can independently reconstruct from the other fields)
+- If an upheld `StoredMemoryReport` exists, also: `plaintext`, `ciphertext`, `capsule`, `plaintext_oversized`, `approving_moderators`, `upholding_moderators`, `upheld_at_epoch`
+
+The query keeper also validates `stored.wrapped_dek_hash == sha256(stored.wrapped_dek_enc)` and `stored.content_hash == sha256(stored.encrypted_blob || stored.wrapped_dek_enc)` before returning, returning `Internal` if either check fails.
+
+### Tier 2 verification (executed by external verifiers)
+
+Holding `(plaintext, salt)` and the response above:
+
+1. `sha256(salt || plaintext_utf8)` must equal `plaintext_hash`.
+2. `sha256(encrypted_blob)` must equal `ciphertext_hash`.
+3. `sha256(wrapped_dek_enc)` must equal `wrapped_dek_hash`.
+4. `sha256(encrypted_blob || wrapped_dek_enc)` must equal `content_hash`.
+5. `Ed25519.verify(contributor_pubkey, canonical_body, contributor_sig)` must hold.
+
+All five steps must pass for the memory to be considered cryptographically bound to the contributor's signed plaintext.
+
+### R-NO-SP1-RESIDUE
+
+No SP1 / zkVM / Groth16 primitive is present in chain code. The signed-canonical-body design is the deployed verification anchor; the prior ZK pathway never shipped.

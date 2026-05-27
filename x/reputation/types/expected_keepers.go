@@ -13,4 +13,5 @@ type ServeKeeper interface {
 type MemoryKeeper interface {
 	IterateUpheldReports(ctx context.Context, cb func(*memorytypes.StoredMemoryReport) bool) error
 	GetUpheldReport(ctx context.Context, orgID string, memoryHash []byte) (*memorytypes.StoredMemoryReport, error)
+	GetApprovedMemory(ctx context.Context, orgID string, contentHash []byte) (*memorytypes.MemoryCommitment, error)
 }
