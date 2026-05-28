@@ -21,6 +21,10 @@ message ServeEntry {
   string model_id = 5;
   uint32 turn_count = 6;
   string contributor_wallet = 7;
+  // Matched-keyword set for this serve event - the intersection of the
+  // memory's keywords and the query's keyword set. Required, non-empty.
+  // Per D-4.2 Implementation Clarifications (DMO-007).
+  repeated string matched_keywords = 8;
 }
 
 message MsgSubmitServeBatch {

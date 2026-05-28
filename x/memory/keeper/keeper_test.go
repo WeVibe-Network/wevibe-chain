@@ -448,3 +448,51 @@ func TestContentAddressedDedup(t *testing.T) {
 		t.Fatalf("expected ErrMemoryExists, got: %v", err)
 	}
 }
+
+func TestStoreMemoryWithParameterizedHelpers(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	cid := storeMemoryWithKeywords(
+		t,
+		k,
+		ctx,
+		"test-org",
+		contentHash,
+		types.MemoryState_MEMORY_STATE_COMMITTED,
+		2,
+		withMemoryServeTotal(7),
+		withMemoryDenialTotal(3),
+		withKeywords(
+			&types.KeywordWeight{Keyword: "kw1", Weight: "0.50"},
+			&types.KeywordWeight{Keyword: "kw2", Weight: "0.25"},
+		),
+		withKeywordWeight("kw1", "0.75"),
+	)
+
+	mock := attachMockServeKeeper(k, "test-org", cid,
+		withServeCount(5, 2),
+		withDenialCount(5, 1),
+		withMatchedKeywords(5, "kw1"),
+	)
+
+	matches, err := mock.GetMatchedKeywordsForEpoch(ctx, "test-org", cid, 5)
+	if err != nil {
+		t.Fatalf("GetMatchedKeywordsForEpoch failed: %v", err)
+	}
+	if !matches["kw1"] {
+		t.Fatalf("expected kw1 to be matched")
+	}
+
+	memory, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if memory.ServeCountTotal != 7 {
+		t.Fatalf("ServeCountTotal mismatch: got %d, want 7", memory.ServeCountTotal)
+	}
+	if memory.DenialCountTotal != 3 {
+		t.Fatalf("DenialCountTotal mismatch: got %d, want 3", memory.DenialCountTotal)
+	}
+}

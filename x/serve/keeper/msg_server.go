@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -10,6 +11,10 @@ import (
 
 type MsgServer struct {
 	keeper *Keeper
+}
+
+func matchedKeywordKey(orgID, cidHex string, epoch uint64, keyword string) []byte {
+	return []byte(fmt.Sprintf("%s%s/%s/%d/%s", types.MatchedKeywordsPrefix, orgID, cidHex, epoch, keyword))
 }
 
 var _ types.MsgServer = (*MsgServer)(nil)
@@ -74,26 +79,50 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			continue
 		}
 
+		originatingAttestation, found, err := s.keeper.GetServeAttestationByNullifier(ctx, entry.Nullifier)
+		if err != nil {
+			return nil, err
+		}
+		if !found {
+			rejected++
+			continue
+		}
+		if len(originatingAttestation.MatchedKeywords) == 0 {
+			rejected++
+			continue
+		}
+		if !bytes.Equal(entry.MemoryHash, originatingAttestation.MemoryContentHash) {
+			rejected++
+			continue
+		}
+
 		if _, err := s.keeper.memoryKeeper.GetApprovedMemory(ctx, msg.OrgId, entry.MemoryHash); err != nil {
 			rejected++
 			continue
 		}
 
 		store.Set(denialNullifierKey(entry.Nullifier), []byte{1})
-		s.keeper.IncrementDenialCount(ctx, msg.OrgId, entry.MemoryHash, msg.Epoch)
+		s.keeper.IncrementDenialCount(ctx, msg.OrgId, originatingAttestation.MemoryContentHash, msg.Epoch)
 		if err := s.keeper.StoreDenialAttestation(ctx, msg.OrgId, msg.Epoch, entry); err != nil {
 			return nil, err
 		}
+		cidHex := types.ContentHashToHex(originatingAttestation.MemoryContentHash)
+		for _, keyword := range originatingAttestation.MatchedKeywords {
+			if keyword == "" {
+				return nil, fmt.Errorf("originating attestation has empty matched keyword")
+			}
+			store.Set(matchedKeywordKey(msg.OrgId, cidHex, msg.Epoch, keyword), []byte{0x01})
+		}
 		accepted++
 
-		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, entry.MemoryHash); err != nil {
+		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, originatingAttestation.MemoryContentHash); err != nil {
 			// Non-fatal: the denial attestation is primary. The decay is a
 			// secondary side effect that may fail if the memory is already
 			// archived. Match the emissions pattern (payout failures do not
 			// roll back the epoch).
 			s.keeper.logger.Warn("ApplyDenialDecay failed",
 				"org", msg.OrgId,
-				"hash", types.ContentHashToHex(entry.MemoryHash),
+				"hash", types.ContentHashToHex(originatingAttestation.MemoryContentHash),
 				"err", err,
 			)
 		}

@@ -3,11 +3,17 @@ package types
 import "fmt"
 
 const (
-	DefaultIdleDecayRateBps      = uint64(50)
-	DefaultDenialDecayBps        = uint64(500)
-	DefaultServeBoostBps         = uint64(100)
-	DefaultMaxServeBoostPerEpoch = uint64(5)
-	DefaultBootstrapGraceEpochs  = uint64(14)
+	DefaultServeDBps             = uint64(220)
+	DefaultDenialDBps            = uint64(900)
+	DefaultIdleDBps              = uint64(600)
+	DefaultServeFloorBps         = uint64(4000)
+	DefaultDenialFloorBps        = uint64(3000)
+	DefaultIdleProtectBps        = uint64(500)
+	DefaultIdleUntrustedBps      = uint64(10000)
+	DefaultTrustMinServes        = uint64(1)
+	DefaultTrustMaxRateBps       = uint64(3000)
+	DefaultGraceEpochs           = uint64(20)
+	DefaultRetrievalThresholdBps = uint64(1500)
 )
 
 func DefaultParams() Params {
@@ -16,31 +22,47 @@ func DefaultParams() Params {
 		PendingRetentionEpochs: 7,
 		MaxBlobSizeBytes:       1048576,
 		MaxKeywordsPerMemory:   20,
-		MinRetrievalDecayBps:   DefaultIdleDecayRateBps,
+		RetrievalThresholdBps:  DefaultRetrievalThresholdBps,
+		InitialConfidenceBps:   0,
 		ContestWindowEpochs:    10,
-		IdleDecayRateBps:      DefaultIdleDecayRateBps,
-		DenialDecayBps:        DefaultDenialDecayBps,
-		ServeBoostBps:         DefaultServeBoostBps,
-		MaxServeBoostPerEpoch: DefaultMaxServeBoostPerEpoch,
-		BootstrapGraceEpochs:  DefaultBootstrapGraceEpochs,
+		GraceEpochs:           DefaultGraceEpochs,
+		ServeDBps:             DefaultServeDBps,
+		DenialDBps:            DefaultDenialDBps,
+		IdleDBps:              DefaultIdleDBps,
+		ServeFloorBps:         DefaultServeFloorBps,
+		DenialFloorBps:        DefaultDenialFloorBps,
+		IdleProtectBps:        DefaultIdleProtectBps,
+		IdleUntrustedBps:      DefaultIdleUntrustedBps,
+		TrustMinServes:        DefaultTrustMinServes,
+		TrustMaxRateBps:       DefaultTrustMaxRateBps,
 	}
 }
 
 func (p Params) Validate() error {
-	if p.MinRetrievalDecayBps == 0 {
-		return fmt.Errorf("min retrieval decay must be positive")
+	if p.GraceEpochs < 1 {
+		return fmt.Errorf("grace epochs must be at least 1")
 	}
-	if p.IdleDecayRateBps == 0 {
-		return fmt.Errorf("idle decay rate must be positive")
+	if p.TrustMinServes < 1 {
+		return fmt.Errorf("trust min serves must be at least 1")
 	}
-	if p.DenialDecayBps == 0 {
-		return fmt.Errorf("denial decay must be positive")
+
+	bpsFields := map[string]uint64{
+		"retrieval_threshold_bps": p.RetrievalThresholdBps,
+		"initial_confidence_bps":  p.InitialConfidenceBps,
+		"serve_d_bps":             p.ServeDBps,
+		"denial_d_bps":            p.DenialDBps,
+		"idle_d_bps":              p.IdleDBps,
+		"serve_floor_bps":         p.ServeFloorBps,
+		"denial_floor_bps":        p.DenialFloorBps,
+		"idle_protect_bps":        p.IdleProtectBps,
+		"idle_untrusted_bps":      p.IdleUntrustedBps,
+		"trust_max_rate_bps":      p.TrustMaxRateBps,
 	}
-	if p.ServeBoostBps == 0 {
-		return fmt.Errorf("serve boost must be positive")
+	for name, value := range bpsFields {
+		if value > 10000 {
+			return fmt.Errorf("%s must be <= 10000", name)
+		}
 	}
-	if p.MaxServeBoostPerEpoch == 0 {
-		return fmt.Errorf("max serve boost per epoch must be positive")
-	}
+
 	return nil
 }

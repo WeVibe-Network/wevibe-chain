@@ -13,6 +13,9 @@ message StoredServeAttestation {
   bool is_self_serve = 7;
   string model_id = 8;
   uint32 turn_count = 9;
+  // Matched-keyword set captured from the originating serve TX.
+  // Per D-4.2 Implementation Clarifications (DMO-007).
+  repeated string matched_keywords = 10;
 }
 
 message StoredDenialAttestation {

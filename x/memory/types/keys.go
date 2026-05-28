@@ -84,6 +84,9 @@ type MemoryCommitment struct {
 	ContributorSig    []byte
 	MemoryType        MemoryType
 	ApprovedAtEpoch   uint64
+	ServeCountTotal   uint64
+	DenialCountTotal  uint64
+	ArchivedEpoch     uint64
 }
 
 func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
@@ -187,6 +190,9 @@ func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
 		ContributorSig:         mc.ContributorSig,
 		MemoryType:             mc.MemoryType,
 		ApprovedAtEpoch:        mc.ApprovedAtEpoch,
+		ServeCountTotal:        mc.ServeCountTotal,
+		DenialCountTotal:       mc.DenialCountTotal,
+		ArchivedEpoch:          mc.ArchivedEpoch,
 	}
 }
 
@@ -210,6 +216,9 @@ func storedToMemory(stored StoredMemoryCommitment) MemoryCommitment {
 		ContributorSig:    stored.ContributorSig,
 		MemoryType:        stored.MemoryType,
 		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
+		ServeCountTotal:   stored.ServeCountTotal,
+		DenialCountTotal:  stored.DenialCountTotal,
+		ArchivedEpoch:     stored.ArchivedEpoch,
 	}
 }
 

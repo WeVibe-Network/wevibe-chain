@@ -19,6 +19,11 @@ type OrgKeeper interface {
 type ServeKeeper interface {
 	GetMemoryServeCountForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (uint64, error)
 	GetMemoryDenialCountForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (uint64, error)
+	// Returns the union of keywords matched
+	// by any serve to (orgID, memoryCID) during the given epoch. Empty
+	// non-nil map indicates no serves this epoch.
+	// Per D-4.2 Implementation Clarifications (DMO-007).
+	GetMatchedKeywordsForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (map[string]bool, error)
 }
 
 type ReputationKeeper interface {

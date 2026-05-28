@@ -8,14 +8,26 @@ message Params {
   uint64 pending_retention_epochs = 2;
   uint64 max_blob_size_bytes = 3;
   uint32 max_keywords_per_memory = 4;
-  uint64 min_retrieval_decay_bps = 5;
-  reserved 6, 7, 8;
-  reserved "stable_threshold_bps", "degraded_threshold_bps", "dormant_threshold_bps";
+  uint64 retrieval_threshold_bps = 5;
+  reserved 6, 7, 8, 11, 12, 13, 14;
+  reserved
+    "stable_threshold_bps",
+    "degraded_threshold_bps",
+    "dormant_threshold_bps",
+    "idle_decay_rate_bps",
+    "denial_decay_bps",
+    "serve_boost_bps",
+    "max_serve_boost_per_epoch";
   uint64 initial_confidence_bps = 9;
   uint64 contest_window_epochs = 10;
-  uint64 idle_decay_rate_bps = 11;
-  uint64 denial_decay_bps = 12;
-  uint64 serve_boost_bps = 13;
-  uint64 max_serve_boost_per_epoch = 14;
-  uint64 bootstrap_grace_epochs = 15;
+  uint64 grace_epochs = 15;
+  uint64 serve_d_bps = 16;
+  uint64 denial_d_bps = 17;
+  uint64 idle_d_bps = 18;
+  uint64 serve_floor_bps = 19;
+  uint64 denial_floor_bps = 20;
+  uint64 idle_protect_bps = 21;
+  uint64 idle_untrusted_bps = 22;
+  uint64 trust_min_serves = 23;
+  uint64 trust_max_rate_bps = 24;
 }

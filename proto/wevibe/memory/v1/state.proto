@@ -65,6 +65,9 @@ message StoredMemoryCommitment {
   bytes ciphertext_hash = 17;
   bytes wrapped_dek_hash = 18;
   bytes contributor_sig = 19;
+  uint64 serve_count_total = 20;
+  uint64 denial_count_total = 21;
+  uint64 archived_epoch = 22;
 }
 
 message StoredMemoryRelationship {

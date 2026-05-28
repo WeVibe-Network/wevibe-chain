@@ -29,6 +29,14 @@ func (m *MsgSubmitServeBatch) ValidateBasic() error {
 		if len(serve.Nullifier) != NullifierLen {
 			return ErrInvalidNullifier
 		}
+		if len(serve.MatchedKeywords) == 0 {
+			return fmt.Errorf("matched_keywords must be non-empty per D-4.2")
+		}
+		for _, kw := range serve.MatchedKeywords {
+			if kw == "" {
+				return fmt.Errorf("matched_keywords entries must be non-empty strings")
+			}
+		}
 	}
 	return nil
 }

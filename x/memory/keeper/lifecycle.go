@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 
@@ -104,7 +105,95 @@ func (k *Keeper) loadMemoryByCID(ctx context.Context, orgID, cid string) (*types
 	return &memory, nil
 }
 
-func (k *Keeper) ApplyIdleDecay(ctx context.Context, orgID string, epoch uint64) error {
+// applyDecay is the canonical Earned Trust decay handler.
+// Source: wevibe-sim/ranking-fix.js applyDecay.
+// D-4.2 Implementation Clarifications (DMO-006 + DMO-007) is the binding spec.
+func (k *Keeper) applyDecay(
+	memory *types.MemoryCommitment,
+	currentEpoch uint64,
+	servesThisEpoch uint64,
+	denialsThisEpoch uint64,
+	kwIDsMatched map[string]bool,
+	params types.Params,
+) error {
+	if isInGracePeriod(currentEpoch, memory.Epoch, params.GraceEpochs) {
+		return nil
+	}
+
+	totalEvents := memory.ServeCountTotal + memory.DenialCountTotal
+	var denialRate float64
+	if totalEvents > 0 {
+		denialRate = float64(memory.DenialCountTotal) / float64(totalEvents)
+	}
+
+	trust := math.Max(0, 1.0-denialRate)
+	trustSq := trust * trust
+	trustEarned := memory.ServeCountTotal >= params.TrustMinServes &&
+		denialRate < (float64(params.TrustMaxRateBps)/10000.0)
+
+	serveD := float64(params.ServeDBps) / 10000.0
+	denialD := float64(params.DenialDBps) / 10000.0
+	idleD := float64(params.IdleDBps) / 10000.0
+	serveFloor := float64(params.ServeFloorBps) / 10000.0
+	denialFloor := float64(params.DenialFloorBps) / 10000.0
+	idleProtect := float64(params.IdleProtectBps) / 10000.0
+	idleUntrusted := float64(params.IdleUntrustedBps) / 10000.0
+
+	for i := range memory.Keywords {
+		kw := memory.Keywords[i]
+		matched := kwIDsMatched[kw.Keyword]
+		weight := parseWeight(kw.Weight)
+
+		if servesThisEpoch > 0 && matched {
+			delta := serveD * float64(servesThisEpoch) *
+				(serveFloor + (1.0-serveFloor)*trustSq)
+			weight = weight.Add(dec{value: new(big.Rat).SetFloat64(delta)})
+		}
+
+		if denialsThisEpoch > 0 && matched {
+			delta := denialD * float64(denialsThisEpoch) *
+				(denialFloor + (1.0-denialFloor)*denialRate)
+			weight = weight.Sub(dec{value: new(big.Rat).SetFloat64(delta)})
+		}
+
+		if !matched || (servesThisEpoch == 0 && denialsThisEpoch == 0) {
+			idleMult := idleUntrusted
+			if trustEarned {
+				idleMult = idleProtect
+			}
+			weight = weight.Sub(dec{value: new(big.Rat).SetFloat64(idleD * idleMult)})
+		}
+
+		if weight.IsNegative() {
+			weight = zeroDec
+		} else if weight.GT(oneDec) {
+			weight = oneDec
+		}
+
+		memory.Keywords[i].Weight = weight.String()
+	}
+
+	memory.LastActiveEpoch = currentEpoch
+
+	retrievalThreshold := dec{value: new(big.Rat).SetFloat64(float64(params.RetrievalThresholdBps) / 10000.0)}
+	allBelow := true
+	for _, kw := range memory.Keywords {
+		weight := parseWeight(kw.Weight)
+		if weight.GT(retrievalThreshold) {
+			allBelow = false
+			break
+		}
+	}
+
+	if allBelow && memory.State != types.MemoryState_MEMORY_STATE_ARCHIVED {
+		memory.State = types.MemoryState_MEMORY_STATE_ARCHIVED
+		memory.ArchivedEpoch = currentEpoch
+	}
+
+	return nil
+}
+
+func (k *Keeper) ApplyIdleDecay(ctx context.Context, _ string, epoch uint64) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return err
@@ -125,40 +214,27 @@ func (k *Keeper) ApplyIdleDecay(ctx context.Context, orgID string, epoch uint64)
 		}
 
 		memory := storedToMemory(stored)
-
 		if !isDecayEligible(memory.State) {
 			continue
 		}
 
 		cidHex := types.ContentHashToHex(memory.ContentHash)
-
-		serveCount, err := k.getMemoryServeCount(ctx, memory.OrgID, cidHex, epoch)
+		servesThisEpoch, err := k.getMemoryServeCount(ctx, memory.OrgID, cidHex, epoch)
 		if err != nil {
 			return err
 		}
-		denialCount, err := k.getMemoryDenialCount(ctx, memory.OrgID, cidHex, epoch)
+		denialsThisEpoch, err := k.getMemoryDenialCount(ctx, memory.OrgID, cidHex, epoch)
 		if err != nil {
 			return err
 		}
 
-		if serveCount > 0 || denialCount > 0 {
+		if servesThisEpoch > 0 || denialsThisEpoch > 0 {
 			continue
 		}
 
-		if epoch <= memory.LastActiveEpoch {
-			continue
+		if err := k.applyDecay(&memory, epoch, 0, 0, nil, params); err != nil {
+			return err
 		}
-
-		if isInBootstrapGrace(epoch, memory.Epoch, params.BootstrapGraceEpochs) {
-			continue
-		}
-
-		allZero := k.applyIdleDecayToMemory(&memory, params)
-
-		if allZero {
-			memory.State = types.MemoryState_MEMORY_STATE_ARCHIVED
-		}
-
 		if err := k.saveMemoryCommitment(ctx, &memory); err != nil {
 			return err
 		}
@@ -167,36 +243,11 @@ func (k *Keeper) ApplyIdleDecay(ctx context.Context, orgID string, epoch uint64)
 	return nil
 }
 
-func (k *Keeper) applyIdleDecayToMemory(memory *types.MemoryCommitment, params types.Params) bool {
-	idleDecay := float64(params.IdleDecayRateBps) / 10000.0
-
-	for i := range memory.Keywords {
-		weight := parseWeight(memory.Keywords[i].Weight)
-		newWeight := weight.Sub(dec{value: new(big.Rat).SetFloat64(idleDecay)})
-		if newWeight.IsNegative() {
-			newWeight = zeroDec
-		}
-		memory.Keywords[i].Weight = newWeight.String()
-	}
-
-	allZero := true
-	for _, kw := range memory.Keywords {
-		w := parseWeight(kw.Weight)
-		if w.IsPositive() {
-			allZero = false
-			break
-		}
-	}
-
-	return allZero
-}
-
 func (k *Keeper) ApplyServeBoost(ctx context.Context, orgID string, contentHash []byte) error {
 	memory, err := k.GetApprovedMemory(ctx, orgID, contentHash)
 	if err != nil {
 		return err
 	}
-
 	if memory.State == types.MemoryState_MEMORY_STATE_ARCHIVED {
 		return nil
 	}
@@ -207,33 +258,33 @@ func (k *Keeper) ApplyServeBoost(ctx context.Context, orgID string, contentHash 
 	}
 
 	currentEpoch := k.getCurrentEpoch(ctx)
-	if isInBootstrapGrace(currentEpoch, memory.Epoch, params.BootstrapGraceEpochs) {
-		return nil
-	}
-
 	cidHex := types.ContentHashToHex(contentHash)
-	serveCount, err := k.getMemoryServeCount(ctx, orgID, cidHex, currentEpoch)
+	servesThisEpoch, err := k.getMemoryServeCount(ctx, orgID, cidHex, currentEpoch)
 	if err != nil {
 		return err
 	}
-
-	if serveCount > params.MaxServeBoostPerEpoch {
-		return nil
+	denialsThisEpoch, err := k.getMemoryDenialCount(ctx, orgID, cidHex, currentEpoch)
+	if err != nil {
+		return err
 	}
-
-	boost := float64(params.ServeBoostBps) / 10000.0
+	kwIDsMatched, err := k.getMatchedKeywords(ctx, orgID, cidHex, currentEpoch)
+	if err != nil {
+		return err
+	}
+	if len(kwIDsMatched) == 0 {
+		return fmt.Errorf("matched keywords not found for serve event")
+	}
 
 	for i := range memory.Keywords {
-		weight := parseWeight(memory.Keywords[i].Weight)
-		newWeight := weight.Add(dec{value: new(big.Rat).SetFloat64(boost)})
-		if newWeight.GT(oneDec) {
-			newWeight = oneDec
+		if kwIDsMatched[memory.Keywords[i].Keyword] {
+			memory.Keywords[i].ServeCount++
 		}
-		memory.Keywords[i].Weight = newWeight.String()
-		memory.Keywords[i].ServeCount++
 	}
+	memory.ServeCountTotal++
 
-	memory.LastActiveEpoch = currentEpoch
+	if err := k.applyDecay(memory, currentEpoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
+		return err
+	}
 
 	return k.saveMemoryCommitment(ctx, memory)
 }
@@ -243,7 +294,6 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 	if err != nil {
 		return err
 	}
-
 	if memory.State == types.MemoryState_MEMORY_STATE_ARCHIVED {
 		return nil
 	}
@@ -254,35 +304,32 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 	}
 
 	currentEpoch := k.getCurrentEpoch(ctx)
-	if isInBootstrapGrace(currentEpoch, memory.Epoch, params.BootstrapGraceEpochs) {
-		return nil
+	cidHex := types.ContentHashToHex(contentHash)
+	servesThisEpoch, err := k.getMemoryServeCount(ctx, orgID, cidHex, currentEpoch)
+	if err != nil {
+		return err
 	}
-
-	decay := float64(params.DenialDecayBps) / 10000.0
+	denialsThisEpoch, err := k.getMemoryDenialCount(ctx, orgID, cidHex, currentEpoch)
+	if err != nil {
+		return err
+	}
+	kwIDsMatched, err := k.getMatchedKeywords(ctx, orgID, cidHex, currentEpoch)
+	if err != nil {
+		return err
+	}
+	if len(kwIDsMatched) == 0 {
+		return fmt.Errorf("matched keywords not found for denial event")
+	}
 
 	for i := range memory.Keywords {
-		weight := parseWeight(memory.Keywords[i].Weight)
-		newWeight := weight.Sub(dec{value: new(big.Rat).SetFloat64(decay)})
-		if newWeight.IsNegative() {
-			newWeight = zeroDec
-		}
-		memory.Keywords[i].Weight = newWeight.String()
-		memory.Keywords[i].DenialCount++
-	}
-
-	memory.LastActiveEpoch = currentEpoch
-
-	allZero := true
-	for _, kw := range memory.Keywords {
-		w := parseWeight(kw.Weight)
-		if w.IsPositive() {
-			allZero = false
-			break
+		if kwIDsMatched[memory.Keywords[i].Keyword] {
+			memory.Keywords[i].DenialCount++
 		}
 	}
+	memory.DenialCountTotal++
 
-	if allZero {
-		memory.State = types.MemoryState_MEMORY_STATE_ARCHIVED
+	if err := k.applyDecay(memory, currentEpoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
+		return err
 	}
 
 	return k.saveMemoryCommitment(ctx, memory)
@@ -329,18 +376,32 @@ func (k *Keeper) getMemoryDenialCount(ctx context.Context, orgID, cid string, ep
 	return count, nil
 }
 
+func (k *Keeper) getMatchedKeywords(ctx context.Context, orgID, cid string, epoch uint64) (map[string]bool, error) {
+	if k.serveKeeper == nil {
+		return map[string]bool{}, nil
+	}
+	matches, err := k.serveKeeper.GetMatchedKeywordsForEpoch(ctx, orgID, cid, epoch)
+	if err != nil {
+		return nil, fmt.Errorf("serve keeper matched keywords: %w", err)
+	}
+	if matches == nil {
+		return map[string]bool{}, nil
+	}
+	return matches, nil
+}
+
 func isDecayEligible(state types.MemoryState) bool {
 	return state == types.MemoryState_MEMORY_STATE_COMMITTED
 }
 
-func isInBootstrapGrace(epoch, memoryEpoch, bootstrapGraceEpochs uint64) bool {
-	if bootstrapGraceEpochs == 0 {
+func isInGracePeriod(epoch, memoryEpoch, graceEpochs uint64) bool {
+	if graceEpochs == 0 {
 		return false
 	}
 	if epoch < memoryEpoch {
 		return true
 	}
-	return epoch-memoryEpoch < bootstrapGraceEpochs
+	return epoch-memoryEpoch < graceEpochs
 }
 
 func decodeCID(cid string) ([]byte, error) {

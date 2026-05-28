@@ -835,6 +835,9 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		ContributorSig:         con.ContributorSig,
 		MemoryType:             con.MemoryType,
 		ApprovedAtEpoch:        con.ApprovedAtEpoch,
+		ServeCountTotal:        con.ServeCountTotal,
+		DenialCountTotal:       con.DenialCountTotal,
+		ArchivedEpoch:          con.ArchivedEpoch,
 	}
 }
 
@@ -858,5 +861,8 @@ func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment 
 		ContributorSig:    stored.ContributorSig,
 		MemoryType:        stored.MemoryType,
 		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
+		ServeCountTotal:   stored.ServeCountTotal,
+		DenialCountTotal:  stored.DenialCountTotal,
+		ArchivedEpoch:     stored.ArchivedEpoch,
 	}
 }

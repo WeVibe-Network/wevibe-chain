@@ -32,19 +32,31 @@ WeVibe Chain is the Cosmos SDK application that anchors Sprint 23 functionality.
 
 WeVibe Chain exposes two public APIs: Tendermint RPC for block and transaction gossip, and gRPC-gateway REST routes derived from the protobuf services in `proto/wevibe/**`. Clients authenticate through bech32 addresses with the `wevibe` prefix, and fees are denominated in `uvibe`. Governance retains authority over critical parameters by injecting the `gov` module address into keepers that enforce privileged updates.
 
-## Sprint 24 Updates (CO-240)
+## Sprint 32 Updates (CO-031 Rev 2)
 
-- **Keyword weight decay model**: `x/memory` applies decay to per-keyword weights, not memory-level confidence.
-  - `KeywordWeight` message on-chain: `{ keyword, weight, serve_count, denial_count }`
-  - All keywords on a memory boost/decay equally per event
-  - Serve boost: +100 bps per serve event, cap 5 serves/epoch
-  - Denial decay: -500 bps per denial event
-  - Idle decay: -50 bps per epoch with zero activity (checked via `last_active_epoch`)
-  - Bootstrap grace: 14 epochs, no decay during grace period
-  - Archived when ALL keyword weights = 0.0 (not confidence == 0)
-- **Confidence field KILLED**: `StoredMemoryCommitment.confidence` removed. Keyword weights ARE the health metric.
-- **`last_active_epoch`**: Tracks when memory last had activity (serve/denial), used for idle decay eligibility.
-- **Decay parameters in params.proto**: `denial_decay_bps` (500), `serve_boost_bps` (100), `bootstrap_grace_epochs` (14), `idle_decay_bps` (50).
+- **Canonical decay path**: `x/memory` now uses one Earned Trust implementation
+  in `lifecycle.go:applyDecay`, with `ApplyServeBoost`, `ApplyDenialDecay`, and
+  `ApplyIdleDecay` as thin wrappers.
+- **Per-memory lifetime counters** (new fields on `StoredMemoryCommitment`):
+  - `serve_count_total`
+  - `denial_count_total`
+  - `archived_epoch`
+- **Per-serve matched-keyword tracking** (x/serve expansion):
+  - `ServeEntry.matched_keywords` is required and non-empty on submit.
+  - `StoredServeAttestation.matched_keywords` persists the originating set.
+  - `matched_keywords/{org}/{cid}/{epoch}/{keyword}` prefix stores set-union
+    membership for memory+epoch keyword matches.
+  - `ServeKeeper.GetMatchedKeywordsForEpoch(...)` is consumed by
+    `x/memory` to gate per-keyword decay operations.
+- **Earned Trust params replace flat-count params**:
+  - `serve_d_bps`, `denial_d_bps`, `idle_d_bps`
+  - `serve_floor_bps`, `denial_floor_bps`
+  - `idle_protect_bps`, `idle_untrusted_bps`
+  - `trust_min_serves`, `trust_max_rate_bps`
+  - `grace_epochs`, `retrieval_threshold_bps`
+- **Archive predicate update**: archive when *all* keyword weights are
+  `<= retrieval_threshold_bps` (D-4.4 `.every()` semantics), then set
+  `archived_epoch`.
 
 ### WeVibe Hub
 WeVibe Hub is the stateless service tier that indexes chain data and republishes it to product surfaces. It watches new blocks via WebSocket subscriptions, materializes module-specific views (for example, the set of live memory commitments per organization and the latest serve statistics), and pushes normalized payloads over WebSockets and gRPC streams to downstream consumers. Hub workers rely on the same query services documented below, so the hub remains a pure observer: no keeper logic runs outside the chain. The hub additionally relays event notifications (such as `x/serve` batch acceptance or `x/emissions` payout summaries) to the Dashboard and any analytics pipelines.
@@ -86,25 +98,26 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 ### Memory Module (`x/memory`)
 - **Owned KV prefixes and state objects**
   - `pending/{org}/...`: `StoredPendingCommitment` keyed by content hash, with `repeated KeywordWeight keywords`, contributor id, epoch, and submission height.
-  - `approved/{org}/...`: `StoredMemoryCommitment` storing the encrypted blob, `repeated KeywordWeight keywords` (no confidence field), contributor attribution, lifecycle state, `last_active_epoch`, wrapped DEK, epoch, approval height, and approver id.
+  - `approved/{org}/...`: `StoredMemoryCommitment` storing encrypted payload, `repeated KeywordWeight keywords`, lifecycle state, `last_active_epoch`, and canonical-body verification fields.
+  - `StoredMemoryCommitment` also carries memory-level lifetime counters: `serve_count_total`, `denial_count_total`, and `archived_epoch`.
   - `relationship/{org}:{source}:{target}`: `StoredMemoryRelationship` edges encoding CONTRADICTS / REPLACES / DEPRECATES / SUPERSEDES links.
-  - `contest/{org}:{contestID}`: `StoredMemoryContest` capturing challenger address, stake amount, epoch, and resolution state.
   - `validity/{org}:{cid}`: `StoredValidityMetadata` persisting validity windows and opaque scope tags.
   - `merkle/{org}/{epoch}`: `StoredEpochMerkleRoot` caches the per-epoch Merkle root plus memory count.
   - `count/{org}`: big-endian counter of approved memories per org.
-  - `params`: `Params` enforcing queue sizes, blob size ceiling, decay parameters (denial_decay_bps, serve_boost_bps, idle_decay_bps, bootstrap_grace_epochs).
-- **Keyword weight decay model** (CO-240 — confidence KILLED)
-  - At each `wevibe_epoch` close, `ApplyIdleDecay` applies idle decay (50 bps) to all keywords on memories with `last_active_epoch < current_epoch - grace_period`.
-  - `ApplyDenialDecay` is called on denial TX: -500 bps per denial event to all keyword weights.
-  - `ApplyServeBoost` is called on serve TX: +100 bps per serve, cap 5 serves/epoch per memory.
-  - **Serve cap**: Tracked per-memory via `ServeKeeper.GetMemoryServeCountForEpoch`. If serves >= 5 for this epoch, skip boost.
-  - **Bootstrap grace** (`BootstrapGraceEpochs`, default 14): memories within grace period skip decay (not boost).
-  - **Archive condition**: all keyword weights = 0.0 (not confidence == 0).
-  - All keywords on a memory boost/decay equally per event.
-  - `last_active_epoch` updated on every serve/denial TX.
+  - `params`: `Params` for queue/blob limits and Earned Trust decay parameters (`serve_d_bps`, `denial_d_bps`, `idle_d_bps`, `serve_floor_bps`, `denial_floor_bps`, `idle_protect_bps`, `idle_untrusted_bps`, `trust_min_serves`, `trust_max_rate_bps`, `grace_epochs`, `retrieval_threshold_bps`).
+- **Keyword weight decay model** (CO-031 Rev 2)
+  - `lifecycle.go:applyDecay` is the single canonical formula path.
+  - `ApplyServeBoost` and `ApplyDenialDecay` call `applyDecay` on event-time updates.
+  - `ApplyIdleDecay` runs on epoch end and calls `applyDecay` only for memories with zero events in that epoch.
+  - Per-keyword gate uses `ServeKeeper.GetMatchedKeywordsForEpoch`: serve boost and denial decay only apply to matched keywords; unmatched keywords on active memories still take idle decay.
+  - Handler-side counter updates:
+    - per-keyword `serve_count` and `denial_count` increment only for matched keywords;
+    - memory-level `serve_count_total` and `denial_count_total` increment once per handler invocation.
+  - Grace gate uses `grace_epochs` for all three operations uniformly.
+  - Archive condition uses D-4.4 `.every()` semantics: archive when all keyword weights are `<= retrieval_threshold_bps`, then set `archived_epoch`.
 - **Message handlers**
-  - `MsgSubmitCommitment` validates membership indirectly via the org keeper, consumes memory bandwidth via `BandwidthKeeper.ConsumeMemoryBandwidth`, ensures the pending queue is below `max_pending_per_org`, and writes to `pending/{org}/{hash}`.
-  - `MsgApproveMemory` checks leadership, blob size, migrates the record to `approved/{org}/{hash}`, seeds retrieval confidence, increments the `count/{org}` counter, and deletes the pending entry.
+  - `MsgSubmitCommitment` validates membership via the org keeper, enforces `max_pending_per_org`, and writes to `pending/{org}/{hash}`.
+  - `MsgApproveMemory` checks leadership and blob size, migrates to `approved/{org}/{hash}`, increments `count/{org}`, and deletes the pending entry.
   - `MsgReportMemory` lets authorized reporters submit evidence of memory violations; maintains relationship and validity metadata through epoch hooks.
   - `MsgUpdateParams` is authority guarded and rewrites parameter state (including decay floors and thresholds).
 - **Query endpoints** (`/wevibe/memory/v1/...`)
@@ -112,21 +125,21 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - `pending/{org_id}` lists outstanding commitments, supporting review queues.
   - `relationships/{org_id}/{cid}` enumerates active relationships for a memory.
   - `validity/{org_id}/{cid}` returns validity windows and scope tags.
-  - `contest/{org_id}/{contest_id}` / `contests/{org_id}/{cid}` expose contest status.
   - `count/{org_id}` reports the approved memory counter.
   - `merkle_root/{org_id}/{epoch}` retrieves the cached Merkle root and memory count.
-  - `params` exposes queue, blob, confidence, decay, and contest settings.
-- **Keeper dependencies**: Requires `OrgKeeper` (membership, leadership, config), `BandwidthKeeper` (consumption accounting), `BankKeeper` (contest escrow), and `ServeKeeper` (serve counts for confidence decay).
-- **Genesis contents**: Pending commitments, approved memories with confidence metadata, relationships, validity records, contests, and cached Merkle roots can be bootstrapped and are faithfully exported.
+  - `params` exposes queue/blob bounds and Earned Trust decay settings.
+- **Keeper dependencies**: Requires `OrgKeeper` (membership/leadership/config), `ReputationKeeper` (contribution and moderation counters), and `ServeKeeper` (per-epoch serve/denial counts and matched-keyword unions).
+- **Genesis contents**: Pending commitments, approved memories (including lifecycle counters), relationships, validity records, and cached Merkle roots can be bootstrapped and exported.
 
 ### Serve Module (`x/serve`)
 - **Owned KV prefixes and state objects**
-  - `nullifier/{hash}`: set membership guard to block duplicate serve attestations.
-  - `attestation/{org}/{epoch}/{nullifier}`: `StoredServeAttestation` capturing memory hash, serve key, contributor id, wallet address, epoch, nullifier, self-serve flag, model_id, and turn_count.
+  - `nullifier/{hash}`: maps serve nullifier to attestation storage key for duplicate prevention and denial->serve linkage.
+  - `attestation/{org}/{epoch}/{nullifier}`: `StoredServeAttestation` capturing memory hash, serve key, contributor id, epoch, nullifier, self-serve flag, model_id, turn_count, and `matched_keywords`.
   - `stats/{org}/{epoch}`: `StoredEpochServeStats` summarizing totals, unique memories, unique serve keys, self-serve counts, and model_breakdown.
   - `contributor/{id}/{epoch}`: `StoredContributorEpochServes` storing per-contributor serve counts, self-serve counts, org coverage, and total_turns.
-  - `memcount/{org}/{hash}/{epoch}`, `memfirst/...`, and `keyfirst/...` track per-epoch uniqueness accounting for stats.
-  - `denial/{org}/{epoch}/{memory_hash}`: `StoredDenialAttestation` tracking denial count per memory per epoch (CO-225).
+  - `memcount/{org}/{hash}/{epoch}`, `denycount/{org}/{hash}/{epoch}`, `memfirst/...`, and `keyfirst/...` track per-epoch counts and uniqueness.
+  - `denial/{org}/{epoch}/{nullifier}`: `StoredDenialAttestation` rows for denial events.
+  - `matched_keywords/{org}/{cid_hex}/{epoch}/{keyword}`: set-membership index for per-memory, per-epoch matched keywords.
   - `params`: `Params` bounding batch size, self-serve discount percent, per-memory serve caps, minimum org age, and diminishing return threshold.
 - **Denial batch submission** (CO-225)
   - `MsgSubmitDenialBatch`: org leaders submit denial attestations for memories that produced incorrect or harmful outputs.
@@ -135,14 +148,16 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - Denials flow into the memory module's dual-vector decay model as the negative-signal vector.
   - **Event emission** (CO-016): Emits `denial_batch_submitted` event with attributes `{org_id, submitter, epoch, accepted_count, rejected_count, block_height}`. Queryable via CometBFT `tx_search` as `denial_batch_submitted.org_id='<org_id>' AND denial_batch_submitted.submitter='<signer>'`.
 - **Message handlers**
-  - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated nullifiers, validates approved memories through the memory keeper, and determines the `is_self_serve` flag. Each `ServeEntry` includes `contributor_wallet` for reputation keying.
+  - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated nullifiers, validates approved memories through the memory keeper, and determines the `is_self_serve` flag.
+  - `ServeEntry.matched_keywords` is required and non-empty; each accepted serve writes matched-keyword index entries and persists the same keyword set on `StoredServeAttestation`.
+  - `MsgSubmitDenialBatch` resolves the originating serve via nullifier, inherits `matched_keywords`, rewrites matched-keyword index entries for the denial epoch (parity), increments denial counts, and calls `MemoryKeeper.ApplyDenialDecay`.
   - `MsgUpdateParams` updates configuration under governance authority.
 - **Query endpoints** (`/wevibe/serve/v1/...`)
   - `stats/{org_id}/{epoch}` exposes the stored epoch stats.
   - `contributor/{contributor_id}/{epoch}` aggregates serve counts across orgs.
   - `memory/{org_id}/{content_hash}/{epoch}` returns the serve count for a specific memory and epoch.
   - `params` discloses operational limits.
-- **Keeper dependencies**: Calls into `OrgKeeper` (org existence), `MemoryKeeper` (approved memory existence and denial count queries), `BandwidthKeeper` (serve throttling), and `ReputationKeeper` (serve XP credit keyed by wallet address).
+- **Keeper dependencies**: Calls into `OrgKeeper` (org existence), `MemoryKeeper` (approved memory checks + apply serve/denial decay callbacks), `BandwidthKeeper` (serve throttling), and `ReputationKeeper` (serve XP credit keyed by wallet address).
 - **Genesis contents**: Attestations, epoch stats, and contributor serve tallies; exported iteratively by prefix.
 
 ### Bandwidth Module (`x/bandwidth`)
@@ -217,16 +232,17 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 
 2. **Memory submission and approval**
    1. Contributors call `MsgSubmitCommitment` with a content hash, keywords, and contributor id.
-   2. `MemoryKeeper.SubmitCommitment` checks the org exists, consumes memory bandwidth via `BandwidthKeeper.ConsumeMemoryBandwidth`, ensures the pending queue is below `max_pending_per_org`, and writes to `pending/{org}/{hash}`.
+   2. `MemoryKeeper.SubmitCommitment` checks org existence, enforces `max_pending_per_org`, and writes to `pending/{org}/{hash}`.
    3. An authorized reviewer (typically the leader) calls `MsgApproveMemory`, which verifies leadership with `OrgKeeper.IsLeader`, checks blob size against `max_blob_size_bytes`, migrates the record to `approved/{org}/{hash}`, increments the `count/{org}` counter, and deletes the pending entry.
    4. The approval path logs to the hub, which updates dashboards and triggers downstream proof packaging.
 
 3. **Serve attestation ingestion**
    1. Serve nodes batch attestations inside `MsgSubmitServeBatch` along with the org id and epoch.
-   2. `ServeKeeper.ProcessServeBatch` enforces `max_serves_per_batch`, consumes serve bandwidth, rejects repeated nullifiers, validates that each memory is approved, and determines the `is_self_serve` flag.
-   3. For each accepted entry the keeper writes an attestation, updates stats, increments per-memory counts, tracks unique serve keys, and accumulates per-contributor serve totals.
-   4. The keeper forwards each accepted serve to `ReputationKeeper.RecordServe`, which increments serve XP, org breadth, and self-serve tallies when active.
-   5. Hub listeners subscribe to `/wevibe/serve/v1/stats/{org}/{epoch}` and contributor endpoints to render real-time service metrics.
+   2. `ServeKeeper.ProcessServeBatch` enforces `max_serves_per_batch`, consumes serve bandwidth, rejects repeated nullifiers, validates each approved memory, and requires non-empty `matched_keywords` per serve entry.
+   3. For each accepted entry the keeper writes a serve attestation, updates stats, increments per-memory counts, tracks unique serve keys, accumulates per-contributor serve totals, and indexes `matched_keywords/{org}/{cid}/{epoch}/{keyword}`.
+   4. Serve callbacks into `MemoryKeeper.ApplyServeBoost` and denial callbacks into `MemoryKeeper.ApplyDenialDecay` both consume `ServeKeeper.GetMatchedKeywordsForEpoch(...)`, so per-keyword decay operations run only on matched keywords while unmatched keywords receive idle decay.
+   5. The keeper forwards each accepted serve to `ReputationKeeper.RecordServe`, which increments serve XP, org breadth, and self-serve tallies when active.
+   6. Hub listeners subscribe to `/wevibe/serve/v1/stats/{org}/{epoch}` and contributor endpoints to render real-time service metrics.
 
 4. **Epoch payout processing** (CO-225 — pay-per-memory)
    1. At the close of each `wevibe_epoch`, `EmissionsKeeper.AfterEpochEnd` triggers.
@@ -253,16 +269,18 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 5. **Reputation tiers and config**: Tier adjustments and config toggles update payout logic and serve requirements in place without migrations.
 
 ### Memories
-1. **Pending**: Commitments enter the `pending` prefix after passing bandwidth throttling.
+1. **Pending**: Commitments enter the `pending` prefix after org validation and pending-cap checks.
 2. **Approved**: Approvals promote records to `approved`, capturing encrypted blobs and approver ids; the commitment record is deleted.
-3. **Retention**: `MsgPurgeExpired` or scheduled purges remove stale pending entries beyond the retention window.
-4. **Counting and analytics**: Approved counters and Merkle roots produce deterministic supply metrics widely used by the hub and emissions logic.
+3. **Decay lifecycle**: Serve/denial handlers update matched-keyword counters plus memory-level totals, then execute canonical `applyDecay`; epoch-end idle sweep runs for no-event memories.
+4. **Archive transition**: Memories archive when every keyword weight is `<= retrieval_threshold_bps`, and `archived_epoch` is set.
+5. **Counting and analytics**: Approved counters and Merkle roots produce deterministic supply metrics widely used by the hub and emissions logic.
 
 ### Serves
-1. **Batch ingestion**: Serve batches are either accepted (with attestations and stats persisted) or rejected (duplicate nullifier, memory not found, per-memory cap exceeded).
-2. **Statistics**: Each accepted serve increments total counts, uniqueness trackers, and per-contributor tallies stored under their own prefix.
-3. **Reputation linkage**: Accepted serves cascade into the reputation keeper, awarding XP and broadening org coverage; these stats feed payout logic through reputation tiers.
-4. **Nullifiers**: Stored nullifiers guarantee idempotency; replayed proofs fail before affecting counts.
+1. **Batch ingestion**: Serve batches are accepted only when nullifiers are unique, memories exist, per-memory caps are respected, and `matched_keywords` is non-empty.
+2. **Keyword indexing**: Each accepted serve writes keyword membership to `matched_keywords/{org}/{cid}/{epoch}/{keyword}` and persists the same set on `StoredServeAttestation`.
+3. **Denial parity**: Denials resolve the originating serve attestation by nullifier and re-index the inherited matched keywords for the denial epoch.
+4. **Statistics**: Accepted events increment total counts, uniqueness trackers, and per-contributor tallies.
+5. **Reputation linkage**: Accepted serves cascade into the reputation keeper, awarding XP and broadening org coverage; these stats feed payout logic through reputation tiers.
 
 ### Contributor Reputation
 1. **Activation**: Governance toggles the module via `Params.active`; inactive mode causes updates to fail with `ErrReputationNotActive`.

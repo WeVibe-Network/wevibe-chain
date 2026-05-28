@@ -1,6 +1,7 @@
 package keeper
 
 import (
+	"bytes"
 	"context"
 	"encoding/binary"
 	"encoding/hex"
@@ -8,6 +9,7 @@ import (
 
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
+	storetypes "cosmossdk.io/store/types"
 
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/serve/types"
@@ -95,6 +97,17 @@ func keyFirstKey(orgID string, serveKey string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("keyfirst/%s/%s/%d", orgID, serveKey, epoch))
 }
 
+func matchedKeywordPrefix(orgID, cidHex string, epoch uint64) []byte {
+	return []byte(fmt.Sprintf("%s%s/%s/%d/", types.MatchedKeywordsPrefix, orgID, cidHex, epoch))
+}
+
+func extractKeywordFromKey(key, prefix []byte) string {
+	if !bytes.HasPrefix(key, prefix) {
+		return ""
+	}
+	return string(key[len(prefix):])
+}
+
 const ParamsKey = "params"
 
 func (k *Keeper) SetParams(ctx context.Context, params types.Params) error {
@@ -138,6 +151,32 @@ func (k *Keeper) HasDenialNullifier(ctx context.Context, nullifier []byte) bool 
 		return false
 	}
 	return has
+}
+
+func (k *Keeper) GetServeAttestationByNullifier(ctx context.Context, nullifier []byte) (*types.StoredServeAttestation, bool, error) {
+	store := k.getStore(ctx)
+	attKey, err := store.Get(nullifierKey(nullifier))
+	if err != nil {
+		return nil, false, fmt.Errorf("get serve attestation pointer: %w", err)
+	}
+	if len(attKey) == 0 {
+		return nil, false, nil
+	}
+
+	attBz, err := store.Get(attKey)
+	if err != nil {
+		return nil, false, fmt.Errorf("get serve attestation: %w", err)
+	}
+	if attBz == nil {
+		return nil, false, nil
+	}
+
+	var stored types.StoredServeAttestation
+	if err := proto.Unmarshal(attBz, &stored); err != nil {
+		return nil, false, fmt.Errorf("unmarshal serve attestation: %w", err)
+	}
+
+	return &stored, true, nil
 }
 
 func (k *Keeper) StoreDenialAttestation(ctx context.Context, orgID string, epoch uint64, entry *types.DenialEntry) error {
@@ -201,14 +240,18 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		store := k.getStore(ctx)
 
-		store.Set(nullifierKey(serve.Nullifier), []byte{1})
-
-		attestation := types.NewServeAttestation(orgID, serve.MemoryContentHash, serve.ServeKey, serve.ContributorId, epoch, serve.Nullifier, isSelfServe, serve.ModelId, serve.TurnCount)
+		attestation := types.NewServeAttestation(orgID, serve.MemoryContentHash, serve.ServeKey, serve.ContributorId, epoch, serve.Nullifier, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
 		attBz, err := proto.Marshal(types.ServeAttestationToStored(attestation))
 		if err != nil {
 			return 0, 0, 0, fmt.Errorf("marshal attestation: %w", err)
 		}
-		store.Set(attestationKey(orgID, epoch, serve.Nullifier), attBz)
+		attKey := attestationKey(orgID, epoch, serve.Nullifier)
+		store.Set(attKey, attBz)
+		store.Set(nullifierKey(serve.Nullifier), attKey)
+
+		if err := k.StoreMatchedKeywordsForEpoch(ctx, orgID, serve.MemoryContentHash, epoch, serve.MatchedKeywords); err != nil {
+			return 0, 0, 0, err
+		}
 
 		k.incrementMemoryServeCount(ctx, orgID, serve.MemoryContentHash, epoch)
 
@@ -411,6 +454,23 @@ func (k *Keeper) IncrementDenialCount(ctx context.Context, orgID string, content
 	store.Set(key, bz)
 }
 
+func (k *Keeper) StoreMatchedKeywordsForEpoch(ctx context.Context, orgID string, contentHash []byte, epoch uint64, matchedKeywords []string) error {
+	if len(matchedKeywords) == 0 {
+		return fmt.Errorf("matched keywords cannot be empty")
+	}
+
+	store := k.getStore(ctx)
+	cidHex := types.ContentHashToHex(contentHash)
+	for _, keyword := range matchedKeywords {
+		if keyword == "" {
+			return fmt.Errorf("matched keyword cannot be empty")
+		}
+		store.Set(matchedKeywordKey(orgID, cidHex, epoch, keyword), []byte{0x01})
+	}
+
+	return nil
+}
+
 func (k *Keeper) GetMemoryServeCountForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (uint64, error) {
 	contentHash, err := hex.DecodeString(memoryCID)
 	if err != nil {
@@ -431,6 +491,35 @@ func (k *Keeper) GetMemoryDenialCountForEpoch(ctx context.Context, orgID string,
 		return 0, fmt.Errorf("invalid content hash length: %d", len(contentHash))
 	}
 	return k.GetMemoryDenialCount(ctx, orgID, contentHash, epoch), nil
+}
+
+func (k *Keeper) GetMatchedKeywordsForEpoch(ctx context.Context, orgID, memoryCID string, epoch uint64) (map[string]bool, error) {
+	contentHash, err := hex.DecodeString(memoryCID)
+	if err != nil {
+		return nil, fmt.Errorf("decode memory cid: %w", err)
+	}
+	if len(contentHash) != 32 {
+		return nil, fmt.Errorf("invalid content hash length: %d", len(contentHash))
+	}
+
+	cidHex := types.ContentHashToHex(contentHash)
+	store := k.getStore(ctx)
+	prefix := matchedKeywordPrefix(orgID, cidHex, epoch)
+	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
+	if err != nil {
+		return nil, fmt.Errorf("iterate matched keywords: %w", err)
+	}
+	defer iter.Close()
+
+	result := make(map[string]bool)
+	for ; iter.Valid(); iter.Next() {
+		keyword := extractKeywordFromKey(iter.Key(), prefix)
+		if keyword != "" {
+			result[keyword] = true
+		}
+	}
+
+	return result, nil
 }
 
 func (k *Keeper) GetServeAttestations(ctx context.Context, orgID string, epoch uint64) ([]*types.ServeAttestation, error) {
@@ -458,9 +547,15 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 	store := k.getStore(ctx)
 
 	for _, att := range state.Attestations {
-		store.Set(nullifierKey(att.Nullifier), []byte{1})
 		attBz, _ := proto.Marshal(types.ServeAttestationToStored(att))
-		store.Set(attestationKey(att.OrgID, att.Epoch, att.Nullifier), attBz)
+		attKey := attestationKey(att.OrgID, att.Epoch, att.Nullifier)
+		store.Set(attKey, attBz)
+		store.Set(nullifierKey(att.Nullifier), attKey)
+		if len(att.MatchedKeywords) > 0 {
+			if err := k.StoreMatchedKeywordsForEpoch(ctx, att.OrgID, att.ContentHash, att.Epoch, att.MatchedKeywords); err != nil {
+				return err
+			}
+		}
 	}
 
 	for _, denial := range state.DenialAttestations {
