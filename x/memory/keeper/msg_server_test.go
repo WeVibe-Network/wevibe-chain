@@ -105,7 +105,6 @@ func makeApproveMemoryFixture(memoryType types.MemoryType) (*types.MsgSubmitComm
 		OrgId:            "test-org",
 		ContentHash:      submissionHash,
 		EncryptedBlob:    encryptedBlob,
-		Approvers:        []string{"leader-pubkey"},
 		CommittingLeader: "leader-pubkey",
 		WrappedDekEnc:    wrappedDekEnc,
 		MemoryType:       memoryType,
@@ -262,7 +261,6 @@ func TestMsgApproveMemory_Unauthorized(t *testing.T) {
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 	approveMsg.Signer = "not-leader"
 	approveMsg.CommittingLeader = "not-leader"
-	approveMsg.Approvers = []string{"not-leader"}
 
 	_, err := srv.ApproveMemory(ctx, approveMsg)
 	if err != types.ErrUnauthorized {

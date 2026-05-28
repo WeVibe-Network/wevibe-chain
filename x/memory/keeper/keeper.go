@@ -314,7 +314,7 @@ func (k *Keeper) SubmitCommitment(ctx context.Context, commitment *types.Pending
 	return nil
 }
 
-func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, encryptedBlob []byte, approvers []string, committingLeader string, wrappedDekEnc []byte, memoryType types.MemoryType) error {
+func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, encryptedBlob []byte, committingLeader string, wrappedDekEnc []byte, memoryType types.MemoryType) error {
 	if !types.ValidMemoryType(memoryType) {
 		return types.ErrInvalidMemoryType
 	}
@@ -373,7 +373,6 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 		Contributor:       pending.Contributor,
 		Epoch:             currentEpoch,
 		CommittedAtHeight: pending.SubmittedAt,
-		Approvers:         approvers,
 		CommittingLeader:  committingLeader,
 		State:             types.MemoryState_MEMORY_STATE_COMMITTED,
 		LastActiveEpoch:   currentEpoch,
@@ -422,13 +421,6 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 		return fmt.Errorf("increment contribution: %w", err)
 	}
 
-	// Update each moderator's profile
-	for _, modPubkey := range approvers {
-		if err := k.reputationKeeper.IncrementModeratorApproval(ctx, modPubkey, orgID, contentHash, currentEpoch); err != nil {
-			return fmt.Errorf("increment moderator approval: %w", err)
-		}
-	}
-
 	// Update leader's profile
 	if err := k.reputationKeeper.IncrementLeaderChainCommit(ctx, committingLeader, orgID); err != nil {
 		return fmt.Errorf("increment leader chain commit: %w", err)
@@ -437,7 +429,6 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 	k.logger.Info("memory approved",
 		"org_id", orgID,
 		"content_hash", types.ContentHashToHex(contentHash),
-		"approvers", approvers,
 		"committing_leader", committingLeader,
 	)
 	return nil
@@ -833,7 +824,6 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		ContributorPubkey:      con.Contributor,
 		Epoch:                  con.Epoch,
 		CommittedAtHeight:      con.CommittedAtHeight,
-		Approvers:              con.Approvers,
 		CommittingLeaderPubkey: con.CommittingLeader,
 		State:                  con.State,
 		LastActiveEpoch:        con.LastActiveEpoch,
@@ -857,7 +847,6 @@ func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment 
 		Contributor:       stored.ContributorPubkey,
 		Epoch:             stored.Epoch,
 		CommittedAtHeight: stored.CommittedAtHeight,
-		Approvers:         stored.Approvers,
 		CommittingLeader:  stored.CommittingLeaderPubkey,
 		State:             stored.State,
 		LastActiveEpoch:   stored.LastActiveEpoch,

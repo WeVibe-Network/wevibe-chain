@@ -11,52 +11,6 @@ import (
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
 )
 
-func TestApproveMemory_StoresAllApprovers(t *testing.T) {
-	storeKey := storetypes.NewKVStoreKey("memory")
-	storeService, _ := keeper.NewTestStoreService(t, storeKey)
-	logger := keeper.NewTestLogger()
-	sdk.DefaultBondDenom = "uvibe"
-
-	mockOrg := &mockOrgKeeperServer{
-		orgs:    map[string]bool{"test-org": true},
-		leaders: map[string]string{"test-org": "wevibe1leader000000000000000000000000000000000"},
-	}
-	mockRep := &mockReputationKeeper{}
-
-	k := NewKeeper(storeService, logger, "gov", mockOrg, mockRep)
-	ctx := context.Background()
-
-	contentHash := []byte("12345678901234567890123456789012")
-	commitment := newPendingCommitment(
-		"test-org",
-		contentHash,
-		[]string{"keyword1", "keyword2"},
-		"contributor-pubkey",
-		1,
-		100,
-	)
-	_ = k.SubmitCommitment(ctx, commitment)
-
-	approvers := []string{"wevibe1mod1", "wevibe1mod2", "wevibe1mod3"}
-	err := k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), approvers, "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
-	if err != nil {
-		t.Fatalf("ApproveMemory failed: %v", err)
-	}
-
-	stored, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
-	if err != nil {
-		t.Fatalf("GetApprovedMemory failed: %v", err)
-	}
-	if len(stored.Approvers) != len(approvers) {
-		t.Fatalf("Approvers length mismatch: got %d, want %d", len(stored.Approvers), len(approvers))
-	}
-	for i, a := range approvers {
-		if stored.Approvers[i] != a {
-			t.Errorf("Approver[%d] mismatch: got %s, want %s", i, stored.Approvers[i], a)
-		}
-	}
-}
-
 func TestReportMemory_StoresTriplet(t *testing.T) {
 	storeKey := storetypes.NewKVStoreKey("memory")
 	storeService, _ := keeper.NewTestStoreService(t, storeKey)
@@ -83,7 +37,7 @@ func TestReportMemory_StoresTriplet(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), []string{"wevibe1mod1"}, "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 
 	plaintext := []byte("revealed plaintext content")
 	ciphertext := []byte("encrypted blob")
@@ -145,7 +99,7 @@ func TestReportMemory_OversizedStoresHashOnly(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), []string{"wevibe1mod1"}, "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 
 	plaintext := make([]byte, 5000)
 	hash := sha256.Sum256(plaintext)
@@ -202,7 +156,7 @@ func TestReportMemory_RejectsOversizedPlaintextWithoutFlag(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), []string{"wevibe1mod1"}, "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 
 	plaintext := make([]byte, 5000)
 	hash := sha256.Sum256(plaintext)
@@ -245,18 +199,14 @@ func TestEndToEnd_MemoryLifecycle_WithSocialGraph(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	approvers := []string{"wevibe1mod1", "wevibe1mod2"}
-	err := k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), approvers, "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	err := k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 	if err != nil {
 		t.Fatalf("ApproveMemory failed: %v", err)
 	}
 
-	stored, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	_, err = k.GetApprovedMemory(ctx, "test-org", contentHash)
 	if err != nil {
 		t.Fatalf("GetApprovedMemory failed: %v", err)
-	}
-	if len(stored.Approvers) != len(approvers) {
-		t.Fatalf("Approvers mismatch after approval: got %d, want %d", len(stored.Approvers), len(approvers))
 	}
 
 	plaintext := []byte("revealed plaintext")
@@ -266,7 +216,7 @@ func TestEndToEnd_MemoryLifecycle_WithSocialGraph(t *testing.T) {
 
 	err = k.ReportMemory(
 		ctx, "test-org", contentHash,
-		"wevibe1contrib", approvers, []string{"wevibe1mod3"},
+		"wevibe1contrib", []string{"wevibe1mod1", "wevibe1mod2"}, []string{"wevibe1mod3"},
 		"wevibe1reporter", "wevibe1leader000000000000000000000000000000000", "incorrect content",
 		plaintext, ciphertext, capsule, hash[:], false,
 		100,

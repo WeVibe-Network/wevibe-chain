@@ -123,7 +123,7 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 		return &types.MsgApproveMemoryResponse{}, nil
 	}
 
-	if err := m.keeper.ApproveMemory(ctx, msg.OrgId, msg.ContentHash, msg.EncryptedBlob, msg.Approvers, msg.CommittingLeader, msg.WrappedDekEnc, msg.MemoryType); err != nil {
+	if err := m.keeper.ApproveMemory(ctx, msg.OrgId, msg.ContentHash, msg.EncryptedBlob, msg.CommittingLeader, msg.WrappedDekEnc, msg.MemoryType); err != nil {
 		return nil, err
 	}
 

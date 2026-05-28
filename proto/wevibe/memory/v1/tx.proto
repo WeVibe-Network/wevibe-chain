@@ -34,7 +34,7 @@ message MsgApproveMemory {
   string org_id = 2;
   bytes content_hash = 3;
   bytes encrypted_blob = 4;
-  repeated string approvers = 5;
+  reserved 5;
   string committing_leader = 6;
   bytes wrapped_dek_enc = 7;
   MemoryType memory_type = 8;

@@ -73,7 +73,6 @@ type MemoryCommitment struct {
 	Contributor       string
 	Epoch             uint64
 	CommittedAtHeight uint64
-	Approvers         []string
 	CommittingLeader  string
 	State             MemoryState
 	LastActiveEpoch   uint64
@@ -87,7 +86,7 @@ type MemoryCommitment struct {
 	ApprovedAtEpoch   uint64
 }
 
-func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, approvers []string, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
+func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
 	return &MemoryCommitment{
 		OrgID:             orgID,
 		ContentHash:       contentHash,
@@ -96,7 +95,6 @@ func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywor
 		Contributor:       contributor,
 		Epoch:             epoch,
 		CommittedAtHeight: committedAtHeight,
-		Approvers:         approvers,
 		CommittingLeader:  committingLeader,
 		State:             state,
 		LastActiveEpoch:   lastActiveEpoch,
@@ -117,9 +115,6 @@ func (mc *MemoryCommitment) Validate() error {
 	}
 	if mc.Contributor == "" {
 		return ErrInvalidContributor
-	}
-	if len(mc.Approvers) == 0 {
-		return ErrInvalidApprover
 	}
 	if !ValidMemoryType(mc.MemoryType) {
 		return ErrInvalidMemoryType
@@ -181,7 +176,6 @@ func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
 		ContributorPubkey:      mc.Contributor,
 		Epoch:                  mc.Epoch,
 		CommittedAtHeight:      mc.CommittedAtHeight,
-		Approvers:              mc.Approvers,
 		CommittingLeaderPubkey: mc.CommittingLeader,
 		State:                  mc.State,
 		LastActiveEpoch:        mc.LastActiveEpoch,
@@ -205,7 +199,6 @@ func storedToMemory(stored StoredMemoryCommitment) MemoryCommitment {
 		Contributor:       stored.ContributorPubkey,
 		Epoch:             stored.Epoch,
 		CommittedAtHeight: stored.CommittedAtHeight,
-		Approvers:         stored.Approvers,
 		CommittingLeader:  stored.CommittingLeaderPubkey,
 		State:             stored.State,
 		LastActiveEpoch:   stored.LastActiveEpoch,

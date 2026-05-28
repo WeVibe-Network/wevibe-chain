@@ -124,7 +124,6 @@ func storeMemoryWithKeywords(t *testing.T, k *Keeper, ctx context.Context, orgID
 		Contributor:         "contrib",
 		Epoch:               1,
 		CommittedAtHeight:   1,
-		Approvers:           []string{"leader"},
 		CommittingLeader:    "leader",
 		State:               state,
 		LastActiveEpoch:     lastActiveEpoch,

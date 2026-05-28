@@ -53,8 +53,8 @@ func newPendingCommitment(orgID string, contentHash []byte, keywords []string, c
 	return types.NewPendingCommitment(orgID, contentHash, keywordWeights, contributor, epoch, submittedAt, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 }
 
-func approveMemory(k *Keeper, ctx context.Context, orgID string, contentHash, encryptedBlob []byte, approver string, wrappedDekEnc []byte) error {
-	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, []string{approver}, approver, wrappedDekEnc, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+func approveMemory(k *Keeper, ctx context.Context, orgID string, contentHash, encryptedBlob []byte, leader string, wrappedDekEnc []byte) error {
+	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, leader, wrappedDekEnc, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
 }
 
 func TestSubmitCommitment(t *testing.T) {
@@ -177,9 +177,6 @@ func TestApproveMemory(t *testing.T) {
 	approved, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
 	if err != nil {
 		t.Fatalf("GetApprovedMemory failed: %v", err)
-	}
-	if len(approved.Approvers) != 1 || approved.Approvers[0] != "leader-pubkey" {
-		t.Errorf("Approver mismatch: got %v, want [leader-pubkey]", approved.Approvers)
 	}
 	if approved.LastActiveEpoch != commitment.Epoch {
 		t.Errorf("LastActiveEpoch mismatch: got %d, want %d", approved.LastActiveEpoch, commitment.Epoch)
