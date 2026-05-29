@@ -42,6 +42,9 @@ func (q *queryServer) GetMemory(ctx context.Context, req *types.QueryGetMemoryRe
 			WrappedDekEnc:          memory.WrappedDekEnc,
 			MemoryType:             memory.MemoryType,
 			ApprovedAtEpoch:        memory.ApprovedAtEpoch,
+			ServeCountTotal:        memory.ServeCountTotal,
+			DenialCountTotal:       memory.DenialCountTotal,
+			ArchivedEpoch:          memory.ArchivedEpoch,
 		},
 	}, nil
 }
@@ -165,15 +168,18 @@ func (q *queryServer) GetMemoriesBatch(ctx context.Context, req *types.QueryGetM
 			ContentHash:            memory.ContentHash,
 			EncryptedBlob:          memory.EncryptedBlob,
 			Keywords:               memory.Keywords,
-			ContributorPubkey:     memory.Contributor,
-			Epoch:                 memory.Epoch,
-			CommittedAtHeight:     memory.CommittedAtHeight,
+			ContributorPubkey:      memory.Contributor,
+			Epoch:                  memory.Epoch,
+			CommittedAtHeight:      memory.CommittedAtHeight,
 			CommittingLeaderPubkey: memory.CommittingLeader,
-			State:                 memory.State,
-			LastActiveEpoch:       memory.LastActiveEpoch,
-			WrappedDekEnc:         memory.WrappedDekEnc,
-			MemoryType:            memory.MemoryType,
+			State:                  memory.State,
+			LastActiveEpoch:        memory.LastActiveEpoch,
+			WrappedDekEnc:          memory.WrappedDekEnc,
+			MemoryType:             memory.MemoryType,
 			ApprovedAtEpoch:        memory.ApprovedAtEpoch,
+			ServeCountTotal:        memory.ServeCountTotal,
+			DenialCountTotal:       memory.DenialCountTotal,
+			ArchivedEpoch:          memory.ArchivedEpoch,
 		})
 	}
 
