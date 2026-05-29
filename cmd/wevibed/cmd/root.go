@@ -45,6 +45,8 @@ import (
 	"github.com/wevibe-network/wevibe-chain/app"
 )
 
+const epochDurationSecondsEnv = "WEVIBE_EPOCH_DURATION_SECONDS"
+
 // NewRootCmd creates a new root command for the WeVibe daemon.
 func NewRootCmd() *cobra.Command {
 	encodingConfig := app.MakeEncodingConfig()
@@ -64,6 +66,10 @@ func NewRootCmd() *cobra.Command {
 		Short:        "WeVibe Chain Daemon",
 		SilenceUsage: true,
 		PersistentPreRunE: func(cmd *cobra.Command, _ []string) error {
+			if err := validateEpochDurationSecondsEnv(); err != nil {
+				return err
+			}
+
 			cmd.SetOut(cmd.OutOrStdout())
 			cmd.SetErr(cmd.ErrOrStderr())
 
@@ -720,6 +726,20 @@ func parseUint64Arg(raw, field string) (uint64, error) {
 	}
 
 	return value, nil
+}
+
+func validateEpochDurationSecondsEnv() error {
+	raw := os.Getenv(epochDurationSecondsEnv)
+	if raw == "" {
+		return nil
+	}
+
+	seconds, err := strconv.Atoi(raw)
+	if err != nil || seconds < 1 {
+		return fmt.Errorf("invalid %s: %q", epochDurationSecondsEnv, raw)
+	}
+
+	return nil
 }
 
 func initAppConfig() (string, interface{}) {

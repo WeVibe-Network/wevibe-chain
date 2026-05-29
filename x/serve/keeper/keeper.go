@@ -261,7 +261,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		accepted++
 
-		if err := k.memoryKeeper.ApplyServeBoost(ctx, orgID, serve.MemoryContentHash); err != nil {
+		if err := k.memoryKeeper.ApplyServeBoost(ctx, orgID, serve.MemoryContentHash, epoch); err != nil {
 			// Non-fatal: the serve attestation is primary. The boost is a secondary
 			// side effect that may fail if the memory is archived or otherwise
 			// no longer eligible. Match the emissions pattern (payout failures

@@ -13,8 +13,8 @@ type OrgKeeper interface {
 type MemoryKeeper interface {
 	GetApprovedMemory(ctx context.Context, orgID string, contentHash []byte) (*types.MemoryCommitment, error)
 	IsValidInEpoch(ctx context.Context, orgID string, cid string, epoch uint64) (bool, error)
-	ApplyServeBoost(ctx context.Context, orgID string, contentHash []byte) error
-	ApplyDenialDecay(ctx context.Context, orgID string, contentHash []byte) error
+	ApplyServeBoost(ctx context.Context, orgID string, contentHash []byte, epoch uint64) error
+	ApplyDenialDecay(ctx context.Context, orgID string, contentHash []byte, epoch uint64) error
 }
 
 type BandwidthKeeper interface {

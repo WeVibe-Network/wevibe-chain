@@ -362,10 +362,10 @@ func TestIntegration_SteadyStateScenario(t *testing.T) {
 		setEpochData(goodCID, epoch, 1, 0, "kw1")
 		setEpochData(badCID, epoch, 0, 1, "bad1", "bad2")
 
-		if err := k.ApplyServeBoost(ctx, defaultOrgID, goodHash); err != nil {
+		if err := k.ApplyServeBoost(ctx, defaultOrgID, goodHash, epoch); err != nil {
 			t.Fatalf("ApplyServeBoost failed at epoch %d: %v", epoch, err)
 		}
-		if err := k.ApplyDenialDecay(ctx, defaultOrgID, badHash); err != nil {
+		if err := k.ApplyDenialDecay(ctx, defaultOrgID, badHash, epoch); err != nil {
 			t.Fatalf("ApplyDenialDecay failed at epoch %d: %v", epoch, err)
 		}
 	}

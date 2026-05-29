@@ -79,8 +79,20 @@ echo "Hub submitter address: $SUBMITTER_ADDR"
 
 "$WEVIBED_BINARY" genesis collect-gentxs --home "$HOME_DIR" 2>&1 | tail -1
 
-# Configure wevibe_epoch (60s for local dev, 86400s for production)
-EPOCH_DURATION="${EPOCH_DURATION:-60s}"
+# Configure wevibe_epoch duration.
+# WEVIBE_EPOCH_DURATION_SECONDS is the single duration knob for local replay
+# and deployment environments that need non-default epoch cadence.
+EPOCH_DURATION_SECONDS="${WEVIBE_EPOCH_DURATION_SECONDS:-}"
+if [ -n "$EPOCH_DURATION_SECONDS" ]; then
+    if ! [[ "$EPOCH_DURATION_SECONDS" =~ ^[0-9]+$ ]] || [ "$EPOCH_DURATION_SECONDS" -lt 1 ]; then
+        echo "invalid WEVIBE_EPOCH_DURATION_SECONDS: $EPOCH_DURATION_SECONDS" >&2
+        exit 1
+    fi
+    EPOCH_DURATION="${EPOCH_DURATION_SECONDS}s"
+else
+    EPOCH_DURATION="60s"
+fi
+
 jq --arg dur "$EPOCH_DURATION" '.app_state.epochs.epochs += [{
   "identifier": "wevibe_epoch",
   "duration": $dur,
