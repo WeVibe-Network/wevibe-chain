@@ -193,7 +193,12 @@ func (k *Keeper) applyDecay(
 	return nil
 }
 
-func (k *Keeper) ApplyIdleDecay(ctx context.Context, _ string, epoch uint64) error {
+// ApplyEpochDecay runs once at epoch end. It iterates all non-archived
+// committed memories, reads their aggregated serve/denial counts and
+// matched keywords for this epoch, and calls applyDecay exactly once
+// per memory. This is the ONLY call site for applyDecay - event-time
+// handlers (ApplyServeBoost, ApplyDenialDecay) update counters only.
+func (k *Keeper) ApplyEpochDecay(ctx context.Context, epoch uint64) error {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return err
@@ -228,16 +233,21 @@ func (k *Keeper) ApplyIdleDecay(ctx context.Context, _ string, epoch uint64) err
 			return err
 		}
 
-		if servesThisEpoch > 0 || denialsThisEpoch > 0 {
-			continue
+		kwIDsMatched, err := k.getMatchedKeywords(ctx, memory.OrgID, cidHex, epoch)
+		if err != nil {
+			return err
 		}
 
-		if err := k.applyDecay(&memory, epoch, 0, 0, nil, params); err != nil {
+		if err := k.applyDecay(&memory, epoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
 			return err
 		}
 		if err := k.saveMemoryCommitment(ctx, &memory); err != nil {
 			return err
 		}
+	}
+
+	if err := iter.Error(); err != nil {
+		return fmt.Errorf("iterate approved memories: %w", err)
 	}
 
 	return nil
@@ -252,20 +262,7 @@ func (k *Keeper) ApplyServeBoost(ctx context.Context, orgID string, contentHash 
 		return nil
 	}
 
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return err
-	}
-
 	cidHex := types.ContentHashToHex(contentHash)
-	servesThisEpoch, err := k.getMemoryServeCount(ctx, orgID, cidHex, epoch)
-	if err != nil {
-		return err
-	}
-	denialsThisEpoch, err := k.getMemoryDenialCount(ctx, orgID, cidHex, epoch)
-	if err != nil {
-		return err
-	}
 	kwIDsMatched, err := k.getMatchedKeywords(ctx, orgID, cidHex, epoch)
 	if err != nil {
 		return err
@@ -281,10 +278,6 @@ func (k *Keeper) ApplyServeBoost(ctx context.Context, orgID string, contentHash 
 	}
 	memory.ServeCountTotal++
 
-	if err := k.applyDecay(memory, epoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
-		return err
-	}
-
 	return k.saveMemoryCommitment(ctx, memory)
 }
 
@@ -297,20 +290,7 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 		return nil
 	}
 
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return err
-	}
-
 	cidHex := types.ContentHashToHex(contentHash)
-	servesThisEpoch, err := k.getMemoryServeCount(ctx, orgID, cidHex, epoch)
-	if err != nil {
-		return err
-	}
-	denialsThisEpoch, err := k.getMemoryDenialCount(ctx, orgID, cidHex, epoch)
-	if err != nil {
-		return err
-	}
 	kwIDsMatched, err := k.getMatchedKeywords(ctx, orgID, cidHex, epoch)
 	if err != nil {
 		return err
@@ -325,10 +305,6 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 		}
 	}
 	memory.DenialCountTotal++
-
-	if err := k.applyDecay(memory, epoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
-		return err
-	}
 
 	return k.saveMemoryCommitment(ctx, memory)
 }

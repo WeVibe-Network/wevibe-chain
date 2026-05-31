@@ -26,8 +26,8 @@ func (k *Keeper) AfterEpochEnd(ctx context.Context, epochIdentifier string, epoc
 		return fmt.Errorf("check epoch expiry: %w", err)
 	}
 
-	if err := k.ApplyIdleDecay(ctx, "", epoch); err != nil {
-		return fmt.Errorf("apply idle decay: %w", err)
+	if err := k.ApplyEpochDecay(ctx, epoch); err != nil {
+		return fmt.Errorf("apply epoch decay: %w", err)
 	}
 
 	orgs, err := k.getAllOrgsWithMemories(ctx)

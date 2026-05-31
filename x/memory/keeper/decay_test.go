@@ -368,6 +368,9 @@ func TestIntegration_SteadyStateScenario(t *testing.T) {
 		if err := k.ApplyDenialDecay(ctx, defaultOrgID, badHash, epoch); err != nil {
 			t.Fatalf("ApplyDenialDecay failed at epoch %d: %v", epoch, err)
 		}
+		if err := k.ApplyEpochDecay(ctx, epoch); err != nil {
+			t.Fatalf("ApplyEpochDecay failed at epoch %d: %v", epoch, err)
+		}
 	}
 
 	goodMemory, err := k.GetApprovedMemory(ctx, defaultOrgID, goodHash)
