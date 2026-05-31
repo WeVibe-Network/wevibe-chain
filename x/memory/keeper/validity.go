@@ -47,11 +47,20 @@ func (k *Keeper) CheckEpochExpiry(ctx context.Context, epoch uint64) error {
 	if err != nil {
 		return fmt.Errorf("iterate validity metadata: %w", err)
 	}
-	defer iter.Close()
 
+	// R-CACHEKV-ITER: never delete/mutate the store while iterating it under a
+	// cache-wrapped context. Collect the expiring tuples first, close the
+	// iterator, then archive the memory and delete the validity key.
+	type expiringEntry struct {
+		key       []byte
+		orgID     string
+		memoryCid string
+	}
+	var expired []expiringEntry
 	for ; iter.Valid(); iter.Next() {
 		var stored types.StoredValidityMetadata
 		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
+			iter.Close()
 			return fmt.Errorf("unmarshal validity metadata: %w", err)
 		}
 
@@ -59,7 +68,13 @@ func (k *Keeper) CheckEpochExpiry(ctx context.Context, epoch uint64) error {
 			continue
 		}
 
-		memory, err := k.loadMemoryByCID(ctx, stored.OrgId, stored.MemoryCid)
+		key := append([]byte(nil), iter.Key()...)
+		expired = append(expired, expiringEntry{key: key, orgID: stored.OrgId, memoryCid: stored.MemoryCid})
+	}
+	iter.Close()
+
+	for _, e := range expired {
+		memory, err := k.loadMemoryByCID(ctx, e.orgID, e.memoryCid)
 		if err != nil {
 			return err
 		}
@@ -70,13 +85,9 @@ func (k *Keeper) CheckEpochExpiry(ctx context.Context, epoch uint64) error {
 			}
 		}
 
-		if err := store.Delete(iter.Key()); err != nil {
+		if err := store.Delete(e.key); err != nil {
 			return fmt.Errorf("delete expired validity metadata: %w", err)
 		}
-	}
-
-	if err := iter.Error(); err != nil {
-		return fmt.Errorf("iterate validity metadata: %w", err)
 	}
 
 	return nil

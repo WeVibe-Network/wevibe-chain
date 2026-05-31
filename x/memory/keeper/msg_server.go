@@ -24,8 +24,28 @@ func NewMsgServerImpl(k *Keeper) types.MsgServer {
 	return &msgServer{keeper: k}
 }
 
+// requireLeaderWallet enforces D-S32-CO044-KEY-SEPARATION: org-decision messages
+// (commit/approve/report) are authorized ONLY by the org's registered leader
+// chain wallet, verified against the AUTHENTICATED tx signer (msg.Signer) — not
+// a self-declared field. A stolen hub serving key (or any other key) is rejected
+// here, so it can never forge a commit/approval/report; it can only submit
+// serve/denial batches (enforced in x/serve) and drain its own gas.
+func (m *msgServer) requireLeaderWallet(ctx context.Context, orgID, signer string) error {
+	wallet, err := m.keeper.orgKeeper.GetLeaderWallet(ctx, orgID)
+	if err != nil {
+		return err
+	}
+	if wallet == "" || signer != wallet {
+		return types.ErrUnauthorized
+	}
+	return nil
+}
+
 func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCommitment) (*types.MsgSubmitCommitmentResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	if err := m.requireLeaderWallet(ctx, msg.OrgId, msg.Signer); err != nil {
 		return nil, err
 	}
 	if !types.ValidMemoryType(msg.MemoryType) {
@@ -41,6 +61,7 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 		0,
 		msg.MemoryType,
 	)
+	commitment.ContributorAddress = msg.ContributorWallet
 	if err := m.keeper.SubmitCommitment(ctx, commitment); err != nil {
 		return nil, err
 	}
@@ -59,6 +80,9 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 
 func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemory) (*types.MsgApproveMemoryResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+	if err := m.requireLeaderWallet(ctx, msg.OrgId, msg.Signer); err != nil {
 		return nil, err
 	}
 	if !types.ValidMemoryType(msg.MemoryType) {
@@ -176,9 +200,9 @@ func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey str
 func canonicalMemoryType(memoryType types.MemoryType) string {
 	switch memoryType {
 	case types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION:
-		return "correct_implementation"
+		return "memory"
 	case types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL:
-		return "negative_signal"
+		return "memory"
 	default:
 		return ""
 	}
@@ -211,6 +235,10 @@ func (m *msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams
 
 func (m *msgServer) ReportMemory(ctx context.Context, msg *types.MsgReportMemory) (*types.MsgReportMemoryResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	if err := m.requireLeaderWallet(ctx, msg.OrgId, msg.Signer); err != nil {
 		return nil, err
 	}
 

@@ -53,6 +53,9 @@ func setupKeeper(t *testing.T) *serveTestEnv {
 	logger := logv2.NewNopLogger()
 
 	org := newMockOrgKeeper("org-1")
+	// CO-044: register the org's serving key. Serve/denial msg_server tests sign
+	// with "s"; ProcessServeBatch (keeper-level) tests bypass the signer check.
+	org.setServing("org-1", "s")
 	mem := newMockMemoryKeeper()
 	band := newMockBandwidthKeeper()
 	rep := newMockReputationKeeper()
@@ -138,6 +141,40 @@ func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	require.Equal(t, uint64(1), stats.UniqueServeKeys)
 	require.Equal(t, uint64(0), stats.SelfServes)
 	require.Equal(t, uint64(1), stats.ModelBreakdown["qwen3:4b"])
+}
+
+// CO-041 Task F: serve attribution is derived from the authoritative committed
+// memory record, NOT the serve payload wallet.
+func TestProcessServeBatch_AttributionFromStoredMemory(t *testing.T) {
+	env := setupKeeper(t)
+	h := hash32(0x33)
+	env.mem.approveWithContributor("org-1", h, "mem-author-wallet")
+
+	// Serve payload carries a DIFFERENT (untrusted) wallet ("wallet-1").
+	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
+		serveEntry(h, "serve-key-1", "contrib-1", nullifier32(0x33)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), accepted)
+	require.Equal(t, 1, env.rep.serveCalls)
+	// Reputation is credited to the stored memory's contributor, not "wallet-1".
+	require.Equal(t, "mem-author-wallet", env.rep.lastServeWallet)
+}
+
+// CO-041 Task F: when the stored memory has no contributor address, the serve
+// is still accepted but the reputation record is skipped (no fallback to the
+// payload wallet; the serve path does not crash).
+func TestProcessServeBatch_SkipsAttributionWhenNoStoredAddress(t *testing.T) {
+	env := setupKeeper(t)
+	h := hash32(0x44)
+	env.mem.approveWithContributor("org-1", h, "")
+
+	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
+		serveEntry(h, "serve-key-1", "contrib-1", nullifier32(0x44)),
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), accepted)
+	require.Equal(t, 0, env.rep.serveCalls)
 }
 
 func TestProcessServeBatch_SelfServeCounted(t *testing.T) {
@@ -320,8 +357,8 @@ func TestProcessServeBatch_MixedBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	accepted, dup, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(approved, "k1", "c1", nullifier32(0x0E)), // accepted
-		serveEntry(approved, "k0", "c0", dupNull),           // duplicate
+		serveEntry(approved, "k1", "c1", nullifier32(0x0E)),   // accepted
+		serveEntry(approved, "k0", "c0", dupNull),             // duplicate
 		serveEntry(unapproved, "k2", "c2", nullifier32(0x0F)), // invalid (unapproved)
 	})
 	require.NoError(t, err)
@@ -403,6 +440,14 @@ func TestGetEpochServeStats_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrStatsNotFound)
 }
 
+func TestGetEpochTrafficStats_NotFoundReturnsZero(t *testing.T) {
+	env := setupKeeper(t)
+	serves, denials, err := env.k.GetEpochTrafficStats(env.ctx, "org-1", 99)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), serves)
+	require.Equal(t, uint64(0), denials)
+}
+
 func TestGetContributorEpochServes_NotFound(t *testing.T) {
 	env := setupKeeper(t)
 	_, err := env.k.GetContributorEpochServes(env.ctx, "ghost", 99)
@@ -466,6 +511,10 @@ func TestGenesisInit_DenialAttestations(t *testing.T) {
 	require.NoError(t, env.k.InitGenesis(env.ctx, gs))
 	require.True(t, env.k.HasDenialNullifier(env.ctx, null))
 	require.Equal(t, uint64(1), env.k.GetMemoryDenialCount(env.ctx, "org-1", h, 3))
+	serves, denials, err := env.k.GetEpochTrafficStats(env.ctx, "org-1", 3)
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), serves)
+	require.Equal(t, uint64(1), denials)
 }
 
 func TestGetServeAttestations_ListByOrgEpoch(t *testing.T) {

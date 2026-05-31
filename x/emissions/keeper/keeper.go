@@ -3,6 +3,7 @@ package keeper
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 
 	"cosmossdk.io/core/store"
@@ -56,6 +57,7 @@ const (
 	KeyPrefixGate          = "gate/"
 	KeyPrefixBootstrap     = "bootstrap/"
 	KeyPrefixBootstrapPool = "bootstrappool/"
+	KeyPrefixContribReward = "contribreward/"
 )
 
 func poolKey() []byte {
@@ -88,6 +90,10 @@ func bootstrapKey(operatorID string) []byte {
 
 func bootstrapPoolKey() []byte {
 	return []byte(KeyPrefixBootstrapPool)
+}
+
+func contribRewardKey(addr string) []byte {
+	return []byte(KeyPrefixContribReward + addr)
 }
 
 const ParamsKey = "params"
@@ -137,6 +143,12 @@ func (k *Keeper) GetEmissionPool(ctx context.Context) (*types.EmissionPool, erro
 		OperatorShare:  stored.OperatorShare,
 		ValidatorShare: stored.ValidatorShare,
 		Epoch:          stored.Epoch,
+
+		ValidatorPoolRemainingUvibe:   stored.ValidatorPoolRemainingUvibe,
+		ContributorPoolRemainingUvibe: stored.ContributorPoolRemainingUvibe,
+		ContributorRolloverUvibe:      stored.ContributorRolloverUvibe,
+		StartEpoch:                    stored.StartEpoch,
+		TotalEpochsElapsed:            stored.TotalEpochsElapsed,
 	}, nil
 }
 
@@ -154,6 +166,12 @@ func (k *Keeper) SetEmissionPool(ctx context.Context, pool *types.EmissionPool) 
 		OperatorShare:  pool.OperatorShare,
 		ValidatorShare: pool.ValidatorShare,
 		Epoch:          pool.Epoch,
+
+		ValidatorPoolRemainingUvibe:   pool.ValidatorPoolRemainingUvibe,
+		ContributorPoolRemainingUvibe: pool.ContributorPoolRemainingUvibe,
+		ContributorRolloverUvibe:      pool.ContributorRolloverUvibe,
+		StartEpoch:                    pool.StartEpoch,
+		TotalEpochsElapsed:            pool.TotalEpochsElapsed,
 	}
 	bz, err := proto.Marshal(&stored)
 	if err != nil {
@@ -182,17 +200,79 @@ func (k *Keeper) MintDailyEmission(ctx context.Context, epoch uint64) (*types.Da
 		return nil, fmt.Errorf("epoch must be greater than last emission epoch")
 	}
 
-	dailyMint := pool.DailyMint
-	operatorShare := (dailyMint * pool.OperatorShare) / 100
-	validatorShare := (dailyMint * pool.ValidatorShare) / 100
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	emission := types.NewDailyEmission(epoch, dailyMint, operatorShare, validatorShare)
+	remainingEpochs := uint64(1)
+	if params.ScheduleDurationDays > pool.TotalEpochsElapsed {
+		remainingEpochs = params.ScheduleDurationDays - pool.TotalEpochsElapsed
+	}
+
+	validatorEmission := uint64(0)
+	if pool.ValidatorPoolRemainingUvibe > 0 {
+		validatorEmission = pool.ValidatorPoolRemainingUvibe / remainingEpochs
+		if validatorEmission > pool.ValidatorPoolRemainingUvibe {
+			validatorEmission = pool.ValidatorPoolRemainingUvibe
+		}
+		pool.ValidatorPoolRemainingUvibe -= validatorEmission
+	}
+
+	contributorBudget := uint64(0)
+	if pool.ContributorPoolRemainingUvibe > 0 {
+		contributorBudget = pool.ContributorPoolRemainingUvibe / remainingEpochs
+		epochCap := params.ContributorAnnualCapUvibe / types.EpochsPerYear
+		if epochCap > 0 && contributorBudget > epochCap {
+			contributorBudget = epochCap
+		}
+		if contributorBudget > pool.ContributorPoolRemainingUvibe {
+			contributorBudget = pool.ContributorPoolRemainingUvibe
+		}
+		pool.ContributorPoolRemainingUvibe -= contributorBudget
+	}
+
+	counts, err := k.memoryKeeper.GetContributorsWithApprovalsInEpoch(ctx, epoch)
+	if err != nil {
+		k.logger.Info("contributor approvals query failed; treating as none", "epoch", epoch, "error", err)
+		counts = map[string]uint64{}
+	}
+
+	qualifying := make([]string, 0, len(counts))
+	for addr, count := range counts {
+		if addr != "" && count >= params.ContributorQualifyThreshold {
+			qualifying = append(qualifying, addr)
+		}
+	}
+	sort.Strings(qualifying)
+
+	distributedToContributors := uint64(0)
+	if len(qualifying) == 0 {
+		pool.ContributorRolloverUvibe += contributorBudget
+	} else {
+		total := contributorBudget + pool.ContributorRolloverUvibe
+		perContributor := total / uint64(len(qualifying))
+		remainder := total % uint64(len(qualifying))
+		for _, addr := range qualifying {
+			if perContributor > 0 {
+				if err := k.AddContributorReward(ctx, addr, perContributor); err != nil {
+					return nil, err
+				}
+			}
+		}
+		distributedToContributors = perContributor * uint64(len(qualifying))
+		pool.ContributorRolloverUvibe = remainder // carry integer remainder forward to avoid token loss
+	}
+
+	totalEmitted := validatorEmission + distributedToContributors
+
+	emission := types.NewDailyEmission(epoch, totalEmitted, 0, validatorEmission)
 
 	storedEmission := types.StoredDailyEmission{
 		Epoch:          emission.Epoch,
 		TotalEmitted:   emission.TotalEmitted,
-		OperatorShare:  emission.OperatorShare,
-		ValidatorShare: emission.ValidatorShare,
+		OperatorShare:  0,
+		ValidatorShare: validatorEmission,
 	}
 	emissionBz, err := proto.Marshal(&storedEmission)
 	if err != nil {
@@ -202,20 +282,80 @@ func (k *Keeper) MintDailyEmission(ctx context.Context, epoch uint64) (*types.Da
 	store := k.getStore(ctx)
 	store.Set(emissionKey(epoch), emissionBz)
 
+	if pool.StartEpoch == 0 && pool.TotalEpochsElapsed == 0 {
+		pool.StartEpoch = epoch
+	}
+	pool.TotalEpochsElapsed++
 	pool.Epoch = epoch
-	pool.TotalSupply += dailyMint
+	pool.TotalSupply += totalEmitted
 	if err := k.SetEmissionPool(ctx, pool); err != nil {
 		return nil, err
 	}
 
-	k.logger.Info("daily emission minted",
+	k.logger.Info("epoch emission minted",
 		"epoch", epoch,
-		"total_emitted", dailyMint,
-		"operator_share", operatorShare,
-		"validator_share", validatorShare,
+		"validator_emission", validatorEmission,
+		"contributor_distributed", distributedToContributors,
+		"qualifying", len(qualifying),
+		"rollover", pool.ContributorRolloverUvibe,
 	)
 
 	return emission, nil
+}
+
+func (k *Keeper) AddContributorReward(ctx context.Context, addr string, amount uint64) error {
+	store := k.getStore(ctx)
+	current := uint64(0)
+	bz, err := store.Get(contribRewardKey(addr))
+	if err != nil {
+		return err
+	}
+	if bz != nil {
+		current, err = strconv.ParseUint(string(bz), 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse contributor reward: %w", err)
+		}
+	}
+	current += amount
+	return store.Set(contribRewardKey(addr), []byte(strconv.FormatUint(current, 10)))
+}
+
+func (k *Keeper) GetContributorReward(ctx context.Context, addr string) (uint64, error) {
+	store := k.getStore(ctx)
+	bz, err := store.Get(contribRewardKey(addr))
+	if err != nil {
+		return 0, err
+	}
+	if bz == nil {
+		return 0, nil
+	}
+	amount, err := strconv.ParseUint(string(bz), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse contributor reward: %w", err)
+	}
+	return amount, nil
+}
+
+func (k *Keeper) GetAllContributorRewards(ctx context.Context) (map[string]uint64, error) {
+	store := k.getStore(ctx)
+	prefix := []byte(KeyPrefixContribReward)
+	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
+	if err != nil {
+		return nil, err
+	}
+	defer iter.Close()
+
+	rewards := make(map[string]uint64)
+	for ; iter.Valid(); iter.Next() {
+		amount, err := strconv.ParseUint(string(iter.Value()), 10, 64)
+		if err != nil {
+			continue
+		}
+		key := string(iter.Key())
+		addr := key[len(KeyPrefixContribReward):]
+		rewards[addr] = amount
+	}
+	return rewards, nil
 }
 
 func (k *Keeper) GetDailyEmission(ctx context.Context, epoch uint64) (*types.DailyEmission, error) {
@@ -338,9 +478,6 @@ func (k *Keeper) GetOperatorWorkScores(ctx context.Context, operatorID string, e
 				Epoch:             stored.Epoch,
 			})
 		}
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return scores, nil
 }
@@ -671,9 +808,6 @@ func (k *Keeper) GetAllOperatorRewards(ctx context.Context) (map[string]uint64, 
 		opID := key[len(KeyPrefixOpReward):]
 		rewards[opID] = amount
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return rewards, nil
 }
 
@@ -695,9 +829,6 @@ func (k *Keeper) GetAllValidatorRewards(ctx context.Context) (map[string]uint64,
 		key := string(iter.Key())
 		valID := key[len(KeyPrefixValReward):]
 		rewards[valID] = amount
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return rewards, nil
 }
@@ -721,9 +852,6 @@ func (k *Keeper) GetAllWorkScores(ctx context.Context, epoch uint64) ([]*types.W
 		if score.Epoch == epoch {
 			scores = append(scores, score)
 		}
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return scores, nil
 }
@@ -852,9 +980,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 				dailyEmissions = append(dailyEmissions, types.StoredToDailyEmission(&stored))
 			}
 		}
-		if err := iter.Error(); err != nil {
-			return nil, err
-		}
 	}
 
 	var operatorRewards []*types.OperatorReward
@@ -872,9 +997,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 				opID := key[len(KeyPrefixOpReward):]
 				operatorRewards = append(operatorRewards, &types.OperatorReward{OperatorID: opID, Amount: amount})
 			}
-		}
-		if err := iter.Error(); err != nil {
-			return nil, err
 		}
 	}
 
@@ -894,9 +1016,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 				validatorRewards = append(validatorRewards, &types.ValidatorReward{ValidatorID: valID, Amount: amount})
 			}
 		}
-		if err := iter.Error(); err != nil {
-			return nil, err
-		}
 	}
 
 	var bootstrapCredits []*types.BootstrapCredit
@@ -912,9 +1031,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 			if err := proto.Unmarshal(iter.Value(), &stored); err == nil {
 				bootstrapCredits = append(bootstrapCredits, types.StoredToBootstrapCredit(&stored))
 			}
-		}
-		if err := iter.Error(); err != nil {
-			return nil, err
 		}
 	}
 
@@ -932,9 +1048,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 				workScores = append(workScores, types.StoredToWorkScore(&stored))
 			}
 		}
-		if err := iter.Error(); err != nil {
-			return nil, err
-		}
 	}
 
 	var asymmetricGates []*types.AsymmetricGate
@@ -950,9 +1063,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 			if err := proto.Unmarshal(iter.Value(), &stored); err == nil {
 				asymmetricGates = append(asymmetricGates, types.StoredToAsymmetricGate(&stored))
 			}
-		}
-		if err := iter.Error(); err != nil {
-			return nil, err
 		}
 	}
 

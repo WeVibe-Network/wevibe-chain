@@ -17,6 +17,14 @@ message StoredOrg {
   uint64 total_epoch_rotations = 11;
   uint64 total_upheld_reports = 12;
   uint64 last_activity_epoch = 13;
+  // CO-044 (D-S32-CO044-KEY-SEPARATION): the per-org hub serving key's chain
+  // address. The ONLY signer authorized to submit serve/denial batches for this
+  // org. Leader-rotatable via MsgSetServingKey.
+  string hub_serving_address = 14;
+  // CO-044: the leader's chain wallet address (secp256k1 authority, distinct
+  // from `leader` which is the ed25519 member pubkey). The on-chain authority
+  // for org-decision messages; the signer that may rotate the serving key.
+  string leader_wallet_address = 15;
 }
 
 message StoredMemberRecord {

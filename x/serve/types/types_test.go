@@ -107,10 +107,10 @@ func TestServeAttestation_Validate(t *testing.T) {
 	valid := types.NewServeAttestation("org", hash32(0x03), "sk", "c", 1, nullifier32(0x03), false, "model", 2, []string{"k"})
 	require.NoError(t, valid.Validate())
 
-	require.Error(t, (&types.ServeAttestation{}).Validate())                                                   // empty org
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: []byte{1}}).Validate())                 // bad hash
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1)}).Validate())                 // empty serve key
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s"}).Validate())  // empty contributor
+	require.Error(t, (&types.ServeAttestation{}).Validate())                                                  // empty org
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: []byte{1}}).Validate())                // bad hash
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1)}).Validate())                // empty serve key
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s"}).Validate()) // empty contributor
 }
 
 func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
@@ -134,10 +134,12 @@ func TestServeAttestation_StoredRoundtrip(t *testing.T) {
 func TestEpochServeStats_StoredRoundtrip(t *testing.T) {
 	es := types.NewEpochServeStats("org", 2)
 	es.TotalServes = 5
+	es.TotalDenials = 3
 	es.SelfServes = 2
 	es.ModelBreakdown["m"] = 3
 	back := types.StoredToEpochServeStats(*types.EpochServeStatsToStored(es))
 	require.Equal(t, uint64(5), back.TotalServes)
+	require.Equal(t, uint64(3), back.TotalDenials)
 	require.Equal(t, uint64(2), back.SelfServes)
 	require.Equal(t, uint64(3), back.ModelBreakdown["m"])
 }

@@ -17,6 +17,7 @@ type ServeKeeper interface {
 
 type MemoryKeeper interface {
 	GetApprovedCountByContributor(ctx context.Context, orgID string, epoch uint64) (map[string]uint64, error)
+	GetContributorsWithApprovalsInEpoch(ctx context.Context, epoch uint64) (map[string]uint64, error)
 }
 
 type ReputationKeeper interface {

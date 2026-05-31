@@ -56,9 +56,6 @@ func (k *Keeper) RecomputeOrgActiveMembers(ctx context.Context, orgID string) er
 			count++
 		}
 	}
-	if err := iter.Error(); err != nil {
-		return err
-	}
 
 	return k.modifyOrgAggregate(ctx, orgID, func(stored *types.StoredOrg, currentEpoch uint64) {
 		stored.TotalActiveMembers = count

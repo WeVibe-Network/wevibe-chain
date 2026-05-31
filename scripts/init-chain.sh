@@ -55,7 +55,7 @@ fi
 VALIDATOR_ADDR=$(cat /tmp/validator_addr.txt)
 echo "Validator address: $VALIDATOR_ADDR"
 
-"$WEVIBED_BINARY" genesis add-genesis-account "$VALIDATOR_ADDR" "1000000000${DENOM}" \
+"$WEVIBED_BINARY" genesis add-genesis-account "$VALIDATOR_ADDR" "10000000000000${DENOM}" \
     --home "$HOME_DIR" \
     --keyring-backend "$KEYRING_BACKEND"
 
@@ -70,7 +70,28 @@ echo "Hub submitter address: $SUBMITTER_ADDR"
     --home "$HOME_DIR" \
     --keyring-backend "$KEYRING_BACKEND"
 
-"$WEVIBED_BINARY" genesis gentx validator "500000000${DENOM}" \
+# Foundation account — deterministic dev mnemonic (LOCAL DEV ONLY)
+# CO-041 locked allocation: 100,000,000 VIBE = 100000000000000 uvibe (10%, unlocked at genesis)
+FOUNDATION_MNEMONIC="test test test test test test test test test test test junk"
+echo "$FOUNDATION_MNEMONIC" | "$WEVIBED_BINARY" keys add foundation --recover --keyring-backend test --home "$HOME_DIR" 2>/dev/null
+FOUNDATION_ADDR=$("$WEVIBED_BINARY" keys show foundation -a --keyring-backend test --home "$HOME_DIR")
+echo "Foundation address: $FOUNDATION_ADDR"
+"$WEVIBED_BINARY" genesis add-genesis-account "$FOUNDATION_ADDR" "100000000000000${DENOM}" \
+    --home "$HOME_DIR" \
+    --keyring-backend "$KEYRING_BACKEND"
+
+# Faucet account — deterministic dev mnemonic (LOCAL DEV ONLY)
+# Must match FAUCET_MNEMONIC in compose/.env templates.
+# Allocation: 1,000,000 VIBE = 1000000000000 uvibe
+FAUCET_MNEMONIC="legal winner thank year wave sausage worth useful legal winner thank yellow"
+echo "$FAUCET_MNEMONIC" | "$WEVIBED_BINARY" keys add faucet --recover --keyring-backend test --home "$HOME_DIR" 2>/dev/null
+FAUCET_ADDR=$("$WEVIBED_BINARY" keys show faucet -a --keyring-backend test --home "$HOME_DIR")
+echo "Faucet address: $FAUCET_ADDR"
+"$WEVIBED_BINARY" genesis add-genesis-account "$FAUCET_ADDR" "1000000000000${DENOM}" \
+    --home "$HOME_DIR" \
+    --keyring-backend "$KEYRING_BACKEND"
+
+"$WEVIBED_BINARY" genesis gentx validator "1000000000000${DENOM}" \
     --chain-id "$CHAIN_ID" \
     --home "$HOME_DIR" \
     --keyring-backend "$KEYRING_BACKEND" \
@@ -121,6 +142,44 @@ jq '.app_state.mint.minter.inflation = "0.000000000000000000" |
     "$HOME_DIR/config/genesis.json" > /tmp/genesis_mint.json
 mv /tmp/genesis_mint.json "$HOME_DIR/config/genesis.json"
 echo "Disabled x/mint inflation (x/emissions handles supply)"
+
+# Seed emissions + reputation genesis state.
+#
+# `wevibed init` builds genesis.json from app.ModuleBasics, which only contains
+# the SDK modules — the custom WeVibe modules (emissions, reputation, ...) are
+# not in it, so their app_state keys are absent and the SDK ModuleManager skips
+# InitGenesis for any module whose genesis data is nil. Seeding these keys makes
+# the data present; the modules' module.HasGenesis InitGenesis then runs.
+#
+# emissions: seed the full 32-year emission pool (CO-041 locked allocations).
+# The emissions genesis is JSON-marshaled from a Go struct; the field names below
+# match that struct exactly. The pool carries the validator 32yr pool (570M VIBE =
+# 570000000000000 uvibe) and contributor 32yr pool (320M VIBE = 320000000000000
+# uvibe). operator_share=80 + validator_share=20 must sum to 100 for the pool's
+# Validate(). This is the single source of truth for the local genesis pool.
+jq '.app_state.emissions = {
+  "emission_pool": {
+    "total_supply": 0,
+    "daily_mint": 1000000000,
+    "operator_share": 80,
+    "validator_share": 20,
+    "epoch": 0,
+    "validator_pool_remaining_uvibe": 570000000000000,
+    "contributor_pool_remaining_uvibe": 320000000000000,
+    "contributor_rollover_uvibe": 0,
+    "start_epoch": 0,
+    "total_epochs_elapsed": 0
+  }
+}' "$HOME_DIR/config/genesis.json" > /tmp/genesis_emissions.json
+mv /tmp/genesis_emissions.json "$HOME_DIR/config/genesis.json"
+echo "Seeded app_state.emissions (full 32-year pool: validator 570M VIBE pool, contributor 320M VIBE pool)"
+
+# reputation: activate the module at genesis (D-13.5). Active is an explicit
+# genesis decision, so it must be set here rather than defaulted.
+jq '.app_state.reputation = {"active": true}' \
+    "$HOME_DIR/config/genesis.json" > /tmp/genesis_reputation.json
+mv /tmp/genesis_reputation.json "$HOME_DIR/config/genesis.json"
+echo "Seeded app_state.reputation (active=true)"
 
 "$WEVIBED_BINARY" genesis validate-genesis --home "$HOME_DIR" 2>&1 | tail -1
 

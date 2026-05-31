@@ -21,6 +21,13 @@ type dec struct {
 	value *big.Rat
 }
 
+type orgIdleDecayConfig struct {
+	idleScale    float64
+	suppressIdle bool
+	serves       uint64
+	denials      uint64
+}
+
 func newDec(s string) dec {
 	r := new(big.Rat)
 	r.SetString(s)
@@ -69,6 +76,16 @@ func parseWeight(s string) dec {
 	return newDec(s)
 }
 
+func clampFloat64(value, min, max float64) float64 {
+	if value < min {
+		return min
+	}
+	if value > max {
+		return max
+	}
+	return value
+}
+
 func (k *Keeper) saveMemoryCommitment(ctx context.Context, memory *types.MemoryCommitment) error {
 	store := k.getStore(ctx)
 	bz, err := proto.Marshal(memoryToStored(memory))
@@ -115,6 +132,8 @@ func (k *Keeper) applyDecay(
 	denialsThisEpoch uint64,
 	kwIDsMatched map[string]bool,
 	params types.Params,
+	idleScale float64,
+	suppressIdle bool,
 ) error {
 	if isInGracePeriod(currentEpoch, memory.Epoch, params.GraceEpochs) {
 		return nil
@@ -157,11 +176,13 @@ func (k *Keeper) applyDecay(
 		}
 
 		if !matched || (servesThisEpoch == 0 && denialsThisEpoch == 0) {
-			idleMult := idleUntrusted
-			if trustEarned {
-				idleMult = idleProtect
+			if !suppressIdle {
+				idleMult := idleUntrusted * idleScale
+				if trustEarned {
+					idleMult = idleProtect
+				}
+				weight = weight.Sub(dec{value: new(big.Rat).SetFloat64(idleD * idleMult)})
 			}
-			weight = weight.Sub(dec{value: new(big.Rat).SetFloat64(idleD * idleMult)})
 		}
 
 		if weight.IsNegative() {
@@ -210,11 +231,16 @@ func (k *Keeper) ApplyEpochDecay(ctx context.Context, epoch uint64) error {
 	if err != nil {
 		return fmt.Errorf("iterate approved memories: %w", err)
 	}
-	defer iter.Close()
 
+	// R-CACHEKV-ITER: never mutate the store while iterating it under a
+	// cache-wrapped context. Collect the decay-eligible memories first, close
+	// the iterator, then load+decay+persist each one. saveMemoryCommitment
+	// writes back to the same "approved/" prefix we are iterating here.
+	var eligible []types.MemoryCommitment
 	for ; iter.Valid(); iter.Next() {
 		var stored types.StoredMemoryCommitment
 		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
+			iter.Close()
 			return fmt.Errorf("unmarshal memory commitment: %w", err)
 		}
 
@@ -222,8 +248,33 @@ func (k *Keeper) ApplyEpochDecay(ctx context.Context, epoch uint64) error {
 		if !isDecayEligible(memory.State) {
 			continue
 		}
+		eligible = append(eligible, memory)
+	}
+	iter.Close()
 
+	activeCountByOrg := make(map[string]uint64)
+	for i := range eligible {
+		activeCountByOrg[eligible[i].OrgID]++
+	}
+
+	orgIdleConfig := make(map[string]orgIdleDecayConfig)
+
+	for i := range eligible {
+		memory := eligible[i]
 		cidHex := types.ContentHashToHex(memory.ContentHash)
+
+		config, ok := orgIdleConfig[memory.OrgID]
+		if !ok {
+			config, err = k.resolveOrgIdleDecayConfig(ctx, memory.OrgID, epoch, params)
+			if err != nil {
+				return err
+			}
+			orgIdleConfig[memory.OrgID] = config
+		}
+
+		graceRemaining := graceEpochsRemaining(epoch, memory.Epoch, params.GraceEpochs)
+		denialRate, trustEarned := calculateDenialRateAndTrust(memory, params)
+
 		servesThisEpoch, err := k.getMemoryServeCount(ctx, memory.OrgID, cidHex, epoch)
 		if err != nil {
 			return err
@@ -238,16 +289,17 @@ func (k *Keeper) ApplyEpochDecay(ctx context.Context, epoch uint64) error {
 			return err
 		}
 
-		if err := k.applyDecay(&memory, epoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params); err != nil {
+		if err := k.applyDecay(&memory, epoch, servesThisEpoch, denialsThisEpoch, kwIDsMatched, params, config.idleScale, config.suppressIdle); err != nil {
 			return err
 		}
+
 		if err := k.saveMemoryCommitment(ctx, &memory); err != nil {
 			return err
 		}
-	}
 
-	if err := iter.Error(); err != nil {
-		return fmt.Errorf("iterate approved memories: %w", err)
+		_ = graceRemaining
+		_ = denialRate
+		_ = trustEarned
 	}
 
 	return nil
@@ -307,6 +359,125 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 	memory.DenialCountTotal++
 
 	return k.saveMemoryCommitment(ctx, memory)
+}
+
+// GetContributorsWithApprovalsInEpoch returns, network-wide, the number of
+// committed (non-archived, non-denied) approved memories per contributor
+// address that were approved in the given epoch. It is consumed by the
+// emissions keeper to determine the qualifying contributor set for per-epoch
+// contributor emissions.
+//
+// R-CACHEKV-ITER: this is a NEW network-wide iteration. It is read-only and
+// MUST NOT use a post-loop iter.Error() block (which returns a false failure
+// at normal end-of-iteration under cache-wrapped stores). The Valid() loop
+// terminates correctly on its own.
+func (k *Keeper) GetContributorsWithApprovalsInEpoch(ctx context.Context, epoch uint64) (map[string]uint64, error) {
+	store := k.getStore(ctx)
+	prefix := []byte("approved/")
+	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
+	if err != nil {
+		return nil, fmt.Errorf("iterate approved memories: %w", err)
+	}
+	defer iter.Close()
+
+	counts := make(map[string]uint64)
+	for ; iter.Valid(); iter.Next() {
+		var stored types.StoredMemoryCommitment
+		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
+			continue
+		}
+		if stored.ApprovedAtEpoch != epoch {
+			continue
+		}
+		if stored.State != types.MemoryState_MEMORY_STATE_COMMITTED {
+			continue
+		}
+		if stored.ContributorAddress == "" {
+			continue
+		}
+		counts[stored.ContributorAddress]++
+	}
+
+	return counts, nil
+}
+
+// GetActiveMemoryCountByOrg returns the number of ACTIVE memories for one org.
+// ACTIVE means committed (non-archived, non-denied).
+//
+// R-CACHEKV-ITER: this is read-only iteration over the approved prefix and
+// intentionally uses only the Valid() loop with no post-loop iter.Error().
+func (k *Keeper) GetActiveMemoryCountByOrg(ctx context.Context, orgID string) (uint64, error) {
+	store := k.getStore(ctx)
+	prefix := approvedPrefix(orgID)
+	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
+	if err != nil {
+		return 0, fmt.Errorf("iterate approved memories for org %s: %w", orgID, err)
+	}
+	defer iter.Close()
+
+	var count uint64
+	for ; iter.Valid(); iter.Next() {
+		var stored types.StoredMemoryCommitment
+		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
+			continue
+		}
+		if stored.State == types.MemoryState_MEMORY_STATE_COMMITTED {
+			count++
+		}
+	}
+
+	return count, nil
+}
+
+func (k *Keeper) resolveOrgIdleDecayConfig(ctx context.Context, orgID string, epoch uint64, params types.Params) (orgIdleDecayConfig, error) {
+	config := orgIdleDecayConfig{
+		idleScale:    1.0,
+		suppressIdle: false,
+		serves:       0,
+		denials:      0,
+	}
+
+	if k.serveKeeper == nil {
+		return config, nil
+	}
+
+	serves, denials, err := k.serveKeeper.GetEpochTrafficStats(ctx, orgID, epoch)
+	if err != nil {
+		k.logger.Warn("epoch decay: org traffic stats unavailable; using safe idle defaults",
+			"org_id", orgID,
+			"epoch", epoch,
+			"error", err,
+		)
+		return config, nil
+	}
+
+	config.serves = serves
+	config.denials = denials
+
+	orgEvents := serves + denials
+	if orgEvents == 0 {
+		config.suppressIdle = true
+		return config, nil
+	}
+
+	activeCount, err := k.GetActiveMemoryCountByOrg(ctx, orgID)
+	if err != nil {
+		return orgIdleDecayConfig{}, err
+	}
+	if activeCount == 0 {
+		return config, nil
+	}
+
+	trafficRef := float64(params.IdleTrafficRefBpsPerMem) / 10000.0
+	if trafficRef <= 0 {
+		return config, nil
+	}
+
+	trafficFloor := float64(params.IdleTrafficFloorBps) / 10000.0
+	tOrg := float64(orgEvents) / float64(activeCount)
+	config.idleScale = clampFloat64(tOrg/trafficRef, trafficFloor, 1.0)
+
+	return config, nil
 }
 
 func (k *Keeper) getCurrentEpoch(ctx context.Context) uint64 {
@@ -387,4 +558,44 @@ func decodeCID(cid string) ([]byte, error) {
 		return nil, types.ErrInvalidContentHash
 	}
 	return contentHash, nil
+}
+
+func graceEpochsRemaining(epoch, memoryEpoch, graceEpochs uint64) uint64 {
+	if graceEpochs == 0 {
+		return 0
+	}
+	if !isInGracePeriod(epoch, memoryEpoch, graceEpochs) {
+		return 0
+	}
+	if epoch < memoryEpoch {
+		return (memoryEpoch - epoch) + graceEpochs
+	}
+	return graceEpochs - (epoch - memoryEpoch)
+}
+
+func calculateDenialRateAndTrust(memory types.MemoryCommitment, params types.Params) (float64, bool) {
+	totalEvents := memory.ServeCountTotal + memory.DenialCountTotal
+	denialRate := 0.0
+	if totalEvents > 0 {
+		denialRate = float64(memory.DenialCountTotal) / float64(totalEvents)
+	}
+	trustEarned := memory.ServeCountTotal >= params.TrustMinServes &&
+		denialRate < (float64(params.TrustMaxRateBps)/10000.0)
+	return denialRate, trustEarned
+}
+
+func minKeywordWeight(keywords []*types.KeywordWeight) float64 {
+	if len(keywords) == 0 {
+		return 0
+	}
+
+	minWeight := 0.0
+	for i, kw := range keywords {
+		weight, _ := parseWeight(kw.Weight).value.Float64()
+		if i == 0 || weight < minWeight {
+			minWeight = weight
+		}
+	}
+
+	return minWeight
 }

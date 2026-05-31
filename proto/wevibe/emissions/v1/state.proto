@@ -9,6 +9,12 @@ message StoredEmissionPool {
   uint64 operator_share = 3;
   uint64 validator_share = 4;
   uint64 epoch = 5;
+  // CO-041 32-year schedule pool tracking.
+  uint64 validator_pool_remaining_uvibe = 6;
+  uint64 contributor_pool_remaining_uvibe = 7;
+  uint64 contributor_rollover_uvibe = 8;
+  uint64 start_epoch = 9;
+  uint64 total_epochs_elapsed = 10;
 }
 
 message StoredDailyEmission {

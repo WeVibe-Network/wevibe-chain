@@ -366,18 +366,20 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 
 	currentEpoch := pending.Epoch
 	approved := &types.MemoryCommitment{
-		OrgID:             orgID,
-		ContentHash:       contentHash,
-		EncryptedBlob:     encryptedBlob,
-		Keywords:          pending.Keywords,
-		Contributor:       pending.Contributor,
-		Epoch:             currentEpoch,
-		CommittedAtHeight: pending.SubmittedAt,
-		CommittingLeader:  committingLeader,
-		State:             types.MemoryState_MEMORY_STATE_COMMITTED,
-		LastActiveEpoch:   currentEpoch,
-		WrappedDekEnc:     wrappedDekEnc,
-		MemoryType:        memoryType,
+		OrgID:              orgID,
+		ContentHash:        contentHash,
+		EncryptedBlob:      encryptedBlob,
+		Keywords:           pending.Keywords,
+		Contributor:        pending.Contributor,
+		ContributorAddress: pending.ContributorAddress,
+		Epoch:              currentEpoch,
+		CommittedAtHeight:  pending.SubmittedAt,
+		CommittingLeader:   committingLeader,
+		State:              types.MemoryState_MEMORY_STATE_COMMITTED,
+		LastActiveEpoch:    currentEpoch,
+		ApprovedAtEpoch:    k.getCurrentEpoch(ctx),
+		WrappedDekEnc:      wrappedDekEnc,
+		MemoryType:         memoryType,
 	}
 
 	bz, err = proto.Marshal(memoryToStored(approved))
@@ -524,9 +526,6 @@ func (k *Keeper) GetApprovedCountByContributor(ctx context.Context, orgID string
 			continue
 		}
 		counts[stored.ContributorPubkey]++
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 
 	return counts, nil
@@ -687,9 +686,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		p := storedToPending(stored)
 		pending = append(pending, &p)
 	}
-	if err := pendingIter.Error(); err != nil {
-		return nil, err
-	}
 
 	var approved []*types.MemoryCommitment
 	approvedPrefix := []byte("approved/")
@@ -705,10 +701,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 		a := storedToMemory(stored)
 		approved = append(approved, &a)
-	}
-
-	if err := approvedIter.Error(); err != nil {
-		return nil, err
 	}
 
 	var merkle []*types.EpochMerkleRoot
@@ -730,9 +722,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 			MemoryCount: stored.MemoryCount,
 		})
 	}
-	if err := merkleIter.Error(); err != nil {
-		return nil, err
-	}
 
 	var relationships []*types.MemoryRelationship
 	relPrefix := types.RelationshipKeyPrefix
@@ -749,9 +738,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		rel := storedToRelationship(stored)
 		relationships = append(relationships, &rel)
 	}
-	if err := relIter.Error(); err != nil {
-		return nil, err
-	}
 
 	var validity []*types.StoredValidityMetadata
 	valPrefix := types.ValidityKeyPrefix
@@ -767,9 +753,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 		copy := stored
 		validity = append(validity, &copy)
-	}
-	if err := valIter.Error(); err != nil {
-		return nil, err
 	}
 
 	params, err := k.GetParams(ctx)
@@ -793,25 +776,27 @@ func (k *Keeper) Logger(ctx context.Context) log.Logger {
 
 func pendingToStored(pc *types.PendingCommitment) *types.StoredPendingCommitment {
 	return &types.StoredPendingCommitment{
-		OrgId:             pc.OrgID,
-		ContentHash:       pc.ContentHash,
-		Keywords:          pc.Keywords,
-		ContributorId:     pc.Contributor,
-		Epoch:             pc.Epoch,
-		SubmittedAtHeight: pc.SubmittedAt,
-		MemoryType:        pc.MemoryType,
+		OrgId:              pc.OrgID,
+		ContentHash:        pc.ContentHash,
+		Keywords:           pc.Keywords,
+		ContributorId:      pc.Contributor,
+		Epoch:              pc.Epoch,
+		SubmittedAtHeight:  pc.SubmittedAt,
+		MemoryType:         pc.MemoryType,
+		ContributorAddress: pc.ContributorAddress,
 	}
 }
 
 func storedToPending(stored types.StoredPendingCommitment) types.PendingCommitment {
 	return types.PendingCommitment{
-		OrgID:       stored.OrgId,
-		ContentHash: stored.ContentHash,
-		Keywords:    stored.Keywords,
-		Contributor: stored.ContributorId,
-		Epoch:       stored.Epoch,
-		SubmittedAt: stored.SubmittedAtHeight,
-		MemoryType:  stored.MemoryType,
+		OrgID:              stored.OrgId,
+		ContentHash:        stored.ContentHash,
+		Keywords:           stored.Keywords,
+		Contributor:        stored.ContributorId,
+		ContributorAddress: stored.ContributorAddress,
+		Epoch:              stored.Epoch,
+		SubmittedAt:        stored.SubmittedAtHeight,
+		MemoryType:         stored.MemoryType,
 	}
 }
 
@@ -822,6 +807,7 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		EncryptedBlob:          con.EncryptedBlob,
 		Keywords:               con.Keywords,
 		ContributorPubkey:      con.Contributor,
+		ContributorAddress:     con.ContributorAddress,
 		Epoch:                  con.Epoch,
 		CommittedAtHeight:      con.CommittedAtHeight,
 		CommittingLeaderPubkey: con.CommittingLeader,
@@ -843,26 +829,27 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 
 func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment {
 	return types.MemoryCommitment{
-		OrgID:             stored.OrgId,
-		ContentHash:       stored.ContentHash,
-		EncryptedBlob:     stored.EncryptedBlob,
-		Keywords:          stored.Keywords,
-		Contributor:       stored.ContributorPubkey,
-		Epoch:             stored.Epoch,
-		CommittedAtHeight: stored.CommittedAtHeight,
-		CommittingLeader:  stored.CommittingLeaderPubkey,
-		State:             stored.State,
-		LastActiveEpoch:   stored.LastActiveEpoch,
-		WrappedDekEnc:     stored.WrappedDekEnc,
-		PlaintextHash:     stored.PlaintextHash,
-		Salt:              stored.Salt,
-		CiphertextHash:    stored.CiphertextHash,
-		WrappedDekHash:    stored.WrappedDekHash,
-		ContributorSig:    stored.ContributorSig,
-		MemoryType:        stored.MemoryType,
-		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
-		ServeCountTotal:   stored.ServeCountTotal,
-		DenialCountTotal:  stored.DenialCountTotal,
-		ArchivedEpoch:     stored.ArchivedEpoch,
+		OrgID:              stored.OrgId,
+		ContentHash:        stored.ContentHash,
+		EncryptedBlob:      stored.EncryptedBlob,
+		Keywords:           stored.Keywords,
+		Contributor:        stored.ContributorPubkey,
+		ContributorAddress: stored.ContributorAddress,
+		Epoch:              stored.Epoch,
+		CommittedAtHeight:  stored.CommittedAtHeight,
+		CommittingLeader:   stored.CommittingLeaderPubkey,
+		State:              stored.State,
+		LastActiveEpoch:    stored.LastActiveEpoch,
+		WrappedDekEnc:      stored.WrappedDekEnc,
+		PlaintextHash:      stored.PlaintextHash,
+		Salt:               stored.Salt,
+		CiphertextHash:     stored.CiphertextHash,
+		WrappedDekHash:     stored.WrappedDekHash,
+		ContributorSig:     stored.ContributorSig,
+		MemoryType:         stored.MemoryType,
+		ApprovedAtEpoch:    stored.ApprovedAtEpoch,
+		ServeCountTotal:    stored.ServeCountTotal,
+		DenialCountTotal:   stored.DenialCountTotal,
+		ArchivedEpoch:      stored.ArchivedEpoch,
 	}
 }

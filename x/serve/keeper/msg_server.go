@@ -23,6 +23,23 @@ func NewMsgServerImpl(k *Keeper) types.MsgServer {
 	return &MsgServer{keeper: k}
 }
 
+// requireServingKeySigner enforces D-S32-CO044-KEY-SEPARATION: only the org's
+// registered hub serving key may submit serve/denial batches. The tx signer
+// (msg.Signer) is the authenticated fee payer; it must equal the org's
+// currently-registered serving address. A stolen serving key can therefore do
+// nothing beyond submit serve/denial batches + drain its own gas; any other key
+// is rejected. An org with no registered serving address can never serve.
+func (s *MsgServer) requireServingKeySigner(ctx context.Context, orgID, signer string) error {
+	servingAddr, err := s.keeper.orgKeeper.GetServingAddress(ctx, orgID)
+	if err != nil {
+		return err
+	}
+	if servingAddr == "" || signer != servingAddr {
+		return types.ErrUnauthorized
+	}
+	return nil
+}
+
 func (s *MsgServer) SubmitServeBatch(ctx context.Context, msg *types.MsgSubmitServeBatch) (*types.MsgSubmitServeBatchResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
@@ -34,6 +51,10 @@ func (s *MsgServer) SubmitServeBatch(ctx context.Context, msg *types.MsgSubmitSe
 	}
 	if !hasOrg {
 		return nil, types.ErrOrgNotFound
+	}
+
+	if err := s.requireServingKeySigner(ctx, msg.OrgId, msg.Signer); err != nil {
+		return nil, err
 	}
 
 	accepted, rejectedDuplicate, rejectedInvalid, err := s.keeper.ProcessServeBatch(ctx, msg.OrgId, msg.Epoch, msg.Serves)
@@ -61,6 +82,10 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 		return nil, types.ErrOrgNotFound
 	}
 
+	if err := s.requireServingKeySigner(ctx, msg.OrgId, msg.Signer); err != nil {
+		return nil, err
+	}
+
 	params, err := s.keeper.GetParams(ctx)
 	if err != nil {
 		return nil, err
@@ -71,11 +96,17 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 
 	var accepted uint64
 	var rejected uint64
+	var rejectedDupNullifier uint64
+	var rejectedNoAttestation uint64
+	var rejectedNoKeywords uint64
+	var rejectedHashMismatch uint64
+	var rejectedNoMemory uint64
 
 	store := s.keeper.getStore(ctx)
 	for _, entry := range msg.Entries {
 		if s.keeper.HasDenialNullifier(ctx, entry.Nullifier) {
 			rejected++
+			rejectedDupNullifier++
 			continue
 		}
 
@@ -85,24 +116,29 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 		}
 		if !found {
 			rejected++
+			rejectedNoAttestation++
 			continue
 		}
 		if len(originatingAttestation.MatchedKeywords) == 0 {
 			rejected++
+			rejectedNoKeywords++
 			continue
 		}
 		if !bytes.Equal(entry.MemoryHash, originatingAttestation.MemoryContentHash) {
 			rejected++
+			rejectedHashMismatch++
 			continue
 		}
 
 		if _, err := s.keeper.memoryKeeper.GetApprovedMemory(ctx, msg.OrgId, entry.MemoryHash); err != nil {
 			rejected++
+			rejectedNoMemory++
 			continue
 		}
 
 		store.Set(denialNullifierKey(entry.Nullifier), []byte{1})
 		s.keeper.IncrementDenialCount(ctx, msg.OrgId, originatingAttestation.MemoryContentHash, msg.Epoch)
+		s.keeper.updateEpochDenialStats(ctx, msg.OrgId, msg.Epoch)
 		if err := s.keeper.StoreDenialAttestation(ctx, msg.OrgId, msg.Epoch, entry); err != nil {
 			return nil, err
 		}
@@ -130,6 +166,10 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 
 	// Emit denial_batch_submitted event — follows MsgRemoveMember pattern (CO-016)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	s.keeper.logger.Info(fmt.Sprintf(
+		msg.OrgId, msg.Epoch, len(msg.Entries), accepted, rejected,
+		rejectedDupNullifier, rejectedNoAttestation, rejectedNoKeywords, rejectedHashMismatch, rejectedNoMemory,
+	))
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDenialBatchSubmitted,
 		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),

@@ -106,9 +106,6 @@ func (k *Keeper) ListLeaderProfilesByOrg(ctx context.Context, orgID string) ([]*
 		}
 		profiles = append(profiles, &profile)
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return profiles, nil
 }
 
@@ -128,9 +125,6 @@ func (k *Keeper) ListLeaderProfilesByPubkey(ctx context.Context, leaderPubkey st
 			continue
 		}
 		profiles = append(profiles, &profile)
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return profiles, nil
 }

@@ -90,21 +90,27 @@ func TestQueryOrg_IsMember(t *testing.T) {
 	require.False(t, respNotMember.IsMember)
 }
 
-func TestQueryEmissions_GetEmissionPool_NotFound(t *testing.T) {
+func TestQueryEmissions_GetEmissionPool_SeededAtGenesis(t *testing.T) {
 	suite := NewTestSuite(t)
 
+	// CO-040: the emissions module seeds an emission pool at genesis (derived
+	// from DefaultParams). The pool must therefore be queryable immediately.
 	queryServer := emissionskeeper.NewQueryServerImpl(suite.EmissionsKeeper)
-	_, err := queryServer.GetEmissionPool(suite.Ctx, &emissionstypes.QueryGetEmissionPoolRequest{})
-	require.Error(t, err)
+	resp, err := queryServer.GetEmissionPool(suite.Ctx, &emissionstypes.QueryGetEmissionPoolRequest{})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, emissionstypes.DefaultParams().DailyMintAmount, resp.DailyMint)
+	require.Equal(t, uint64(100), resp.OperatorShare+resp.ValidatorShare)
 }
 
 func TestQueryReputation_IsActive(t *testing.T) {
 	suite := NewTestSuite(t)
 
+	// CO-040 (GAP-REP-1): the reputation module is active at genesis.
 	queryServer := reputationkeeper.NewQueryServerImpl(suite.ReputationKeeper)
 	resp, err := queryServer.IsActive(suite.Ctx, &reputationtypes.QueryIsActiveRequest{})
 	require.NoError(t, err)
-	require.False(t, resp.Active)
+	require.True(t, resp.Active)
 }
 
 func TestQueryReputation_GetReputation_NotFound(t *testing.T) {

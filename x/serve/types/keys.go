@@ -70,6 +70,7 @@ type EpochServeStats struct {
 	OrgID                string
 	Epoch                uint64
 	TotalServes          uint64
+	TotalDenials         uint64
 	UniqueMemoriesServed uint64
 	UniqueServeKeys      uint64
 	SelfServes           uint64
@@ -81,6 +82,7 @@ func NewEpochServeStats(orgID string, epoch uint64) *EpochServeStats {
 		OrgID:                orgID,
 		Epoch:                epoch,
 		TotalServes:          0,
+		TotalDenials:         0,
 		UniqueMemoriesServed: 0,
 		UniqueServeKeys:      0,
 		SelfServes:           0,
@@ -152,6 +154,7 @@ func EpochServeStatsToStored(es *EpochServeStats) *StoredEpochServeStats {
 		OrgId:                es.OrgID,
 		Epoch:                es.Epoch,
 		TotalServes:          es.TotalServes,
+		TotalDenials:         es.TotalDenials,
 		UniqueMemoriesServed: es.UniqueMemoriesServed,
 		UniqueServeKeys:      es.UniqueServeKeys,
 		SelfServes:           es.SelfServes,
@@ -164,6 +167,7 @@ func StoredToEpochServeStats(stored StoredEpochServeStats) EpochServeStats {
 		OrgID:                stored.OrgId,
 		Epoch:                stored.Epoch,
 		TotalServes:          stored.TotalServes,
+		TotalDenials:         stored.TotalDenials,
 		UniqueMemoriesServed: stored.UniqueMemoriesServed,
 		UniqueServeKeys:      stored.UniqueServeKeys,
 		SelfServes:           stored.SelfServes,

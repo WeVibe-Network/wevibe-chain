@@ -32,6 +32,10 @@ func (m *mockOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgtyp
 	return &orgtypes.OrgConfig{OrgID: orgID}, nil
 }
 
+func (m *mockOrgKeeper) GetLeaderWallet(ctx context.Context, orgID string) (string, error) {
+	return m.leaders[orgID], nil
+}
+
 func makeTestKeeper(t *testing.T) (*Keeper, *mockOrgKeeper, *mockReputationKeeper) {
 	storeKey := storetypes.NewKVStoreKey("memory")
 	storeService, _ := keeper.NewTestStoreService(t, storeKey)
@@ -148,6 +152,66 @@ func TestSubmitCommitment_OrgNotFound(t *testing.T) {
 	}
 }
 
+func TestSubmitCommitment_PersistsContributorAddress(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("12345678901234567890123456789012")
+	commitment := newPendingCommitment(
+		"test-org",
+		contentHash,
+		[]string{"keyword1", "keyword2"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	commitment.ContributorAddress = "wallet-addr-xyz"
+
+	if err := k.SubmitCommitment(ctx, commitment); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	retrieved, err := k.GetPendingCommitment(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetPendingCommitment failed: %v", err)
+	}
+	if retrieved.ContributorAddress != "wallet-addr-xyz" {
+		t.Errorf("ContributorAddress mismatch on pending: got %q, want %q", retrieved.ContributorAddress, "wallet-addr-xyz")
+	}
+}
+
+func TestApproveMemory_CarriesContributorAddress(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("12345678901234567890123456789012")
+	commitment := newPendingCommitment(
+		"test-org",
+		contentHash,
+		[]string{"keyword1", "keyword2"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	commitment.ContributorAddress = "wallet-addr-xyz"
+	if err := k.SubmitCommitment(ctx, commitment); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	encryptedBlob := []byte("encrypted blob data")
+	if err := approveMemory(k, ctx, "test-org", contentHash, encryptedBlob, "leader-pubkey", nil); err != nil {
+		t.Fatalf("ApproveMemory failed: %v", err)
+	}
+
+	approved, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if approved.ContributorAddress != "wallet-addr-xyz" {
+		t.Errorf("ContributorAddress mismatch on approved: got %q, want %q", approved.ContributorAddress, "wallet-addr-xyz")
+	}
+}
+
 func TestApproveMemory(t *testing.T) {
 	k, _, _ := makeTestKeeper(t)
 	ctx := context.Background()
@@ -206,6 +270,24 @@ func TestApproveMemory_NotLeader(t *testing.T) {
 	err := approveMemory(k, ctx, "test-org", contentHash, []byte("blob"), "not-leader", nil)
 	if err != types.ErrUnauthorized {
 		t.Fatalf("expected ErrUnauthorized, got: %v", err)
+	}
+}
+
+func TestGetActiveMemoryCountByOrg_ExcludesArchivedAndDenied(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("11111111111111111111111111111111"), types.MemoryState_MEMORY_STATE_COMMITTED, 0)
+	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("22222222222222222222222222222222"), types.MemoryState_MEMORY_STATE_ARCHIVED, 0)
+	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("33333333333333333333333333333333"), types.MemoryState_MEMORY_STATE_DENIED, 0)
+	storeMemoryWithKeywords(t, k, ctx, "other-org", []byte("44444444444444444444444444444444"), types.MemoryState_MEMORY_STATE_COMMITTED, 0)
+
+	count, err := k.GetActiveMemoryCountByOrg(ctx, "test-org")
+	if err != nil {
+		t.Fatalf("GetActiveMemoryCountByOrg failed: %v", err)
+	}
+	if count != 1 {
+		t.Fatalf("active count mismatch: got %d want 1", count)
 	}
 }
 

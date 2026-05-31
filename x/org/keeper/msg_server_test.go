@@ -792,3 +792,66 @@ func TestMsgCloseOrg_AlreadyClosed(t *testing.T) {
 	_, err = srv.CloseOrg(ctx, msg)
 	require.ErrorIs(t, err, types.ErrOrgNotActive)
 }
+
+// ── CO-044: serving-key registration + rotation (D-S32-CO044-*) ──
+
+func TestMsgRegisterOrg_WithServingKeyAndLeaderWallet(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	resp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+		HubServingKey:   "wevibe1serving000000",
+		LeaderWallet:    validLeader,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+}
+
+func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+		HubServingKey:   "wevibe1serving000000",
+		LeaderWallet:    validLeader,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
+		Signer:        validLeader,
+		OrgId:         "org1",
+		NewServingKey: "wevibe1rotated000000",
+	})
+	require.NoError(t, err)
+}
+
+// R-BLAST-RADIUS: a non-leader-wallet signer cannot rotate the serving key.
+func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		Leader:          validLeader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+		HubServingKey:   "wevibe1serving000000",
+		LeaderWallet:    validLeader,
+	})
+	require.NoError(t, err)
+
+	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
+		Signer:        validSigner, // not the leader wallet
+		OrgId:         "org1",
+		NewServingKey: "wevibe1evil000000000",
+	})
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}

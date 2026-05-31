@@ -171,4 +171,17 @@ func TestWeVibeAppInitChainAndExport(t *testing.T) {
 	slashingParams, err := wevibeApp.SlashingKeeper.GetParams(blockCtx)
 	require.NoError(t, err)
 	require.NotZero(t, slashingParams.SignedBlocksWindow)
+
+	// CO-040: the emissions module's HasGenesis InitGenesis must seed an
+	// emission pool from DefaultParams(). Without this the epoch hook logs
+	// "no emission pool found" and never mints.
+	emissionPool, err := wevibeApp.EmissionsKeeper.GetEmissionPool(blockCtx)
+	require.NoError(t, err)
+	require.NotNil(t, emissionPool)
+	require.NotZero(t, emissionPool.DailyMint)
+	require.Equal(t, uint64(100), emissionPool.OperatorShare+emissionPool.ValidatorShare)
+
+	// CO-040: the reputation module must be active after genesis (GAP-REP-1).
+	require.True(t, wevibeApp.ReputationKeeper.IsActive(blockCtx),
+		"reputation module must be active after InitChain")
 }

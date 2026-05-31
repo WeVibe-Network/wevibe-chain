@@ -95,9 +95,6 @@ func (k *Keeper) ListModeratorProfilesByOrg(ctx context.Context, orgID string) (
 		}
 		profiles = append(profiles, &profile)
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return profiles, nil
 }
 
@@ -117,9 +114,6 @@ func (k *Keeper) ListModeratorProfilesByPubkey(ctx context.Context, modPubkey st
 			continue
 		}
 		profiles = append(profiles, &profile)
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return profiles, nil
 }

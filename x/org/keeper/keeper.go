@@ -73,27 +73,31 @@ const ParamsKey = "params"
 
 func orgToStored(org *types.Org) *types.StoredOrg {
 	return &types.StoredOrg{
-		OrgId:           org.OrgID,
-		Leader:          org.Leader,
-		Domain:          org.Domain,
-		CreatedAt:       org.CreatedAt,
-		RenewalHeight:   org.RenewalHeight,
-		StorageQuota:    org.StorageQuota,
-		RetrievalBudget: org.RetrievalBudget,
-		Status:          int32(org.Status),
+		OrgId:               org.OrgID,
+		Leader:              org.Leader,
+		Domain:              org.Domain,
+		CreatedAt:           org.CreatedAt,
+		RenewalHeight:       org.RenewalHeight,
+		StorageQuota:        org.StorageQuota,
+		RetrievalBudget:     org.RetrievalBudget,
+		Status:              int32(org.Status),
+		HubServingAddress:   org.HubServingAddress,
+		LeaderWalletAddress: org.LeaderWalletAddress,
 	}
 }
 
 func storedToOrg(stored types.StoredOrg) types.Org {
 	return types.Org{
-		OrgID:           stored.OrgId,
-		Leader:          stored.Leader,
-		Domain:          stored.Domain,
-		CreatedAt:       stored.CreatedAt,
-		RenewalHeight:   stored.RenewalHeight,
-		StorageQuota:    stored.StorageQuota,
-		RetrievalBudget: stored.RetrievalBudget,
-		Status:          types.OrgStatus(stored.Status),
+		OrgID:               stored.OrgId,
+		Leader:              stored.Leader,
+		Domain:              stored.Domain,
+		CreatedAt:           stored.CreatedAt,
+		RenewalHeight:       stored.RenewalHeight,
+		StorageQuota:        stored.StorageQuota,
+		RetrievalBudget:     stored.RetrievalBudget,
+		Status:              types.OrgStatus(stored.Status),
+		HubServingAddress:   stored.HubServingAddress,
+		LeaderWalletAddress: stored.LeaderWalletAddress,
 	}
 }
 
@@ -337,9 +341,6 @@ func (k *Keeper) GetAllMembers(ctx context.Context, orgID string) ([]*types.Memb
 		member := storedToMember(stored)
 		members = append(members, &member)
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return members, nil
 }
 
@@ -372,6 +373,70 @@ func (k *Keeper) IsModerator(ctx context.Context, orgID, memberPubkey string) (b
 		return false, err
 	}
 	return member.Role == "moderator", nil
+}
+
+// GetServingAddress returns the org's currently-registered hub serving key
+// chain address — the only signer authorized to submit serve/denial batches
+// (D-S32-CO044-KEY-SEPARATION). Returns ErrOrgNotFound if the org does not
+// exist; the serving address may be empty if the org was never provisioned
+// with one (in which case no serve/denial batch can ever be accepted).
+func (k *Keeper) GetServingAddress(ctx context.Context, orgID string) (string, error) {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return "", err
+	}
+	return org.HubServingAddress, nil
+}
+
+// GetLeaderWallet returns the org's registered leader chain wallet address —
+// the authenticated tx signer authorized to commit org decisions
+// (D-S32-CO044-KEY-SEPARATION). May be empty if the org was never provisioned
+// with one (in which case no org-decision message can be authorized).
+func (k *Keeper) GetLeaderWallet(ctx context.Context, orgID string) (string, error) {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return "", err
+	}
+	return org.LeaderWalletAddress, nil
+}
+
+// SetServingKey rotates/revokes the org's hub serving key. Authorized ONLY by
+// the org's registered leader chain wallet (signer must equal
+// leader_wallet_address). D-S32-CO044-SERVING-KEY-REVOCATION.
+func (k *Keeper) SetServingKey(ctx context.Context, orgID, newServingKey, signer string) error {
+	org, err := k.GetOrg(ctx, orgID)
+	if err != nil {
+		return err
+	}
+	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
+		return types.ErrNotLeader
+	}
+
+	store := k.getStore(ctx)
+	key := orgKey(orgID)
+	bz, err := store.Get(key)
+	if err != nil {
+		return err
+	}
+
+	var stored types.StoredOrg
+	if err := proto.Unmarshal(bz, &stored); err != nil {
+		return fmt.Errorf("unmarshal org: %w", err)
+	}
+	stored.HubServingAddress = newServingKey
+	bz, err = proto.Marshal(&stored)
+	if err != nil {
+		return fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(key, bz); err != nil {
+		return err
+	}
+
+	k.logger.Info("serving key rotated",
+		"org_id", orgID,
+		"new_serving_key", newServingKey,
+	)
+	return nil
 }
 
 func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, signer string) error {
@@ -966,9 +1031,6 @@ func (k *Keeper) GetAllOrgs(ctx context.Context) ([]*types.Org, error) {
 		org := storedToOrg(stored)
 		orgs = append(orgs, &org)
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return orgs, nil
 }
 
@@ -1072,9 +1134,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		org := storedToOrg(stored)
 		orgs = append(orgs, &org)
 	}
-	if err := orgIter.Error(); err != nil {
-		return nil, err
-	}
 
 	memberPrefix := []byte("member/")
 	memberIter, err := store.Iterator(memberPrefix, storetypes.PrefixEndBytes(memberPrefix))
@@ -1091,9 +1150,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 		member := storedToMember(stored)
 		members = append(members, &member)
-	}
-	if err := memberIter.Error(); err != nil {
-		return nil, err
 	}
 
 	var dynamicPrice *types.DynamicPrice

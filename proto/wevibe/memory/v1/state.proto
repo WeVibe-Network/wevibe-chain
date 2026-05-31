@@ -43,6 +43,7 @@ message StoredPendingCommitment {
   uint64 epoch = 5;
   uint64 submitted_at_height = 6;
   MemoryType memory_type = 7;
+  string contributor_address = 8;
 }
 
 message StoredMemoryCommitment {
@@ -68,6 +69,7 @@ message StoredMemoryCommitment {
   uint64 serve_count_total = 20;
   uint64 denial_count_total = 21;
   uint64 archived_epoch = 22;
+  string contributor_address = 23;
 }
 
 message StoredMemoryRelationship {

@@ -27,6 +27,12 @@ type Org struct {
 	StorageQuota    uint64    `json:"storage_quota"`
 	RetrievalBudget uint64    `json:"retrieval_budget"`
 	Status          OrgStatus `json:"status"`
+	// CO-044 (D-S32-CO044-KEY-SEPARATION): per-org hub serving key chain address
+	// (the only signer allowed to submit serve/denial batches) and the leader's
+	// chain wallet address (the on-chain authority for org decisions and serving
+	// key rotation).
+	HubServingAddress   string `json:"hub_serving_address"`
+	LeaderWalletAddress string `json:"leader_wallet_address"`
 }
 
 func NewOrg(orgID, leader, domain string, storageQuota, retrievalBudget uint64) *Org {

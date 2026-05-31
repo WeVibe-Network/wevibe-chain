@@ -18,6 +18,19 @@ func (m *MsgRegisterOrg) ValidateBasic() error {
 	return nil
 }
 
+func (m *MsgSetServingKey) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	if m.NewServingKey == "" {
+		return fmt.Errorf("new_serving_key cannot be empty")
+	}
+	return nil
+}
+
 func (m *MsgAddMember) ValidateBasic() error {
 	if m.Signer == "" {
 		return fmt.Errorf("signer cannot be empty")

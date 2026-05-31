@@ -11,4 +11,10 @@ message Params {
   uint64 retrieval_weight_percent = 5;
   string rarity_multiplier_cap = 6;
   uint64 bootstrap_duration_epochs = 7;
+  // CO-041 32-year emission schedule.
+  uint64 total_supply_uvibe = 8;
+  uint64 validator_emission_pool_uvibe = 9;
+  uint64 contributor_annual_cap_uvibe = 10;
+  uint64 schedule_duration_days = 11;
+  uint64 contributor_qualify_threshold = 12;
 }

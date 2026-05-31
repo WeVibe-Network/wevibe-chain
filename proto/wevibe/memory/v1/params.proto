@@ -30,4 +30,6 @@ message Params {
   uint64 idle_untrusted_bps = 22;
   uint64 trust_min_serves = 23;
   uint64 trust_max_rate_bps = 24;
+  uint64 idle_traffic_ref_bps_per_mem = 25;
+  uint64 idle_traffic_floor_bps = 26;
 }

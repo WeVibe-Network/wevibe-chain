@@ -33,6 +33,8 @@ func (m *msgServer) RegisterOrg(ctx context.Context, msg *types.MsgRegisterOrg) 
 	}
 
 	org := types.NewOrg(msg.OrgId, msg.Leader, msg.Domain, msg.StorageQuota, msg.RetrievalBudget)
+	org.HubServingAddress = msg.HubServingKey
+	org.LeaderWalletAddress = msg.LeaderWallet
 	if err := m.keeper.RegisterOrg(ctx, org, creator); err != nil {
 		return nil, err
 	}
@@ -51,6 +53,26 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 	}
 
 	return &types.MsgAddMemberResponse{}, nil
+}
+
+func (m *msgServer) SetServingKey(ctx context.Context, msg *types.MsgSetServingKey) (*types.MsgSetServingKeyResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := m.keeper.SetServingKey(ctx, msg.OrgId, msg.NewServingKey, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgSetServingKeyResponse{}, nil
 }
 
 func (m *msgServer) RemoveMember(ctx context.Context, msg *types.MsgRemoveMember) (*types.MsgRemoveMemberResponse, error) {

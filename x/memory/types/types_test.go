@@ -555,6 +555,8 @@ func TestDefaultParams_Valid(t *testing.T) {
 	require.Equal(t, uint32(20), p.MaxKeywordsPerMemory)
 	require.Equal(t, types.DefaultRetrievalThresholdBps, p.RetrievalThresholdBps)
 	require.Equal(t, types.DefaultGraceEpochs, p.GraceEpochs)
+	require.Equal(t, types.DefaultIdleTrafficRefBps, p.IdleTrafficRefBpsPerMem)
+	require.Equal(t, types.DefaultIdleTrafficFloorBps, p.IdleTrafficFloorBps)
 	require.Equal(t, types.DefaultTrustMinServes, p.TrustMinServes)
 	require.Equal(t, types.DefaultTrustMaxRateBps, p.TrustMaxRateBps)
 }
@@ -641,12 +643,27 @@ func TestParams_Validate(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			name:    "idle traffic ref bps over 10000",
+			mutate:  func(p *types.Params) { p.IdleTrafficRefBpsPerMem = 10001 },
+			wantErr: true,
+		},
+		{
+			name:    "idle traffic floor bps over 10000",
+			mutate:  func(p *types.Params) { p.IdleTrafficFloorBps = 10001 },
+			wantErr: true,
+		},
+		{
+			name:    "idle traffic ref bps zero",
+			mutate:  func(p *types.Params) { p.IdleTrafficRefBpsPerMem = 0 },
+			wantErr: true,
+		},
+		{
 			name:    "trust max rate bps over 10000",
 			mutate:  func(p *types.Params) { p.TrustMaxRateBps = 10001 },
 			wantErr: true,
 		},
 		{
-			name:    "all bps at zero with min epochs ok",
+			name: "all bps at zero with min epochs ok",
 			mutate: func(p *types.Params) {
 				p.RetrievalThresholdBps = 0
 				p.InitialConfidenceBps = 0
@@ -657,6 +674,8 @@ func TestParams_Validate(t *testing.T) {
 				p.DenialFloorBps = 0
 				p.IdleProtectBps = 0
 				p.IdleUntrustedBps = 0
+				p.IdleTrafficRefBpsPerMem = 1
+				p.IdleTrafficFloorBps = 0
 				p.TrustMaxRateBps = 0
 			},
 			wantErr: false,

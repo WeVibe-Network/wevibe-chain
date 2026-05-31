@@ -2,6 +2,7 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 	"math"
 	"testing"
 
@@ -47,7 +48,7 @@ func TestApplyDecay_ServeBoost_EarnedTrust_MatchedKeyword(t *testing.T) {
 	memory.ServeCountTotal = 4
 	memory.DenialCountTotal = 1
 
-	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"kw1": true}, params)
+	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"kw1": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -71,7 +72,7 @@ func TestApplyDecay_ServeBoost_UnmatchedKeyword_NoBoost(t *testing.T) {
 	memory.ServeCountTotal = 5
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"other": true}, params)
+	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"other": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -92,7 +93,7 @@ func TestApplyDecay_DenialDecay_EarnedTrust(t *testing.T) {
 	memory.ServeCountTotal = 4
 	memory.DenialCountTotal = 1
 
-	err := k.applyDecay(memory, 30, 0, 1, map[string]bool{"kw1": true}, params)
+	err := k.applyDecay(memory, 30, 0, 1, map[string]bool{"kw1": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -115,7 +116,7 @@ func TestApplyDecay_IdleDecay_TrustEarned(t *testing.T) {
 	memory.ServeCountTotal = 3
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 0, 0, map[string]bool{}, params)
+	err := k.applyDecay(memory, 30, 0, 0, map[string]bool{}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -136,7 +137,7 @@ func TestApplyDecay_IdleDecay_Untrusted(t *testing.T) {
 	memory.ServeCountTotal = 0
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 0, 0, map[string]bool{}, params)
+	err := k.applyDecay(memory, 30, 0, 0, map[string]bool{}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -161,7 +162,7 @@ func TestApplyDecay_IdleDecay_PerKeywordGate_ActiveMemory(t *testing.T) {
 	memory.ServeCountTotal = 5
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"kw1": true}, params)
+	err := k.applyDecay(memory, 30, 1, 0, map[string]bool{"kw1": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -186,7 +187,7 @@ func TestApplyDecay_GracePeriod_BlocksAllOperations(t *testing.T) {
 	memory := newDecayMemory(100, &types.KeywordWeight{Keyword: "kw1", Weight: "0.5000"})
 	memory.LastActiveEpoch = 7
 
-	err := k.applyDecay(memory, 119, 1, 1, map[string]bool{"kw1": true}, params)
+	err := k.applyDecay(memory, 119, 1, 1, map[string]bool{"kw1": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -213,7 +214,7 @@ func TestApplyDecay_ArchiveTrigger_AllKeywordsBelowThreshold(t *testing.T) {
 		&types.KeywordWeight{Keyword: "k3", Weight: "0.1000"},
 	)
 
-	err := k.applyDecay(memory, 50, 0, 0, nil, params)
+	err := k.applyDecay(memory, 50, 0, 0, nil, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -237,7 +238,7 @@ func TestApplyDecay_ArchiveTrigger_NotAllKeywordsBelow_NoArchive(t *testing.T) {
 		&types.KeywordWeight{Keyword: "k3", Weight: "0.5000"},
 	)
 
-	err := k.applyDecay(memory, 50, 0, 0, nil, params)
+	err := k.applyDecay(memory, 50, 0, 0, nil, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -258,7 +259,7 @@ func TestApplyDecay_ZeroEventsZeroDenials_EdgeCase(t *testing.T) {
 	memory.ServeCountTotal = 0
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 0, 0, nil, params)
+	err := k.applyDecay(memory, 30, 0, 0, nil, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -277,7 +278,7 @@ func TestApplyDecay_Clamps_WeightAtZero(t *testing.T) {
 
 	memory := newDecayMemory(1, &types.KeywordWeight{Keyword: "kw1", Weight: "0.0100"})
 
-	err := k.applyDecay(memory, 30, 0, 0, nil, params)
+	err := k.applyDecay(memory, 30, 0, 0, nil, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
@@ -295,13 +296,118 @@ func TestApplyDecay_Clamps_WeightAtOne(t *testing.T) {
 	memory.ServeCountTotal = 10
 	memory.DenialCountTotal = 0
 
-	err := k.applyDecay(memory, 30, 3, 0, map[string]bool{"kw1": true}, params)
+	err := k.applyDecay(memory, 30, 3, 0, map[string]bool{"kw1": true}, params, 1.0, false)
 	if err != nil {
 		t.Fatalf("applyDecay failed: %v", err)
 	}
 
 	if got := weightForKeyword(t, memory, "kw1"); got != 1.0 {
 		t.Fatalf("weight should clamp to one, got %.4f", got)
+	}
+}
+
+func TestResolveOrgIdleDecayConfig_AtReferenceTrafficScaleIsOne(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+	params := types.DefaultParams()
+
+	for i := 0; i < 50; i++ {
+		hash := []byte(fmt.Sprintf("%032d", i))
+		storeMemoryWithKeywords(t, k, ctx, defaultOrgID, hash, types.MemoryState_MEMORY_STATE_COMMITTED, 0)
+	}
+
+	mock := newMockServeKeeper()
+	cid := types.ContentHashToHex([]byte(fmt.Sprintf("%032d", 0)))
+	mock.servesByEpoch[makeServeEpochKey(defaultOrgID, cid, 40)] = 11
+	k.SetServeKeeper(mock)
+
+	config, err := k.resolveOrgIdleDecayConfig(ctx, defaultOrgID, 40, params)
+	if err != nil {
+		t.Fatalf("resolveOrgIdleDecayConfig failed: %v", err)
+	}
+	if config.suppressIdle {
+		t.Fatalf("expected suppressIdle=false when org has traffic")
+	}
+	if math.Abs(config.idleScale-1.0) > 0.000001 {
+		t.Fatalf("idle scale mismatch at T_ref: got %.6f want 1.0", config.idleScale)
+	}
+}
+
+func TestApplyEpochDecay_ZeroSignalGuardSkipsIdleDecay(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	hash := []byte("quiet_epoch_good_memory_hash_000001")
+	storeMemoryWithKeywords(
+		t,
+		k,
+		ctx,
+		defaultOrgID,
+		hash,
+		types.MemoryState_MEMORY_STATE_COMMITTED,
+		0,
+		withKeywords(&types.KeywordWeight{Keyword: "kw", Weight: "0.1600"}),
+	)
+
+	k.SetServeKeeper(newMockServeKeeper())
+
+	if err := k.ApplyEpochDecay(ctx, 40); err != nil {
+		t.Fatalf("ApplyEpochDecay failed: %v", err)
+	}
+
+	memory, err := k.GetApprovedMemory(ctx, defaultOrgID, hash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if memory.State != types.MemoryState_MEMORY_STATE_COMMITTED {
+		t.Fatalf("memory should stay committed in quiet epoch, got %v", memory.State)
+	}
+	if got := weightForKeyword(t, memory, "kw"); math.Abs(got-0.1600) > 0.0001 {
+		t.Fatalf("weight changed during quiet epoch: got %.4f want 0.1600", got)
+	}
+}
+
+func TestApplyEpochDecay_BadMemoryWithDenialsStillDecays(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	hash := []byte("bad_memory_denial_decay_hash_000000")
+	cid := storeMemoryWithKeywords(
+		t,
+		k,
+		ctx,
+		defaultOrgID,
+		hash,
+		types.MemoryState_MEMORY_STATE_COMMITTED,
+		0,
+		withMemoryType(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL),
+		withKeywords(&types.KeywordWeight{Keyword: "kw", Weight: "0.8000"}),
+		withMemoryServeTotal(3),
+		withMemoryDenialTotal(2),
+	)
+
+	mock := newMockServeKeeper()
+	mock.denialsByEpoch[makeServeEpochKey(defaultOrgID, cid, 40)] = 1
+	mock.matchedByEpoch[makeServeEpochKey(defaultOrgID, cid, 40)] = map[string]bool{"kw": true}
+	k.SetServeKeeper(mock)
+
+	before, err := k.GetApprovedMemory(ctx, defaultOrgID, hash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory(before) failed: %v", err)
+	}
+	beforeWeight := weightForKeyword(t, before, "kw")
+
+	if err := k.ApplyEpochDecay(ctx, 40); err != nil {
+		t.Fatalf("ApplyEpochDecay failed: %v", err)
+	}
+
+	after, err := k.GetApprovedMemory(ctx, defaultOrgID, hash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory(after) failed: %v", err)
+	}
+	afterWeight := weightForKeyword(t, after, "kw")
+	if !(afterWeight < beforeWeight) {
+		t.Fatalf("bad memory weight should decay on denial: before %.4f after %.4f", beforeWeight, afterWeight)
 	}
 }
 

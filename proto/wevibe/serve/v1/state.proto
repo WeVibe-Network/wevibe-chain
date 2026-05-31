@@ -35,6 +35,7 @@ message StoredEpochServeStats {
   uint64 unique_serve_keys = 5;
   uint64 self_serves = 6;
   map<string, uint64> model_breakdown = 7;
+  uint64 total_denials = 8;
 }
 
 message StoredContributorEpochServes {

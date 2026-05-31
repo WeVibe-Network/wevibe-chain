@@ -13,6 +13,11 @@ func DefaultParams() Params {
 		RetrievalWeightPercent: 70,
 		RarityMultiplierCap:    "3.0",
 		BootstrapDurationEpochs: 365,
+		TotalSupplyUvibe:            1_000_000_000_000_000,
+		ValidatorEmissionPoolUvibe:  570_000_000_000_000,
+		ContributorAnnualCapUvibe:   10_000_000_000_000,
+		ScheduleDurationDays:        11_680,
+		ContributorQualifyThreshold: 1,
 	}
 }
 

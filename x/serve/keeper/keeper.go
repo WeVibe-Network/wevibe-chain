@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"fmt"
 
 	"cosmossdk.io/core/store"
@@ -273,9 +274,19 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 			)
 		}
 
-		if err := k.reputationKeeper.RecordServe(ctx, []byte(serve.ContributorWallet), orgID, epoch, isSelfServe); err != nil {
+		if mem, memErr := k.memoryKeeper.GetApprovedMemory(ctx, orgID, serve.MemoryContentHash); memErr != nil || mem == nil || mem.ContributorAddress == "" {
+			// Attribution is derived solely from the authoritative committed
+			// memory record (CO-041 Task F). If the stored contributor address
+			// is unavailable, skip the reputation record — never fall back to
+			// the untrusted serve payload wallet (R-ONE-PATH).
+			k.logger.Info("serve attribution skipped: stored contributor address unavailable",
+				"org", orgID,
+				"hash", types.ContentHashToHex(serve.MemoryContentHash),
+				"error", memErr,
+			)
+		} else if err := k.reputationKeeper.RecordServe(ctx, []byte(mem.ContributorAddress), orgID, epoch, isSelfServe); err != nil {
 			k.logger.Info("failed to record serve reputation",
-				"contributor", serve.ContributorWallet,
+				"contributor", mem.ContributorAddress,
 				"org", orgID,
 				"error", err,
 			)
@@ -340,6 +351,17 @@ func (k *Keeper) updateEpochStats(ctx context.Context, orgID string, epoch uint6
 		}
 		stats.ModelBreakdown[modelID]++
 	}
+	esBz, _ := proto.Marshal(types.EpochServeStatsToStored(stats))
+	store.Set(statsKey(orgID, epoch), esBz)
+}
+
+func (k *Keeper) updateEpochDenialStats(ctx context.Context, orgID string, epoch uint64) {
+	store := k.getStore(ctx)
+	stats, _ := k.GetEpochServeStats(ctx, orgID, epoch)
+	if stats == nil {
+		stats = types.NewEpochServeStats(orgID, epoch)
+	}
+	stats.TotalDenials++
 	esBz, _ := proto.Marshal(types.EpochServeStatsToStored(stats))
 	store.Set(statsKey(orgID, epoch), esBz)
 }
@@ -412,6 +434,17 @@ func (k *Keeper) GetEpochServeStatsRaw(ctx context.Context, orgID string, epoch 
 		return 0, 0, 0, nil, err
 	}
 	return stats.TotalServes, stats.UniqueMemoriesServed, stats.SelfServes, stats.ModelBreakdown, nil
+}
+
+func (k *Keeper) GetEpochTrafficStats(ctx context.Context, orgID string, epoch uint64) (serves uint64, denials uint64, err error) {
+	stats, err := k.GetEpochServeStats(ctx, orgID, epoch)
+	if err != nil {
+		if errors.Is(err, types.ErrStatsNotFound) {
+			return 0, 0, nil
+		}
+		return 0, 0, err
+	}
+	return stats.TotalServes, stats.TotalDenials, nil
 }
 
 func (k *Keeper) GetContributorEpochServesRaw(ctx context.Context, contributorID string, epoch uint64) (uint64, uint64, uint64, []string, error) {
@@ -569,6 +602,7 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		}
 		store.Set(denialAttestationKey(denial.OrgId, denial.Epoch, denial.Nullifier), denialBz)
 		k.IncrementDenialCount(ctx, denial.OrgId, denial.MemoryHash, denial.Epoch)
+		k.updateEpochDenialStats(ctx, denial.OrgId, denial.Epoch)
 	}
 
 	for _, es := range state.EpochStats {

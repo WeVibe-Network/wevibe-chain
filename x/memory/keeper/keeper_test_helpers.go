@@ -54,6 +54,10 @@ func (t *testOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgtyp
 	return &orgtypes.OrgConfig{OrgID: orgID}, nil
 }
 
+func (t *testOrgKeeper) GetLeaderWallet(ctx context.Context, orgID string) (string, error) {
+	return t.leaders[orgID], nil
+}
+
 func (t *testOrgKeeper) setOrg(orgID, leader string) {
 	if orgID == "" {
 		return
@@ -106,6 +110,22 @@ func (s *testServeKeeper) GetMemoryDenialCountForEpoch(ctx context.Context, orgI
 	return s.denials[fmt.Sprintf("%s:%s:%d", orgID, cid, epoch)], nil
 }
 
+func (s *testServeKeeper) GetEpochTrafficStats(ctx context.Context, orgID string, epoch uint64) (serves uint64, denials uint64, err error) {
+	prefix := fmt.Sprintf("%s:", orgID)
+	suffix := fmt.Sprintf(":%d", epoch)
+	for key, count := range s.counts {
+		if len(key) >= len(prefix)+len(suffix) && key[:len(prefix)] == prefix && key[len(key)-len(suffix):] == suffix {
+			serves += count
+		}
+	}
+	for key, count := range s.denials {
+		if len(key) >= len(prefix)+len(suffix) && key[:len(prefix)] == prefix && key[len(key)-len(suffix):] == suffix {
+			denials += count
+		}
+	}
+	return serves, denials, nil
+}
+
 type memoryFixtureOption func(*types.MemoryCommitment)
 
 type serveFixtureOption func(*mockServeKeeper, string, string)
@@ -140,6 +160,20 @@ func (m *mockServeKeeper) GetMemoryServeCountForEpoch(ctx context.Context, orgID
 
 func (m *mockServeKeeper) GetMemoryDenialCountForEpoch(ctx context.Context, orgID, cid string, epoch uint64) (uint64, error) {
 	return m.denialsByEpoch[makeServeEpochKey(orgID, cid, epoch)], nil
+}
+
+func (m *mockServeKeeper) GetEpochTrafficStats(ctx context.Context, orgID string, epoch uint64) (serves uint64, denials uint64, err error) {
+	for key, count := range m.servesByEpoch {
+		if key.orgID == orgID && key.epoch == epoch {
+			serves += count
+		}
+	}
+	for key, count := range m.denialsByEpoch {
+		if key.orgID == orgID && key.epoch == epoch {
+			denials += count
+		}
+	}
+	return serves, denials, nil
 }
 
 func (m *mockServeKeeper) GetMatchedKeywordsForEpoch(ctx context.Context, orgID, cid string, epoch uint64) (map[string]bool, error) {
@@ -200,6 +234,12 @@ func withMemoryServeTotal(total uint64) memoryFixtureOption {
 func withMemoryDenialTotal(total uint64) memoryFixtureOption {
 	return func(memory *types.MemoryCommitment) {
 		memory.DenialCountTotal = total
+	}
+}
+
+func withMemoryType(memoryType types.MemoryType) memoryFixtureOption {
+	return func(memory *types.MemoryCommitment) {
+		memory.MemoryType = memoryType
 	}
 }
 

@@ -22,6 +22,7 @@ service Msg {
   rpc RotateEpoch(MsgRotateEpoch) returns (MsgRotateEpochResponse);
   rpc TransferLeadership(MsgTransferLeadership) returns (MsgTransferLeadershipResponse);
   rpc CloseOrg(MsgCloseOrg) returns (MsgCloseOrgResponse);
+  rpc SetServingKey(MsgSetServingKey) returns (MsgSetServingKeyResponse);
 }
 
 message MsgRegisterOrg {
@@ -32,9 +33,25 @@ message MsgRegisterOrg {
   uint64 storage_quota = 4;
   uint64 retrieval_budget = 5;
   string domain = 6;
+  // CO-044 (D-S32-CO044-KEY-SEPARATION): the per-org hub serving key chain
+  // address (signs serves/denials only) and the leader's chain wallet address
+  // (the on-chain authority for org decisions).
+  string hub_serving_key = 7;
+  string leader_wallet = 8;
 }
 
 message MsgRegisterOrgResponse {}
+
+// CO-044: rotate/revoke the org's hub serving key. Authorized by the leader's
+// chain wallet (msg.signer must equal the org's leader_wallet_address).
+message MsgSetServingKey {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  string new_serving_key = 3;
+}
+
+message MsgSetServingKeyResponse {}
 
 message MsgAddMember {
   option (cosmos.msg.v1.signer) = "signer";

@@ -319,9 +319,6 @@ func (k *Keeper) GetDeveloperMemories(ctx context.Context, developer []byte) ([]
 		}
 		memories = append(memories, storedToAttestedMemory(&stored))
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 
 	return memories, nil
 }
@@ -349,9 +346,6 @@ func (k *Keeper) GetAllDevelopers(ctx context.Context) ([][]byte, error) {
 		dev := key[len(prefixStats):]
 		developers = append(developers, dev)
 	}
-	if err := iter.Error(); err != nil {
-		return nil, err
-	}
 	return developers, nil
 }
 
@@ -375,9 +369,6 @@ func (k *Keeper) GetReputationStatsMap(ctx context.Context) (map[string]*types.R
 		}
 		stats := storedToReputationStats(&stored)
 		result[stats.DeveloperID] = stats
-	}
-	if err := iter.Error(); err != nil {
-		return nil, err
 	}
 	return result, nil
 }

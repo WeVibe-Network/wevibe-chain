@@ -9,16 +9,21 @@ import (
 
 // mockOrgKeeper implements types.OrgKeeper.
 type mockOrgKeeper struct {
-	orgs map[string]bool
-	err  error
+	orgs    map[string]bool
+	serving map[string]string
+	err     error
 }
 
 func newMockOrgKeeper(orgs ...string) *mockOrgKeeper {
-	m := &mockOrgKeeper{orgs: make(map[string]bool)}
+	m := &mockOrgKeeper{orgs: make(map[string]bool), serving: make(map[string]string)}
 	for _, o := range orgs {
 		m.orgs[o] = true
 	}
 	return m
+}
+
+func (m *mockOrgKeeper) setServing(orgID, addr string) {
+	m.serving[orgID] = addr
 }
 
 func (m *mockOrgKeeper) HasOrg(ctx context.Context, orgID string) (bool, error) {
@@ -26,6 +31,13 @@ func (m *mockOrgKeeper) HasOrg(ctx context.Context, orgID string) (bool, error) 
 		return false, m.err
 	}
 	return m.orgs[orgID], nil
+}
+
+func (m *mockOrgKeeper) GetServingAddress(ctx context.Context, orgID string) (string, error) {
+	if m.err != nil {
+		return "", m.err
+	}
+	return m.serving[orgID], nil
 }
 
 // mockMemoryKeeper implements types.MemoryKeeper.
@@ -54,9 +66,14 @@ func newMockMemoryKeeper() *mockMemoryKeeper {
 func memKey(orgID, hexHash string) string { return orgID + "|" + hexHash }
 
 func (m *mockMemoryKeeper) approve(orgID string, hash []byte) {
+	m.approveWithContributor(orgID, hash, "mem-contributor")
+}
+
+func (m *mockMemoryKeeper) approveWithContributor(orgID string, hash []byte, contributorAddr string) {
 	m.approved[memKey(orgID, hexEncode(hash))] = &memorytypes.MemoryCommitment{
-		OrgID:       orgID,
-		ContentHash: hash,
+		OrgID:              orgID,
+		ContentHash:        hash,
+		ContributorAddress: contributorAddr,
 	}
 }
 
@@ -111,8 +128,9 @@ func (m *mockBandwidthKeeper) ConsumeServeBandwidth(ctx context.Context, orgID s
 
 // mockReputationKeeper implements types.ReputationKeeper.
 type mockReputationKeeper struct {
-	serveCalls int
-	serveErr   error
+	serveCalls      int
+	serveErr        error
+	lastServeWallet string
 }
 
 func newMockReputationKeeper() *mockReputationKeeper {
@@ -121,6 +139,7 @@ func newMockReputationKeeper() *mockReputationKeeper {
 
 func (m *mockReputationKeeper) RecordServe(ctx context.Context, contributorWallet []byte, orgID string, epoch uint64, isSelfServe bool) error {
 	m.serveCalls++
+	m.lastServeWallet = string(contributorWallet)
 	return m.serveErr
 }
 

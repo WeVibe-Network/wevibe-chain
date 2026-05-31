@@ -23,13 +23,14 @@ const (
 )
 
 type PendingCommitment struct {
-	OrgID       string
-	ContentHash []byte
-	Keywords    []*KeywordWeight
-	Contributor string
-	Epoch       uint64
-	SubmittedAt uint64
-	MemoryType  MemoryType
+	OrgID              string
+	ContentHash        []byte
+	Keywords           []*KeywordWeight
+	Contributor        string
+	ContributorAddress string
+	Epoch              uint64
+	SubmittedAt        uint64
+	MemoryType         MemoryType
 }
 
 func NewPendingCommitment(orgID string, contentHash []byte, keywords []*KeywordWeight, contributor string, epoch, submittedAt uint64, memoryType MemoryType) *PendingCommitment {
@@ -66,27 +67,28 @@ func (pc *PendingCommitment) Validate() error {
 }
 
 type MemoryCommitment struct {
-	OrgID             string
-	ContentHash       []byte
-	EncryptedBlob     []byte
-	Keywords          []*KeywordWeight
-	Contributor       string
-	Epoch             uint64
-	CommittedAtHeight uint64
-	CommittingLeader  string
-	State             MemoryState
-	LastActiveEpoch   uint64
-	WrappedDekEnc     []byte
-	PlaintextHash     []byte
-	Salt              []byte
-	CiphertextHash    []byte
-	WrappedDekHash    []byte
-	ContributorSig    []byte
-	MemoryType        MemoryType
-	ApprovedAtEpoch   uint64
-	ServeCountTotal   uint64
-	DenialCountTotal  uint64
-	ArchivedEpoch     uint64
+	OrgID              string
+	ContentHash        []byte
+	EncryptedBlob      []byte
+	Keywords           []*KeywordWeight
+	Contributor        string
+	ContributorAddress string
+	Epoch              uint64
+	CommittedAtHeight  uint64
+	CommittingLeader   string
+	State              MemoryState
+	LastActiveEpoch    uint64
+	WrappedDekEnc      []byte
+	PlaintextHash      []byte
+	Salt               []byte
+	CiphertextHash     []byte
+	WrappedDekHash     []byte
+	ContributorSig     []byte
+	MemoryType         MemoryType
+	ApprovedAtEpoch    uint64
+	ServeCountTotal    uint64
+	DenialCountTotal   uint64
+	ArchivedEpoch      uint64
 }
 
 func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
@@ -148,25 +150,27 @@ func NewEpochMerkleRoot(orgID string, epoch uint64, merkleRoot []byte, memoryCou
 
 func pendingToStored(pc *PendingCommitment) *StoredPendingCommitment {
 	return &StoredPendingCommitment{
-		OrgId:             pc.OrgID,
-		ContentHash:       pc.ContentHash,
-		Keywords:          pc.Keywords,
-		ContributorId:     pc.Contributor,
-		Epoch:             pc.Epoch,
-		SubmittedAtHeight: pc.SubmittedAt,
-		MemoryType:        pc.MemoryType,
+		OrgId:              pc.OrgID,
+		ContentHash:        pc.ContentHash,
+		Keywords:           pc.Keywords,
+		ContributorId:      pc.Contributor,
+		Epoch:              pc.Epoch,
+		SubmittedAtHeight:  pc.SubmittedAt,
+		MemoryType:         pc.MemoryType,
+		ContributorAddress: pc.ContributorAddress,
 	}
 }
 
 func storedToPending(stored StoredPendingCommitment) PendingCommitment {
 	return PendingCommitment{
-		OrgID:       stored.OrgId,
-		ContentHash: stored.ContentHash,
-		Keywords:    stored.Keywords,
-		Contributor: stored.ContributorId,
-		Epoch:       stored.Epoch,
-		SubmittedAt: stored.SubmittedAtHeight,
-		MemoryType:  stored.MemoryType,
+		OrgID:              stored.OrgId,
+		ContentHash:        stored.ContentHash,
+		Keywords:           stored.Keywords,
+		Contributor:        stored.ContributorId,
+		ContributorAddress: stored.ContributorAddress,
+		Epoch:              stored.Epoch,
+		SubmittedAt:        stored.SubmittedAtHeight,
+		MemoryType:         stored.MemoryType,
 	}
 }
 
@@ -177,6 +181,7 @@ func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
 		EncryptedBlob:          mc.EncryptedBlob,
 		Keywords:               mc.Keywords,
 		ContributorPubkey:      mc.Contributor,
+		ContributorAddress:     mc.ContributorAddress,
 		Epoch:                  mc.Epoch,
 		CommittedAtHeight:      mc.CommittedAtHeight,
 		CommittingLeaderPubkey: mc.CommittingLeader,
@@ -198,27 +203,28 @@ func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
 
 func storedToMemory(stored StoredMemoryCommitment) MemoryCommitment {
 	return MemoryCommitment{
-		OrgID:             stored.OrgId,
-		ContentHash:       stored.ContentHash,
-		EncryptedBlob:     stored.EncryptedBlob,
-		Keywords:          stored.Keywords,
-		Contributor:       stored.ContributorPubkey,
-		Epoch:             stored.Epoch,
-		CommittedAtHeight: stored.CommittedAtHeight,
-		CommittingLeader:  stored.CommittingLeaderPubkey,
-		State:             stored.State,
-		LastActiveEpoch:   stored.LastActiveEpoch,
-		WrappedDekEnc:     stored.WrappedDekEnc,
-		PlaintextHash:     stored.PlaintextHash,
-		Salt:              stored.Salt,
-		CiphertextHash:    stored.CiphertextHash,
-		WrappedDekHash:    stored.WrappedDekHash,
-		ContributorSig:    stored.ContributorSig,
-		MemoryType:        stored.MemoryType,
-		ApprovedAtEpoch:   stored.ApprovedAtEpoch,
-		ServeCountTotal:   stored.ServeCountTotal,
-		DenialCountTotal:  stored.DenialCountTotal,
-		ArchivedEpoch:     stored.ArchivedEpoch,
+		OrgID:              stored.OrgId,
+		ContentHash:        stored.ContentHash,
+		EncryptedBlob:      stored.EncryptedBlob,
+		Keywords:           stored.Keywords,
+		Contributor:        stored.ContributorPubkey,
+		ContributorAddress: stored.ContributorAddress,
+		Epoch:              stored.Epoch,
+		CommittedAtHeight:  stored.CommittedAtHeight,
+		CommittingLeader:   stored.CommittingLeaderPubkey,
+		State:              stored.State,
+		LastActiveEpoch:    stored.LastActiveEpoch,
+		WrappedDekEnc:      stored.WrappedDekEnc,
+		PlaintextHash:      stored.PlaintextHash,
+		Salt:               stored.Salt,
+		CiphertextHash:     stored.CiphertextHash,
+		WrappedDekHash:     stored.WrappedDekHash,
+		ContributorSig:     stored.ContributorSig,
+		MemoryType:         stored.MemoryType,
+		ApprovedAtEpoch:    stored.ApprovedAtEpoch,
+		ServeCountTotal:    stored.ServeCountTotal,
+		DenialCountTotal:   stored.DenialCountTotal,
+		ArchivedEpoch:      stored.ArchivedEpoch,
 	}
 }
 

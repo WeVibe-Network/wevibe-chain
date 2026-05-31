@@ -39,6 +39,10 @@ func (m *mockOrgKeeperServer) GetOrgConfig(ctx context.Context, orgID string) (*
 	return &orgtypes.OrgConfig{OrgID: orgID}, nil
 }
 
+func (m *mockOrgKeeperServer) GetLeaderWallet(ctx context.Context, orgID string) (string, error) {
+	return m.leaders[orgID], nil
+}
+
 func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperServer, context.Context) {
 	storeKey := storetypes.NewKVStoreKey("memory")
 	storeService, cms := keeper.NewTestStoreService(t, storeKey)
@@ -92,7 +96,7 @@ func makeApproveMemoryFixture(memoryType types.MemoryType) (*types.MsgSubmitComm
 	contributorSig := ed25519.Sign(privateKey, canonicalBody)
 
 	submitMsg := &types.MsgSubmitCommitment{
-		Signer:        "signer",
+		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   submissionHash,
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
@@ -172,7 +176,7 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 	srv, _, _, ctx := makeTestMsgServer(t)
 
 	msg := &types.MsgSubmitCommitment{
-		Signer:        "signer",
+		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
@@ -193,7 +197,7 @@ func TestMsgSubmitCommitment_InvalidMemoryType(t *testing.T) {
 	srv, _, _, ctx := makeTestMsgServer(t)
 
 	msg := &types.MsgSubmitCommitment{
-		Signer:        "signer",
+		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
@@ -318,5 +322,70 @@ func TestMsgApproveMemory_VerificationFailureReturnsSuccessAndKeepsPending(t *te
 	_, err = k.GetPendingCommitment(ctx, "test-org", approveMsg.ContentHash)
 	if err != nil {
 		t.Fatalf("expected pending commitment to remain, got: %v", err)
+	}
+}
+
+func TestCanonicalMemoryType_UsesUnifiedMemoryLiteral(t *testing.T) {
+	if got := canonicalMemoryType(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION); got != "memory" {
+		t.Fatalf("canonicalMemoryType(correct_implementation) = %q, want memory", got)
+	}
+	if got := canonicalMemoryType(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL); got != "memory" {
+		t.Fatalf("canonicalMemoryType(negative_signal) = %q, want memory", got)
+	}
+}
+
+// ── R-BLAST-RADIUS: org decisions require the leader chain wallet as the ──
+// authenticated signer. A stolen hub serving key (or any non-leader-wallet key)
+// cannot forge a commit/approval/report even if it names the real leader in a
+// self-declared field. (D-S32-CO044-KEY-SEPARATION)
+
+func TestMsgApproveMemory_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, k, _, ctx := makeTestMsgServer(t)
+	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	if _, err := srv.SubmitCommitment(ctx, submitMsg); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	// Stolen hub serving key tries to forge an approval while still naming the
+	// real (public) leader pubkey in the self-declared committing_leader field.
+	approveMsg.Signer = "hub-serving-key"
+	// CommittingLeader left as "leader-pubkey" on purpose — the public field
+	// must NOT be sufficient to authorize.
+	_, err := srv.ApproveMemory(ctx, approveMsg)
+	if err != types.ErrUnauthorized {
+		t.Fatalf("expected ErrUnauthorized for non-leader-wallet signer, got: %v", err)
+	}
+
+	if _, err := k.GetApprovedMemory(ctx, "test-org", approveMsg.ContentHash); !errors.Is(err, types.ErrMemoryNotFound) {
+		t.Fatalf("forged approval must NOT commit a memory, got: %v", err)
+	}
+}
+
+func TestMsgSubmitCommitment_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, _, _, ctx := makeTestMsgServer(t)
+	msg := &types.MsgSubmitCommitment{
+		Signer:        "hub-serving-key",
+		OrgId:         "test-org",
+		ContentHash:   []byte("12345678901234567890123456789012"),
+		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		ContributorId: "contributor",
+		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+	}
+	if _, err := srv.SubmitCommitment(ctx, msg); err != types.ErrUnauthorized {
+		t.Fatalf("expected ErrUnauthorized for non-leader-wallet signer, got: %v", err)
+	}
+}
+
+func TestMsgReportMemory_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, _, _, ctx := makeTestMsgServer(t)
+	msg := &types.MsgReportMemory{
+		Signer:         "hub-serving-key",
+		OrgId:          "test-org",
+		ContentHash:    []byte("12345678901234567890123456789012"),
+		ReporterPubkey: "leader-pubkey",
+		Reason:         "bad",
+	}
+	if _, err := srv.ReportMemory(ctx, msg); err != types.ErrUnauthorized {
+		t.Fatalf("expected ErrUnauthorized for non-leader-wallet signer, got: %v", err)
 	}
 }

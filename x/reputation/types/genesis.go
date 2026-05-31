@@ -4,6 +4,16 @@ import (
 	"encoding/json"
 )
 
+// DefaultGenesis returns the default reputation genesis state. The module is
+// active by default (D-13.5, matching DefaultParams().Active == true). The
+// historical DefaultGenesis returned Active: false (GAP-REP-1), which left the
+// module inert after genesis even though DefaultParams declared it active.
+func DefaultGenesis() *GenesisState {
+	return &GenesisState{
+		Active: true,
+	}
+}
+
 func (g *GenesisState) MarshalJSON() ([]byte, error) {
 	type GenesisStateAlias GenesisState
 	alias := struct {

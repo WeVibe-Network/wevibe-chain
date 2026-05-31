@@ -8,6 +8,10 @@ import (
 
 type OrgKeeper interface {
 	HasOrg(ctx context.Context, orgID string) (bool, error)
+	// GetServingAddress returns the org's registered hub serving key chain
+	// address — the only signer permitted to submit serve/denial batches
+	// (D-S32-CO044-KEY-SEPARATION).
+	GetServingAddress(ctx context.Context, orgID string) (string, error)
 }
 
 type MemoryKeeper interface {

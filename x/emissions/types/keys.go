@@ -6,6 +6,12 @@ type EmissionPool struct {
 	OperatorShare  uint64 `json:"operator_share"`
 	ValidatorShare uint64 `json:"validator_share"`
 	Epoch          uint64 `json:"epoch"`
+
+	ValidatorPoolRemainingUvibe   uint64 `json:"validator_pool_remaining_uvibe"`
+	ContributorPoolRemainingUvibe uint64 `json:"contributor_pool_remaining_uvibe"`
+	ContributorRolloverUvibe      uint64 `json:"contributor_rollover_uvibe"`
+	StartEpoch                    uint64 `json:"start_epoch"`
+	TotalEpochsElapsed            uint64 `json:"total_epochs_elapsed"`
 }
 
 func NewEmissionPool(totalSupply, dailyMint, operatorShare, validatorShare, epoch uint64) *EmissionPool {
@@ -175,6 +181,12 @@ func EmissionPoolToStored(p *EmissionPool) *StoredEmissionPool {
 		OperatorShare:  p.OperatorShare,
 		ValidatorShare: p.ValidatorShare,
 		Epoch:          p.Epoch,
+
+		ValidatorPoolRemainingUvibe:   p.ValidatorPoolRemainingUvibe,
+		ContributorPoolRemainingUvibe: p.ContributorPoolRemainingUvibe,
+		ContributorRolloverUvibe:      p.ContributorRolloverUvibe,
+		StartEpoch:                    p.StartEpoch,
+		TotalEpochsElapsed:            p.TotalEpochsElapsed,
 	}
 }
 
@@ -188,6 +200,12 @@ func StoredToEmissionPool(s *StoredEmissionPool) *EmissionPool {
 		OperatorShare:  s.OperatorShare,
 		ValidatorShare: s.ValidatorShare,
 		Epoch:          s.Epoch,
+
+		ValidatorPoolRemainingUvibe:   s.ValidatorPoolRemainingUvibe,
+		ContributorPoolRemainingUvibe: s.ContributorPoolRemainingUvibe,
+		ContributorRolloverUvibe:      s.ContributorRolloverUvibe,
+		StartEpoch:                    s.StartEpoch,
+		TotalEpochsElapsed:            s.TotalEpochsElapsed,
 	}
 }
 
