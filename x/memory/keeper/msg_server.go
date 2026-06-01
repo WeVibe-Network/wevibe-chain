@@ -186,7 +186,7 @@ func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey str
 		"ciphertext_hash:" + hex.EncodeToString(ciphertextHash),
 		"contributor_pubkey:" + contributorPubkey,
 		fmt.Sprintf("epoch_id:%d", epochID),
-		"memory_type:" + canonicalMemoryType(memoryType),
+		"memory_type:" + types.CanonicalMemoryType(memoryType),
 		"org_id:" + orgID,
 		"plaintext_hash:" + hex.EncodeToString(plaintextHash),
 		"salt:" + hex.EncodeToString(salt),
@@ -195,17 +195,6 @@ func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey str
 	}
 
 	return []byte(strings.Join(canonicalLines, "\n"))
-}
-
-func canonicalMemoryType(memoryType types.MemoryType) string {
-	switch memoryType {
-	case types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION:
-		return "memory"
-	case types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL:
-		return "memory"
-	default:
-		return ""
-	}
 }
 
 func bytesEqual(left, right []byte) bool {

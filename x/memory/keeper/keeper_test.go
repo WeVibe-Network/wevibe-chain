@@ -54,11 +54,11 @@ func newPendingCommitment(orgID string, contentHash []byte, keywords []string, c
 	for i, kw := range keywords {
 		keywordWeights[i] = &types.KeywordWeight{Keyword: kw, Weight: "1.0", ServeCount: 0, DenialCount: 0}
 	}
-	return types.NewPendingCommitment(orgID, contentHash, keywordWeights, contributor, epoch, submittedAt, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	return types.NewPendingCommitment(orgID, contentHash, keywordWeights, contributor, epoch, submittedAt, types.MemoryType_MEMORY_TYPE_MEMORY)
 }
 
 func approveMemory(k *Keeper, ctx context.Context, orgID string, contentHash, encryptedBlob []byte, leader string, wrappedDekEnc []byte) error {
-	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, leader, wrappedDekEnc, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, leader, wrappedDekEnc, types.MemoryType_MEMORY_TYPE_MEMORY)
 }
 
 func TestSubmitCommitment(t *testing.T) {

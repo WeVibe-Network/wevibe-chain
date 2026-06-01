@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -181,7 +182,7 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 		ContentHash:   []byte("12345678901234567890123456789012"),
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
 		ContributorId: "contributor",
-		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 
 	resp, err := srv.SubmitCommitment(ctx, msg)
@@ -213,7 +214,7 @@ func TestMsgSubmitCommitment_InvalidMemoryType(t *testing.T) {
 
 func TestMsgApproveMemory_Success(t *testing.T) {
 	srv, k, _, ctx := makeTestMsgServer(t)
-	submitMsg, approveMsg, plaintextHash, salt, ciphertextHash, wrappedDekHash, contributorSig := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL)
+	submitMsg, approveMsg, plaintextHash, salt, ciphertextHash, wrappedDekHash, contributorSig := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_MEMORY)
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 
 	resp, err := srv.ApproveMemory(ctx, approveMsg)
@@ -228,8 +229,8 @@ func TestMsgApproveMemory_Success(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetApprovedMemory failed: %v", err)
 	}
-	if approved.MemoryType != types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL {
-		t.Fatalf("memory type mismatch: got %v, want %v", approved.MemoryType, types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL)
+	if approved.MemoryType != types.MemoryType_MEMORY_TYPE_MEMORY {
+		t.Fatalf("memory type mismatch: got %v, want %v", approved.MemoryType, types.MemoryType_MEMORY_TYPE_MEMORY)
 	}
 
 	store := k.getStore(ctx)
@@ -261,7 +262,7 @@ func TestMsgApproveMemory_Success(t *testing.T) {
 
 func TestMsgApproveMemory_Unauthorized(t *testing.T) {
 	srv, _, _, ctx := makeTestMsgServer(t)
-	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_MEMORY)
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 	approveMsg.Signer = "not-leader"
 	approveMsg.CommittingLeader = "not-leader"
@@ -281,7 +282,7 @@ func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
 		ContentHash:   []byte("12345678901234567890123456789012"),
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
 		ContributorId: "contributor",
-		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 
@@ -301,7 +302,7 @@ func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
 
 func TestMsgApproveMemory_VerificationFailureReturnsSuccessAndKeepsPending(t *testing.T) {
 	srv, k, _, ctx := makeTestMsgServer(t)
-	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_MEMORY)
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 
 	approveMsg.ContributorSig = []byte("invalid-signature")
@@ -326,11 +327,47 @@ func TestMsgApproveMemory_VerificationFailureReturnsSuccessAndKeepsPending(t *te
 }
 
 func TestCanonicalMemoryType_UsesUnifiedMemoryLiteral(t *testing.T) {
-	if got := canonicalMemoryType(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION); got != "memory" {
-		t.Fatalf("canonicalMemoryType(correct_implementation) = %q, want memory", got)
+	if got := types.CanonicalMemoryType(types.MemoryType_MEMORY_TYPE_MEMORY); got != "memory" {
+		t.Fatalf("CanonicalMemoryType(memory) = %q, want memory", got)
 	}
-	if got := canonicalMemoryType(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL); got != "memory" {
-		t.Fatalf("canonicalMemoryType(negative_signal) = %q, want memory", got)
+	if got := types.CanonicalMemoryType(types.MemoryType_MEMORY_TYPE_UNSPECIFIED); got != "" {
+		t.Fatalf("CanonicalMemoryType(unspecified) = %q, want empty", got)
+	}
+}
+
+// TestBuildSubmitMemoryCanonicalBody_ByteParity proves the enum collapse
+// preserves the exact canonical "memory_type:memory" line byte-for-byte
+// (R-CANON-PARITY). If this line changes by even one byte, every existing
+// contributor signature breaks. This is load-bearing.
+func TestBuildSubmitMemoryCanonicalBody_ByteParity(t *testing.T) {
+	ciphertextHash := []byte{0x01, 0x02, 0x03, 0x04}
+	plaintextHash := []byte{0x05, 0x06, 0x07, 0x08}
+	salt := []byte{0x09, 0x0a, 0x0b, 0x0c}
+	submissionHash := []byte{0x0d, 0x0e, 0x0f, 0x10}
+	wrappedDekHash := []byte{0x11, 0x12, 0x13, 0x14}
+
+	body := buildSubmitMemoryCanonicalBody(
+		ciphertextHash,
+		"contributor-pubkey",
+		uint64(7),
+		types.MemoryType_MEMORY_TYPE_MEMORY,
+		"org-123",
+		plaintextHash,
+		salt,
+		submissionHash,
+		wrappedDekHash,
+	)
+
+	lines := strings.Split(string(body), "\n")
+	var memoryTypeLine string
+	for _, line := range lines {
+		if strings.HasPrefix(line, "memory_type:") {
+			memoryTypeLine = line
+			break
+		}
+	}
+	if memoryTypeLine != "memory_type:memory" {
+		t.Fatalf("canonical memory_type line = %q, want exactly %q", memoryTypeLine, "memory_type:memory")
 	}
 }
 
@@ -341,7 +378,7 @@ func TestCanonicalMemoryType_UsesUnifiedMemoryLiteral(t *testing.T) {
 
 func TestMsgApproveMemory_RejectsNonLeaderWalletSigner(t *testing.T) {
 	srv, k, _, ctx := makeTestMsgServer(t)
-	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION)
+	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_MEMORY)
 	if _, err := srv.SubmitCommitment(ctx, submitMsg); err != nil {
 		t.Fatalf("SubmitCommitment failed: %v", err)
 	}
@@ -369,7 +406,7 @@ func TestMsgSubmitCommitment_RejectsNonLeaderWalletSigner(t *testing.T) {
 		ContentHash:   []byte("12345678901234567890123456789012"),
 		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
 		ContributorId: "contributor",
-		MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 	if _, err := srv.SubmitCommitment(ctx, msg); err != types.ErrUnauthorized {
 		t.Fatalf("expected ErrUnauthorized for non-leader-wallet signer, got: %v", err)

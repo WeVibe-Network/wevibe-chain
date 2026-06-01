@@ -390,7 +390,7 @@ func (q *queryServer) VerifyUpheldReport(ctx context.Context, req *types.QueryVe
 		ContentHash:         memory.ContentHash,
 		OrgId:               memory.OrgID,
 		Epoch:               memory.Epoch,
-		MemoryType:          canonicalMemoryType(memory.MemoryType),
+		MemoryType:          memorytypes.CanonicalMemoryType(memory.MemoryType),
 		CanonicalBody:       canonicalBody,
 	}, nil
 }
@@ -401,7 +401,7 @@ func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey str
 		"ciphertext_hash:" + hex.EncodeToString(ciphertextHash),
 		"contributor_pubkey:" + contributorPubkey,
 		fmt.Sprintf("epoch_id:%d", epochID),
-		"memory_type:" + canonicalMemoryType(memoryType),
+		"memory_type:" + memorytypes.CanonicalMemoryType(memoryType),
 		"org_id:" + orgID,
 		"plaintext_hash:" + hex.EncodeToString(plaintextHash),
 		"salt:" + hex.EncodeToString(salt),
@@ -410,17 +410,6 @@ func buildSubmitMemoryCanonicalBody(ciphertextHash []byte, contributorPubkey str
 	}
 
 	return []byte(strings.Join(canonicalLines, "\n"))
-}
-
-func canonicalMemoryType(memoryType memorytypes.MemoryType) string {
-	switch memoryType {
-	case memorytypes.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION:
-		return "correct_implementation"
-	case memorytypes.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL:
-		return "negative_signal"
-	default:
-		return ""
-	}
 }
 
 func bytesEqual(left, right []byte) bool {

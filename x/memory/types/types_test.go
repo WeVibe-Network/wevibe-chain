@@ -340,7 +340,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				ContentHash: validHash(),
 				Keywords:    validKeywords,
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: nil,
 		},
@@ -351,7 +351,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				ContentHash: validHash(),
 				Keywords:    nil,
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: nil,
 		},
@@ -361,7 +361,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				OrgID:       "",
 				ContentHash: validHash(),
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidOrgID,
 		},
@@ -371,7 +371,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				OrgID:       "org1",
 				ContentHash: []byte("short"),
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidContentHash,
 		},
@@ -381,7 +381,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				OrgID:       "org1",
 				ContentHash: validHash(),
 				Contributor: "",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidContributor,
 		},
@@ -401,7 +401,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				OrgID:       "org1",
 				ContentHash: validHash(),
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 				Keywords:    []*types.KeywordWeight{nil},
 			},
 			wantErr: types.ErrInvalidKeyword,
@@ -412,7 +412,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 				OrgID:       "org1",
 				ContentHash: validHash(),
 				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
 				Keywords:    []*types.KeywordWeight{{Keyword: ""}},
 			},
 			wantErr: types.ErrInvalidKeyword,
@@ -447,7 +447,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				EncryptedBlob: []byte("blob"),
 				Keywords:      validKeywords,
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: nil,
 		},
@@ -458,7 +458,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   validHash(),
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidOrgID,
 		},
@@ -469,7 +469,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   bytes.Repeat([]byte{0x01}, 16),
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidContentHash,
 		},
@@ -480,7 +480,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   validHash(),
 				EncryptedBlob: nil,
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidBlob,
 		},
@@ -491,7 +491,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   validHash(),
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			},
 			wantErr: types.ErrInvalidContributor,
 		},
@@ -513,7 +513,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   validHash(),
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 				Keywords:      []*types.KeywordWeight{nil},
 			},
 			wantErr: types.ErrInvalidKeyword,
@@ -525,7 +525,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				ContentHash:   validHash(),
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 				Keywords:      []*types.KeywordWeight{{Keyword: ""}},
 			},
 			wantErr: types.ErrInvalidKeyword,
@@ -701,8 +701,7 @@ func TestParams_Validate(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestValidMemoryType(t *testing.T) {
-	require.True(t, types.ValidMemoryType(types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION))
-	require.True(t, types.ValidMemoryType(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL))
+	require.True(t, types.ValidMemoryType(types.MemoryType_MEMORY_TYPE_MEMORY))
 	require.False(t, types.ValidMemoryType(types.MemoryType_MEMORY_TYPE_UNSPECIFIED))
 	require.False(t, types.ValidMemoryType(types.MemoryType(99)))
 }
@@ -721,7 +720,7 @@ func TestRelationAliases(t *testing.T) {
 func TestNewPendingCommitment(t *testing.T) {
 	hash := validHash()
 	kws := []*types.KeywordWeight{{Keyword: "kw", Weight: "1.0"}}
-	pc := types.NewPendingCommitment("org1", hash, kws, "contributor", 3, 42, types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL)
+	pc := types.NewPendingCommitment("org1", hash, kws, "contributor", 3, 42, types.MemoryType_MEMORY_TYPE_MEMORY)
 
 	require.Equal(t, "org1", pc.OrgID)
 	require.Equal(t, hash, pc.ContentHash)
@@ -729,7 +728,7 @@ func TestNewPendingCommitment(t *testing.T) {
 	require.Equal(t, "contributor", pc.Contributor)
 	require.Equal(t, uint64(3), pc.Epoch)
 	require.Equal(t, uint64(42), pc.SubmittedAt)
-	require.Equal(t, types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL, pc.MemoryType)
+	require.Equal(t, types.MemoryType_MEMORY_TYPE_MEMORY, pc.MemoryType)
 }
 
 func TestNewMemoryCommitment(t *testing.T) {
@@ -739,7 +738,7 @@ func TestNewMemoryCommitment(t *testing.T) {
 	mc := types.NewMemoryCommitment(
 		"org1", hash, blob, kws, "contributor", 5, 100, "leader",
 		types.MemoryState_MEMORY_STATE_COMMITTED, 5,
-		types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION, 5,
+		types.MemoryType_MEMORY_TYPE_MEMORY, 5,
 	)
 
 	require.Equal(t, "org1", mc.OrgID)
@@ -752,7 +751,7 @@ func TestNewMemoryCommitment(t *testing.T) {
 	require.Equal(t, "leader", mc.CommittingLeader)
 	require.Equal(t, types.MemoryState_MEMORY_STATE_COMMITTED, mc.State)
 	require.Equal(t, uint64(5), mc.LastActiveEpoch)
-	require.Equal(t, types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION, mc.MemoryType)
+	require.Equal(t, types.MemoryType_MEMORY_TYPE_MEMORY, mc.MemoryType)
 	require.Equal(t, uint64(5), mc.ApprovedAtEpoch)
 }
 

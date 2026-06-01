@@ -280,7 +280,7 @@ func storeMemoryWithKeywords(t *testing.T, k *Keeper, ctx context.Context, orgID
 		CommittingLeader:  "leader",
 		State:             state,
 		LastActiveEpoch:   lastActiveEpoch,
-		MemoryType:        types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:        types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 	for _, option := range options {
 		option(memory)

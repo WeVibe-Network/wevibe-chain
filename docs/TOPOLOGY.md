@@ -104,6 +104,8 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - `validity/{org}:{cid}`: `StoredValidityMetadata` persisting validity windows and opaque scope tags.
   - `merkle/{org}/{epoch}`: `StoredEpochMerkleRoot` caches the per-epoch Merkle root plus memory count.
   - `count/{org}`: big-endian counter of approved memories per org.
+  - **Single `MemoryType` enum (CO-049, D-5.1)**: the proto `MemoryType` enum (`proto/wevibe/memory/v1/state.proto`) carries exactly two values — `MEMORY_TYPE_UNSPECIFIED = 0` and `MEMORY_TYPE_MEMORY = 1`. The retired dual values `MEMORY_TYPE_CORRECT_IMPLEMENTATION` / `MEMORY_TYPE_NEGATIVE_SIGNAL` no longer exist. Every memory carries the single type `memory`; content distinctions (`implement`, `dnd`) live inside the encrypted blob, not in the chain schema. `ValidMemoryType` accepts only `MEMORY_TYPE_MEMORY`.
+  - **Unified `CanonicalMemoryType` (CO-049, R-ONE-PATH)**: there is one and only one canonicalization, exported as `types.CanonicalMemoryType(MemoryType) string` (`x/memory/types/memory_types.go`), returning `"memory"` for `MEMORY_TYPE_MEMORY` and `""` for `MEMORY_TYPE_UNSPECIFIED`. Both the memory keeper (signer path, `x/memory/keeper/msg_server.go`) and the reputation keeper (verification path, `x/reputation/keeper/grpc_query.go`) call this single function, so the bytes signed at submit time and the bytes rebuilt at verification time are identical. The prior duplicate implementations that diverged (`"correct_implementation"` / `"negative_signal"` on the reputation side) were removed.
   - `params`: `Params` for queue/blob limits and Earned Trust decay parameters (`serve_d_bps`, `denial_d_bps`, `idle_d_bps`, `serve_floor_bps`, `denial_floor_bps`, `idle_protect_bps`, `idle_untrusted_bps`, `trust_min_serves`, `trust_max_rate_bps`, `grace_epochs`, `retrieval_threshold_bps`).
 - **Keyword weight decay model** (CO-031 Rev 2)
   - `lifecycle.go:applyDecay` is the single canonical formula path.
@@ -308,6 +310,8 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 ## Signed Canonical Body — Verifiable Plaintext Pathway (CO-029)
 
 The contributor's submit-time Ed25519 signature now covers a 9-field canonical body, joined by `\n` after the domain tag `wevibe.submit_memory.v1`. Field order is alphabetical: `ciphertext_hash`, `contributor_pubkey`, `epoch_id`, `memory_type`, `org_id`, `plaintext_hash`, `salt`, `submission_hash`, `wrapped_dek_hash`. The chain re-derives every hash and verifies the signature at commit time. A consumer holding `(plaintext, salt)` can prove to the chain that the plaintext is the one the contributor signed without revealing it to the hub at submit time.
+
+The `memory_type` line is produced by the unified `types.CanonicalMemoryType` (CO-049) and, under the single-type model, is always exactly `memory_type:memory`. This byte-exact string is load-bearing: it is the same value the dashboard signs (`lib/wevibe-signing.ts` emits `memory_type:memory`) and the same value both the memory and reputation keepers rebuild for verification. A regression test, `TestBuildSubmitMemoryCanonicalBody_ByteParity` (`x/memory/keeper/msg_server_test.go`), pins it.
 
 ### Proto changes
 

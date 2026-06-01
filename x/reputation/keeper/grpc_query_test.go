@@ -539,7 +539,7 @@ func newVerifiableMemory(orgID string) *memorytypes.MemoryCommitment {
 		ContributorSig: []byte("contributor-sig"),
 		Contributor:    "contrib1",
 		Epoch:          7,
-		MemoryType:     memorytypes.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:     memorytypes.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 }
 
@@ -568,7 +568,7 @@ func TestQueryVerifyUpheldReport_Success(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, "org1", resp.OrgId)
 	require.Equal(t, uint64(7), resp.Epoch)
-	require.Equal(t, "correct_implementation", resp.MemoryType)
+	require.Equal(t, "memory", resp.MemoryType)
 	require.Equal(t, uint64(9), resp.UpheldAtEpoch)
 	require.NotEmpty(t, resp.CanonicalBody)
 }

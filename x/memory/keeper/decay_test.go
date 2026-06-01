@@ -36,7 +36,7 @@ func newDecayMemory(epoch uint64, keywords ...*types.KeywordWeight) *types.Memor
 		CommittedAtHeight: 1,
 		CommittingLeader:  defaultLeader,
 		State:             types.MemoryState_MEMORY_STATE_COMMITTED,
-		MemoryType:        types.MemoryType_MEMORY_TYPE_CORRECT_IMPLEMENTATION,
+		MemoryType:        types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
 }
 
@@ -380,7 +380,7 @@ func TestApplyEpochDecay_BadMemoryWithDenialsStillDecays(t *testing.T) {
 		hash,
 		types.MemoryState_MEMORY_STATE_COMMITTED,
 		0,
-		withMemoryType(types.MemoryType_MEMORY_TYPE_NEGATIVE_SIGNAL),
+		withMemoryType(types.MemoryType_MEMORY_TYPE_MEMORY),
 		withKeywords(&types.KeywordWeight{Keyword: "kw", Weight: "0.8000"}),
 		withMemoryServeTotal(3),
 		withMemoryDenialTotal(2),
