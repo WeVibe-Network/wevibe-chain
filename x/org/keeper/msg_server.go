@@ -32,14 +32,23 @@ func (m *msgServer) RegisterOrg(ctx context.Context, msg *types.MsgRegisterOrg) 
 		return nil, fmt.Errorf("invalid signer address: %w", err)
 	}
 
-	org := types.NewOrg(msg.OrgId, msg.Leader, msg.Domain, msg.StorageQuota, msg.RetrievalBudget)
+	orgID := types.DeriveOrgID(creator)
+
+	org := types.NewOrg(orgID, msg.Leader, msg.Domain, msg.StorageQuota, msg.RetrievalBudget)
 	org.HubServingAddress = msg.HubServingKey
 	org.LeaderWalletAddress = msg.LeaderWallet
 	if err := m.keeper.RegisterOrg(ctx, org, creator); err != nil {
 		return nil, err
 	}
 
-	return &types.MsgRegisterOrgResponse{}, nil
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeOrgRegistered,
+		sdk.NewAttribute(types.AttributeKeyOrgID, orgID),
+		sdk.NewAttribute(types.AttributeKeyLeader, msg.Leader),
+	))
+
+	return &types.MsgRegisterOrgResponse{OrgId: orgID}, nil
 }
 
 func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*types.MsgAddMemberResponse, error) {

@@ -18,16 +18,16 @@ import (
 
 // registerOrg is a shared helper that registers an org through the live
 // message router so module integration tests can exercise org-gated paths.
-func registerOrg(t *testing.T, suite *TestSuite, orgID string) {
+func registerOrg(t *testing.T, suite *TestSuite) string {
 	t.Helper()
 	_, err := suite.DeliverMsg(&orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           orgID,
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	return orgtypes.DeriveOrgID(suite.UserAddr)
 }
 
 // ---------------------------------------------------------------------------
@@ -44,12 +44,12 @@ func sessionHash(seed byte) []byte {
 
 func TestAttestation_SubmitAndQuery_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	registerOrg(t, suite, "att-org")
+	orgID := registerOrg(t, suite)
 
 	sh := sessionHash(0x42)
 	_, err := suite.DeliverMsg(&attestationtypes.MsgSubmitSessionAttestation{
 		Signer:        suite.UserAddr.String(),
-		OrgId:         "att-org",
+		OrgId:         orgID,
 		SessionHash:   sh,
 		ModelId:       "qwen3:4b",
 		TurnCount:     5,
@@ -62,14 +62,14 @@ func TestAttestation_SubmitAndQuery_Integration(t *testing.T) {
 
 	q := attestationkeeper.NewQueryServerImpl(suite.AttestationKeeper)
 	resp, err := q.GetSessionAttestation(suite.Ctx, &attestationtypes.QueryGetSessionAttestationRequest{
-		OrgId:       "att-org",
+		OrgId:       orgID,
 		SessionHash: sh,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 
 	list, err := q.ListSessionAttestations(suite.Ctx, &attestationtypes.QueryListSessionAttestationsRequest{
-		OrgId: "att-org",
+		OrgId: orgID,
 		Epoch: 1,
 	})
 	require.NoError(t, err)
@@ -78,11 +78,11 @@ func TestAttestation_SubmitAndQuery_Integration(t *testing.T) {
 
 func TestAttestation_DuplicateRejected_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	registerOrg(t, suite, "att-org")
+	orgID := registerOrg(t, suite)
 
 	msg := &attestationtypes.MsgSubmitSessionAttestation{
 		Signer:        suite.UserAddr.String(),
-		OrgId:         "att-org",
+		OrgId:         orgID,
 		SessionHash:   sessionHash(0x43),
 		ModelId:       "qwen3:4b",
 		TurnCount:     1,
@@ -119,7 +119,7 @@ func TestAttestation_OrgNotFound_Integration(t *testing.T) {
 
 func TestBandwidth_QueryWiring_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	registerOrg(t, suite, "bw-org")
+	orgID := registerOrg(t, suite)
 
 	q := bandwidthkeeper.NewQueryServerImpl(suite.BandwidthKeeper)
 
@@ -130,7 +130,7 @@ func TestBandwidth_QueryWiring_Integration(t *testing.T) {
 
 	// Remaining bandwidth for a fresh org/epoch must not error.
 	rResp, err := q.GetRemainingBandwidth(suite.Ctx, &bandwidthtypes.QueryGetRemainingBandwidthRequest{
-		OrgId: "bw-org",
+		OrgId: orgID,
 		Epoch: 1,
 	})
 	require.NoError(t, err)
@@ -143,7 +143,7 @@ func TestBandwidth_QueryWiring_Integration(t *testing.T) {
 
 func TestMemory_QueryWiring_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	registerOrg(t, suite, "mem-org")
+	orgID := registerOrg(t, suite)
 
 	q := memorykeeper.NewQueryServerImpl(suite.MemoryKeeper)
 
@@ -152,7 +152,7 @@ func TestMemory_QueryWiring_Integration(t *testing.T) {
 	require.NotNil(t, pResp.Params)
 
 	// A fresh org has zero approved memories.
-	cResp, err := q.GetMemoryCount(suite.Ctx, &memorytypes.QueryGetMemoryCountRequest{OrgId: "mem-org"})
+	cResp, err := q.GetMemoryCount(suite.Ctx, &memorytypes.QueryGetMemoryCountRequest{OrgId: orgID})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), cResp.Count)
 }
@@ -163,7 +163,7 @@ func TestMemory_QueryWiring_Integration(t *testing.T) {
 
 func TestServe_QueryWiring_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	registerOrg(t, suite, "serve-org")
+	orgID := registerOrg(t, suite)
 
 	q := servekeeper.NewQueryServerImpl(suite.ServeKeeper)
 
@@ -174,7 +174,7 @@ func TestServe_QueryWiring_Integration(t *testing.T) {
 
 	// No serves yet => epoch stats not found.
 	_, err = q.GetEpochServeStats(suite.Ctx, &servetypes.QueryGetEpochServeStatsRequest{
-		OrgId: "serve-org",
+		OrgId: orgID,
 		Epoch: 1,
 	})
 	require.Error(t, err)

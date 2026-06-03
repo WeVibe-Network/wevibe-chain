@@ -54,12 +54,18 @@ func setupMsgServer(t *testing.T) (types.MsgServer, context.Context, *mockBankKe
 	return keeper.NewMsgServerImpl(k), sdk.WrapSDKContext(sdkCtx), bank, feegrantKeeper
 }
 
+func mustDeriveOrgID(t *testing.T, signer string) string {
+	t.Helper()
+	addr, err := sdk.AccAddressFromBech32(signer)
+	require.NoError(t, err)
+	return types.DeriveOrgID(addr)
+}
+
 func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
 	msg := &types.MsgRegisterOrg{}
 	require.Error(t, msg.ValidateBasic())
 
 	msg.Signer = validSigner
-	msg.OrgId = "org1"
 	msg.Leader = validLeader
 	require.NoError(t, msg.ValidateBasic())
 }
@@ -81,7 +87,6 @@ func TestMsgRegisterOrg_Success(t *testing.T) {
 
 	msg := &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -90,6 +95,7 @@ func TestMsgRegisterOrg_Success(t *testing.T) {
 	resp, err := srv.RegisterOrg(ctx, msg)
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+	require.Equal(t, mustDeriveOrgID(t, validSigner), resp.OrgId)
 }
 
 func TestMsgRegisterOrg_Duplicate(t *testing.T) {
@@ -97,7 +103,6 @@ func TestMsgRegisterOrg_Duplicate(t *testing.T) {
 
 	msg := &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -126,17 +131,17 @@ func TestMsgAddMember_Success(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validSigner)
 
 	memberMsg := &types.MsgAddMember{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Pubkey: validMember,
 		Role:   "member",
 	}
@@ -238,17 +243,17 @@ func TestMsgFundTreasury_Success(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validSigner)
 
 	treasuryMsg := &types.MsgFundTreasury{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Amount: "500000",
 	}
 
@@ -262,17 +267,17 @@ func TestMsgWithdrawTreasury_NotLeader(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validSigner)
 
 	treasuryMsg := &types.MsgFundTreasury{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Amount: "500000",
 	}
 	_, err = srv.FundTreasury(ctx, treasuryMsg)
@@ -280,7 +285,7 @@ func TestMsgWithdrawTreasury_NotLeader(t *testing.T) {
 
 	withdrawMsg := &types.MsgWithdrawTreasury{
 		Signer:    validSigner,
-		OrgId:     "org1",
+		OrgId:     orgID,
 		Amount:    "100000",
 		Recipient: validRecipient,
 	}
@@ -295,17 +300,17 @@ func TestMsgSetRepTiers_Success(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	setRepTiersMsg := &types.MsgSetRepTiers{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Tiers: []*types.RepTier{
 			{
 				MinReputation:            0,
@@ -326,17 +331,17 @@ func TestMsgSetRepTiers_NotLeader(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	setRepTiersMsg := &types.MsgSetRepTiers{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Tiers: []*types.RepTier{
 			{
 				MinReputation:            0,
@@ -357,17 +362,17 @@ func TestMsgSetOrgConfig_Success(t *testing.T) {
 
 	orgMsg := &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	}
 	_, err := srv.RegisterOrg(ctx, orgMsg)
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	setOrgConfigMsg := &types.MsgSetOrgConfig{
 		Signer:                   validLeader,
-		OrgId:                    "org1",
+		OrgId:                    orgID,
 		ServeAttestationRequired: true,
 		MinContributionsPerEpoch: 10,
 	}
@@ -382,16 +387,16 @@ func TestMsgGrantTrialAllowance_Success(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validSigner)
 
 	msg := &types.MsgGrantTrialAllowance{
 		Signer:           validLeader,
-		OrgId:            "org1",
+		OrgId:            orgID,
 		Grantee:          validMember,
 		DailySubmissions: 3,
 		TrialDays:        2,
@@ -424,16 +429,16 @@ func TestMsgGrantTrialAllowance_NotLeader(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validSigner,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validSigner)
 
 	msg := &types.MsgGrantTrialAllowance{
 		Signer:           validSigner,
-		OrgId:            "org1",
+		OrgId:            orgID,
 		Grantee:          validMember,
 		DailySubmissions: 1,
 		TrialDays:        1,
@@ -448,16 +453,16 @@ func TestMsgUpdateMemberRole_Success(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Pubkey: validMember,
 		Role:   "member",
 	})
@@ -465,7 +470,7 @@ func TestMsgUpdateMemberRole_Success(t *testing.T) {
 
 	msg := &types.MsgUpdateMemberRole{
 		Signer:  validLeader,
-		OrgId:   "org1",
+		OrgId:   orgID,
 		Pubkey:  validMember,
 		NewRole: "moderator",
 	}
@@ -480,16 +485,16 @@ func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Pubkey: validMember,
 		Role:   "member",
 	})
@@ -497,7 +502,7 @@ func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
 
 	msg := &types.MsgUpdateMemberRole{
 		Signer:  validSigner,
-		OrgId:   "org1",
+		OrgId:   orgID,
 		Pubkey:  validMember,
 		NewRole: "moderator",
 	}
@@ -511,16 +516,16 @@ func TestMsgUpdateMemberRole_MemberNotFound(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgUpdateMemberRole{
 		Signer:  validLeader,
-		OrgId:   "org1",
+		OrgId:   orgID,
 		Pubkey:  validMember,
 		NewRole: "moderator",
 	}
@@ -534,16 +539,16 @@ func TestMsgUpdateMemberRole_CannotChangeLeaderRole(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgUpdateMemberRole{
 		Signer:  validLeader,
-		OrgId:   "org1",
+		OrgId:   orgID,
 		Pubkey:  validLeader,
 		NewRole: "member",
 	}
@@ -558,16 +563,16 @@ func TestMsgRotateEpoch_Success(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgRotateEpoch{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	resp, err := srv.RotateEpoch(ctx, msg)
@@ -581,16 +586,16 @@ func TestMsgRotateEpoch_NotLeader(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgRotateEpoch{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	_, err = srv.RotateEpoch(ctx, msg)
@@ -602,22 +607,22 @@ func TestMsgRotateEpoch_ClosedOrg(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.CloseOrg(ctx, &types.MsgCloseOrg{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	})
 	require.NoError(t, err)
 
 	msg := &types.MsgRotateEpoch{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	_, err = srv.RotateEpoch(ctx, msg)
@@ -629,16 +634,16 @@ func TestMsgTransferLeadership_Success(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 		Pubkey: validMember,
 		Role:   "member",
 	})
@@ -646,7 +651,7 @@ func TestMsgTransferLeadership_Success(t *testing.T) {
 
 	msg := &types.MsgTransferLeadership{
 		Signer:    validLeader,
-		OrgId:     "org1",
+		OrgId:     orgID,
 		NewLeader: validMember,
 	}
 
@@ -660,16 +665,16 @@ func TestMsgTransferLeadership_NotLeader(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgTransferLeadership{
 		Signer:    validSigner,
-		OrgId:     "org1",
+		OrgId:     orgID,
 		NewLeader: validMember,
 	}
 
@@ -682,16 +687,16 @@ func TestMsgTransferLeadership_NewLeaderNotMember(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgTransferLeadership{
 		Signer:    validLeader,
-		OrgId:     "org1",
+		OrgId:     orgID,
 		NewLeader: validMember,
 	}
 
@@ -705,16 +710,16 @@ func TestMsgTransferLeadership_SelfTransfer(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgTransferLeadership{
 		Signer:    validLeader,
-		OrgId:     "org1",
+		OrgId:     orgID,
 		NewLeader: validLeader,
 	}
 
@@ -728,16 +733,16 @@ func TestMsgCloseOrg_Success(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgCloseOrg{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	resp, err := srv.CloseOrg(ctx, msg)
@@ -750,16 +755,16 @@ func TestMsgCloseOrg_NotLeader(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	msg := &types.MsgCloseOrg{
 		Signer: validSigner,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	_, err = srv.CloseOrg(ctx, msg)
@@ -771,22 +776,22 @@ func TestMsgCloseOrg_AlreadyClosed(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.CloseOrg(ctx, &types.MsgCloseOrg{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	})
 	require.NoError(t, err)
 
 	msg := &types.MsgCloseOrg{
 		Signer: validLeader,
-		OrgId:  "org1",
+		OrgId:  orgID,
 	}
 
 	_, err = srv.CloseOrg(ctx, msg)
@@ -800,7 +805,6 @@ func TestMsgRegisterOrg_WithServingKeyAndLeaderWallet(t *testing.T) {
 
 	resp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -809,6 +813,7 @@ func TestMsgRegisterOrg_WithServingKeyAndLeaderWallet(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+	require.Equal(t, mustDeriveOrgID(t, validLeader), resp.OrgId)
 }
 
 func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
@@ -816,7 +821,6 @@ func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -824,10 +828,11 @@ func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
 		LeaderWallet:    validLeader,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
 		Signer:        validLeader,
-		OrgId:         "org1",
+		OrgId:         orgID,
 		NewServingKey: "wevibe1rotated000000",
 	})
 	require.NoError(t, err)
@@ -839,7 +844,6 @@ func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
 
 	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
-		OrgId:           "org1",
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -847,10 +851,11 @@ func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
 		LeaderWallet:    validLeader,
 	})
 	require.NoError(t, err)
+	orgID := mustDeriveOrgID(t, validLeader)
 
 	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
 		Signer:        validSigner, // not the leader wallet
-		OrgId:         "org1",
+		OrgId:         orgID,
 		NewServingKey: "wevibe1evil000000000",
 	})
 	require.ErrorIs(t, err, types.ErrNotLeader)

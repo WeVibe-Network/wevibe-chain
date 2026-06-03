@@ -9,9 +9,6 @@ func (m *MsgRegisterOrg) ValidateBasic() error {
 	if m.Signer == "" {
 		return fmt.Errorf("signer cannot be empty")
 	}
-	if m.OrgId == "" {
-		return ErrInvalidOrgID
-	}
 	if m.Leader == "" {
 		return ErrInvalidLeader
 	}

@@ -10,10 +10,10 @@ import (
 
 func TestMsgRegisterOrg_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	msg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -23,9 +23,9 @@ func TestMsgRegisterOrg_Integration(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 
-	org, err := suite.QueryOrg("test-org-1")
+	org, err := suite.QueryOrg(orgID)
 	require.NoError(t, err)
-	require.Equal(t, "test-org-1", org.OrgID)
+	require.Equal(t, orgID, org.OrgID)
 	require.Equal(t, suite.UserAddr.String(), org.Leader)
 	require.Equal(t, uint64(1000), org.StorageQuota)
 	require.Equal(t, uint64(500), org.RetrievalBudget)
@@ -36,7 +36,6 @@ func TestMsgRegisterOrg_Duplicate(t *testing.T) {
 
 	msg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -52,10 +51,10 @@ func TestMsgRegisterOrg_Duplicate(t *testing.T) {
 
 func TestMsgAddMember_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -65,7 +64,7 @@ func TestMsgAddMember_Integration(t *testing.T) {
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
 		Role:   "member",
 	}
@@ -77,10 +76,10 @@ func TestMsgAddMember_Integration(t *testing.T) {
 
 func TestMsgRemoveMember_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -90,7 +89,7 @@ func TestMsgRemoveMember_Integration(t *testing.T) {
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
 		Role:   "member",
 	}
@@ -99,7 +98,7 @@ func TestMsgRemoveMember_Integration(t *testing.T) {
 
 	removeMsg := &orgtypes.MsgRemoveMember{
 		Signer: suite.UserAddr.String(),
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
 	}
 

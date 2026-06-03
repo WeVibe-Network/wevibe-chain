@@ -28,7 +28,8 @@ service Msg {
 message MsgRegisterOrg {
   option (cosmos.msg.v1.signer) = "signer";
   string signer = 1;
-  string org_id = 2;
+  reserved 2;
+  reserved "org_id";
   string leader = 3;
   uint64 storage_quota = 4;
   uint64 retrieval_budget = 5;
@@ -40,7 +41,9 @@ message MsgRegisterOrg {
   string leader_wallet = 8;
 }
 
-message MsgRegisterOrgResponse {}
+message MsgRegisterOrgResponse {
+  string org_id = 1;
+}
 
 // CO-044: rotate/revoke the org's hub serving key. Authorized by the leader's
 // chain wallet (msg.signer must equal the org's leader_wallet_address).

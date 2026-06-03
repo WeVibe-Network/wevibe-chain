@@ -15,7 +15,6 @@ import (
 func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
 	valid := &types.MsgRegisterOrg{
 		Signer: "cosmos1signer",
-		OrgId:  "org1",
 		Leader: "leader_pubkey",
 	}
 	require.NoError(t, valid.ValidateBasic())
@@ -24,12 +23,6 @@ func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
 		m := *valid
 		m.Signer = ""
 		require.Error(t, m.ValidateBasic())
-	})
-
-	t.Run("empty org id", func(t *testing.T) {
-		m := *valid
-		m.OrgId = ""
-		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidOrgID)
 	})
 
 	t.Run("empty leader", func(t *testing.T) {
@@ -621,7 +614,7 @@ func TestOrgValidate(t *testing.T) {
 
 	t.Run("domain too long", func(t *testing.T) {
 		long := ""
-		for i := 0; i < 65; i++ {
+		for i := 0; i < 129; i++ {
 			long += "a"
 		}
 		o := types.NewOrg("org1", "leader", long, 1, 1)
@@ -634,7 +627,7 @@ func TestOrgValidate(t *testing.T) {
 	})
 
 	t.Run("domain with allowed characters", func(t *testing.T) {
-		o := types.NewOrg("org1", "leader", "my-org_1.example.com", 1, 1)
+		o := types.NewOrg("org1", "leader", "React, Next.js / TypeScript + Node & Go", 1, 1)
 		require.NoError(t, o.Validate())
 	})
 }

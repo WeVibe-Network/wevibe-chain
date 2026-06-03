@@ -15,10 +15,10 @@ import (
 
 func TestQueryOrg_GetOrg(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	msg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -28,10 +28,10 @@ func TestQueryOrg_GetOrg(t *testing.T) {
 
 	queryServer := orgkeeper.NewQueryServerImpl(suite.OrgKeeper)
 	resp, err := queryServer.GetOrg(suite.Ctx, &orgtypes.QueryGetOrgRequest{
-		OrgId: "test-org-1",
+		OrgId: orgID,
 	})
 	require.NoError(t, err)
-	require.Equal(t, "test-org-1", resp.OrgId)
+	require.Equal(t, orgID, resp.OrgId)
 	require.Equal(t, suite.UserAddr.String(), resp.Leader)
 	require.Equal(t, uint64(1000), resp.StorageQuota)
 	require.Equal(t, uint64(500), resp.RetrievalBudget)
@@ -39,10 +39,10 @@ func TestQueryOrg_GetOrg(t *testing.T) {
 
 func TestQueryOrg_GetMembers(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -52,7 +52,7 @@ func TestQueryOrg_GetMembers(t *testing.T) {
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
 		Role:   "member",
 	}
@@ -62,10 +62,10 @@ func TestQueryOrg_GetMembers(t *testing.T) {
 
 func TestQueryOrg_IsMember(t *testing.T) {
 	suite := NewTestSuite(t)
+	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
-		OrgId:           "test-org-1",
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
@@ -76,14 +76,14 @@ func TestQueryOrg_IsMember(t *testing.T) {
 	queryServer := orgkeeper.NewQueryServerImpl(suite.OrgKeeper)
 
 	respLeader, err := queryServer.IsMember(suite.Ctx, &orgtypes.QueryIsMemberRequest{
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: suite.UserAddr.String(),
 	})
 	require.NoError(t, err)
 	require.True(t, respLeader.IsMember)
 
 	respNotMember, err := queryServer.IsMember(suite.Ctx, &orgtypes.QueryIsMemberRequest{
-		OrgId:  "test-org-1",
+		OrgId:  orgID,
 		Pubkey: "wevibe1notamember123456789012345678901234567890",
 	})
 	require.NoError(t, err)

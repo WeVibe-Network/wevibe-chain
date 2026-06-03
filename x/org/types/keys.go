@@ -55,15 +55,25 @@ func (o *Org) Validate() error {
 	if o.Leader == "" {
 		return ErrInvalidLeader
 	}
-	if len(o.Domain) > 64 {
+	if len(o.Domain) > 128 {
 		return ErrInvalidDomain
 	}
 	for _, c := range o.Domain {
-		if c != '-' && c != '_' && c != '.' && (c < 'a' || c > 'z') && (c < 'A' || c > 'Z') && (c < '0' || c > '9') {
-			if o.Domain != "" {
-				return ErrInvalidDomain
-			}
+		if (c >= 'a' && c <= 'z') ||
+			(c >= 'A' && c <= 'Z') ||
+			(c >= '0' && c <= '9') ||
+			c == ' ' ||
+			c == ',' ||
+			c == '.' ||
+			c == '-' ||
+			c == '_' ||
+			c == '/' ||
+			c == '+' ||
+			c == '&' {
+			continue
 		}
+
+		return ErrInvalidDomain
 	}
 	return nil
 }
@@ -174,7 +184,7 @@ func storedToRepTierConfig(stored StoredRepTierConfig) RepTierConfig {
 type OrgConfig struct {
 	OrgID                    string `json:"org_id"`
 	ServeAttestationRequired bool   `json:"serve_attestation_required"`
-	ContestStakeVibe        uint64 `json:"contest_stake_vibe"`
+	ContestStakeVibe         uint64 `json:"contest_stake_vibe"`
 	MinContributionsPerEpoch uint64 `json:"min_contributions_per_epoch"`
 }
 
@@ -182,7 +192,7 @@ func orgConfigToStored(cfg *OrgConfig) *StoredOrgConfig {
 	return &StoredOrgConfig{
 		OrgId:                    cfg.OrgID,
 		ServeAttestationRequired: cfg.ServeAttestationRequired,
-		ContestStakeVibe:        cfg.ContestStakeVibe,
+		ContestStakeVibe:         cfg.ContestStakeVibe,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
 	}
 }
@@ -191,7 +201,7 @@ func storedToOrgConfig(stored StoredOrgConfig) OrgConfig {
 	return OrgConfig{
 		OrgID:                    stored.OrgId,
 		ServeAttestationRequired: stored.ServeAttestationRequired,
-		ContestStakeVibe:        stored.ContestStakeVibe,
+		ContestStakeVibe:         stored.ContestStakeVibe,
 		MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 	}
 }
