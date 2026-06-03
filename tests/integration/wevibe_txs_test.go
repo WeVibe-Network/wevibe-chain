@@ -58,6 +58,7 @@ func TestMsgAddMember_Integration(t *testing.T) {
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
+		LeaderWallet:    suite.UserAddr.String(),
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)
@@ -83,6 +84,7 @@ func TestMsgRemoveMember_Integration(t *testing.T) {
 		Leader:          suite.UserAddr.String(),
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
+		LeaderWallet:    suite.UserAddr.String(),
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)

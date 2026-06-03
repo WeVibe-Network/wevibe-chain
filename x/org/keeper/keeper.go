@@ -265,6 +265,10 @@ func (k *Keeper) HasOrg(ctx context.Context, orgID string) (bool, error) {
 }
 
 func (k *Keeper) AddMember(ctx context.Context, member *types.MemberRecord) error {
+	if member.Role == "leader" {
+		return types.ErrInvalidRole
+	}
+
 	store := k.getStore(ctx)
 	key := memberKey(member.OrgID, member.Pubkey)
 
@@ -492,11 +496,7 @@ func (k *Keeper) RotateEpoch(ctx context.Context, orgID, signer string) (uint64,
 		return 0, err
 	}
 
-	isLeader, err := k.IsLeader(ctx, orgID, signer)
-	if err != nil {
-		return 0, err
-	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
 		return 0, types.ErrNotLeader
 	}
 

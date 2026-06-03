@@ -129,18 +129,10 @@ func TestMsgAddMember_ValidateBasic(t *testing.T) {
 func TestMsgAddMember_Success(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	orgMsg := &types.MsgRegisterOrg{
-		Signer:          validSigner,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	}
-	_, err := srv.RegisterOrg(ctx, orgMsg)
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validSigner)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
 	memberMsg := &types.MsgAddMember{
-		Signer: validSigner,
+		Signer: validLeader,
 		OrgId:  orgID,
 		Pubkey: validMember,
 		Role:   "member",
@@ -451,16 +443,9 @@ func TestMsgGrantTrialAllowance_NotLeader(t *testing.T) {
 func TestMsgUpdateMemberRole_Success(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validLeader)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
-	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
 		OrgId:  orgID,
 		Pubkey: validMember,
@@ -483,16 +468,9 @@ func TestMsgUpdateMemberRole_Success(t *testing.T) {
 func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validLeader)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
-	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
 		OrgId:  orgID,
 		Pubkey: validMember,
@@ -561,14 +539,7 @@ func TestMsgUpdateMemberRole_CannotChangeLeaderRole(t *testing.T) {
 func TestMsgRotateEpoch_Success(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validLeader)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
 	msg := &types.MsgRotateEpoch{
 		Signer: validLeader,
@@ -605,16 +576,9 @@ func TestMsgRotateEpoch_NotLeader(t *testing.T) {
 func TestMsgRotateEpoch_ClosedOrg(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validLeader)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
-	_, err = srv.CloseOrg(ctx, &types.MsgCloseOrg{
+	_, err := srv.CloseOrg(ctx, &types.MsgCloseOrg{
 		Signer: validLeader,
 		OrgId:  orgID,
 	})
@@ -632,16 +596,9 @@ func TestMsgRotateEpoch_ClosedOrg(t *testing.T) {
 func TestMsgTransferLeadership_Success(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
-	_, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := mustDeriveOrgID(t, validLeader)
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
-	_, err = srv.AddMember(ctx, &types.MsgAddMember{
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
 		Signer: validLeader,
 		OrgId:  orgID,
 		Pubkey: validMember,

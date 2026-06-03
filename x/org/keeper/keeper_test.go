@@ -178,6 +178,22 @@ func newTestKeeperWithFundedBank(t *testing.T) (*keeper.Keeper, context.Context,
 	return k, ctx, bank
 }
 
+func registerMsgServerOrgWithLeaderWallet(t *testing.T, srv types.MsgServer, ctx context.Context, signer, leader, leaderWallet string) string {
+	t.Helper()
+
+	resp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
+		Signer:          signer,
+		Leader:          leader,
+		StorageQuota:    1000,
+		RetrievalBudget: 500,
+		LeaderWallet:    leaderWallet,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
+	return resp.OrgId
+}
+
 func TestRegisterOrg(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
@@ -984,4 +1000,131 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 	if len(exportedState.OrgConfigs) != 1 {
 		t.Fatalf("expected 1 org config, got: %d", len(exportedState.OrgConfigs))
 	}
+}
+
+func TestMsgAddMember_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(
+		t,
+		srv,
+		ctx,
+		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		"leader_pubkey_12345678901234567890123456789012",
+		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+	)
+
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_12345678901234567890123456789012",
+		Role:   "contributor",
+	})
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgRemoveMember_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(
+		t,
+		srv,
+		ctx,
+		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		"leader_pubkey_12345678901234567890123456789012",
+		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+	)
+
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_remove_1234567890123456789012",
+		Role:   "member",
+	})
+	require.NoError(t, err)
+
+	_, err = srv.RemoveMember(ctx, &types.MsgRemoveMember{
+		Signer: "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_remove_1234567890123456789012",
+	})
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgRotateEpoch_RejectsNonLeaderWalletSigner(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(
+		t,
+		srv,
+		ctx,
+		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		"leader_pubkey_12345678901234567890123456789012",
+		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+	)
+
+	_, err := srv.RotateEpoch(ctx, &types.MsgRotateEpoch{
+		Signer: "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		OrgId:  orgID,
+	})
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgAddMember_RejectsLeaderRole(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(
+		t,
+		srv,
+		ctx,
+		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		"leader_pubkey_12345678901234567890123456789012",
+		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+	)
+
+	_, err := srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_leader_1234567890123456789012",
+		Role:   "leader",
+	})
+	require.ErrorIs(t, err, types.ErrInvalidRole)
+}
+
+func TestOrgDecisionMsgs_AcceptsLeaderWalletSigner(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(
+		t,
+		srv,
+		ctx,
+		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		"leader_pubkey_12345678901234567890123456789012",
+		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+	)
+
+	addResp, err := srv.AddMember(ctx, &types.MsgAddMember{
+		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_success_1234567890123456789012",
+		Role:   "contributor",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, addResp)
+
+	rotateResp, err := srv.RotateEpoch(ctx, &types.MsgRotateEpoch{
+		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:  orgID,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, rotateResp)
+	require.Equal(t, uint64(1), rotateResp.NewEpoch)
+
+	removeResp, err := srv.RemoveMember(ctx, &types.MsgRemoveMember{
+		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:  orgID,
+		Pubkey: "member_pubkey_success_1234567890123456789012",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, removeResp)
 }

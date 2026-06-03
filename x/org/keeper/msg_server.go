@@ -56,6 +56,26 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 		return nil, err
 	}
 
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	org, err := m.keeper.GetOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if org.LeaderWalletAddress == "" || msg.Signer != org.LeaderWalletAddress {
+		return nil, types.ErrNotLeader
+	}
+
+	if msg.Role == "leader" {
+		return nil, types.ErrInvalidRole
+	}
+
 	member := types.NewMemberRecord(msg.OrgId, msg.Pubkey, msg.Role)
 	if err := m.keeper.AddMember(ctx, member); err != nil {
 		return nil, err
@@ -87,6 +107,22 @@ func (m *msgServer) SetServingKey(ctx context.Context, msg *types.MsgSetServingK
 func (m *msgServer) RemoveMember(ctx context.Context, msg *types.MsgRemoveMember) (*types.MsgRemoveMemberResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	org, err := m.keeper.GetOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if org.LeaderWalletAddress == "" || msg.Signer != org.LeaderWalletAddress {
+		return nil, types.ErrNotLeader
 	}
 
 	if err := m.keeper.RemoveMember(ctx, msg.OrgId, msg.Pubkey); err != nil {
