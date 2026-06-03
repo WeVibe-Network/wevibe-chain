@@ -65,33 +65,6 @@ func (q *queryServer) Params(ctx context.Context, req *types.QueryParamsRequest)
 	return &types.QueryParamsResponse{Params: &params}, nil
 }
 
-func (q *queryServer) GetTreasury(ctx context.Context, req *types.QueryGetTreasuryRequest) (*types.QueryGetTreasuryResponse, error) {
-	balance, err := q.keeper.GetTreasuryBalance(ctx, req.OrgId)
-	if err != nil {
-		return nil, err
-	}
-	return &types.QueryGetTreasuryResponse{Balance: balance}, nil
-}
-
-func (q *queryServer) GetRepTiers(ctx context.Context, req *types.QueryGetRepTiersRequest) (*types.QueryGetRepTiersResponse, error) {
-	cfg, err := q.keeper.GetRepTiers(ctx, req.OrgId)
-	if err != nil {
-		return nil, err
-	}
-
-	var tiers []*types.RepTier
-	for _, t := range cfg.Tiers {
-		tiers = append(tiers, &types.RepTier{
-			MinReputation:            t.MinReputation,
-			MaxReputation:            t.MaxReputation,
-			MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-			PayoutPerMemory:          t.PayoutPerMemory,
-		})
-	}
-
-	return &types.QueryGetRepTiersResponse{Tiers: tiers}, nil
-}
-
 func (q *queryServer) GetOrgConfig(ctx context.Context, req *types.QueryGetOrgConfigRequest) (*types.QueryGetOrgConfigResponse, error) {
 	cfg, err := q.keeper.GetOrgConfig(ctx, req.OrgId)
 	if err != nil {
@@ -100,7 +73,7 @@ func (q *queryServer) GetOrgConfig(ctx context.Context, req *types.QueryGetOrgCo
 	return &types.QueryGetOrgConfigResponse{
 		ServeAttestationRequired: cfg.ServeAttestationRequired,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
-		ContestStakeVibe:        cfg.ContestStakeVibe,
+		ContestStakeVibe:         cfg.ContestStakeVibe,
 	}, nil
 }
 
@@ -127,11 +100,6 @@ func (q *queryServer) GetOrgProfile(ctx context.Context, req *types.QueryGetOrgP
 		}
 	}
 
-	treasuryBalance, err := q.keeper.GetTreasuryBalance(ctx, req.OrgId)
-	if err != nil {
-		treasuryBalance = "0"
-	}
-
 	resp := &types.QueryGetOrgProfileResponse{
 		OrgId:           org.OrgID,
 		Leader:          org.Leader,
@@ -142,7 +110,6 @@ func (q *queryServer) GetOrgProfile(ctx context.Context, req *types.QueryGetOrgP
 		RetrievalBudget: org.RetrievalBudget,
 		MemberCount:     memberCount,
 		ModeratorCount:  moderatorCount,
-		TreasuryBalance: treasuryBalance,
 	}
 
 	if q.keeper.memoryKeeper != nil {

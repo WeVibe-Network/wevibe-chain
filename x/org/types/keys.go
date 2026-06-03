@@ -118,69 +118,6 @@ type DynamicPrice struct {
 	CreationCount uint64 `json:"creation_count"`
 }
 
-type Treasury struct {
-	OrgID   string `json:"org_id"`
-	Balance string `json:"balance"`
-}
-
-func treasuryToStored(treasury *Treasury) *StoredTreasury {
-	return &StoredTreasury{
-		OrgId:   treasury.OrgID,
-		Balance: treasury.Balance,
-	}
-}
-
-func storedToTreasury(stored StoredTreasury) Treasury {
-	return Treasury{
-		OrgID:   stored.OrgId,
-		Balance: stored.Balance,
-	}
-}
-
-type RepTierConfig struct {
-	OrgID string           `json:"org_id"`
-	Tiers []*RepTierRecord `json:"tiers"`
-}
-
-type RepTierRecord struct {
-	MinReputation            uint64 `json:"min_reputation"`
-	MaxReputation            uint64 `json:"max_reputation"`
-	MaxContributionsPerEpoch uint64 `json:"max_contributions_per_epoch"`
-	PayoutPerMemory          string `json:"payout_per_memory"`
-}
-
-func repTierConfigToStored(cfg *RepTierConfig) *StoredRepTierConfig {
-	tiers := make([]*RepTier, len(cfg.Tiers))
-	for i, t := range cfg.Tiers {
-		tiers[i] = &RepTier{
-			MinReputation:            t.MinReputation,
-			MaxReputation:            t.MaxReputation,
-			MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-			PayoutPerMemory:          t.PayoutPerMemory,
-		}
-	}
-	return &StoredRepTierConfig{
-		OrgId: cfg.OrgID,
-		Tiers: tiers,
-	}
-}
-
-func storedToRepTierConfig(stored StoredRepTierConfig) RepTierConfig {
-	tiers := make([]*RepTierRecord, len(stored.Tiers))
-	for i, t := range stored.Tiers {
-		tiers[i] = &RepTierRecord{
-			MinReputation:            t.MinReputation,
-			MaxReputation:            t.MaxReputation,
-			MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-			PayoutPerMemory:          t.PayoutPerMemory,
-		}
-	}
-	return RepTierConfig{
-		OrgID: stored.OrgId,
-		Tiers: tiers,
-	}
-}
-
 type OrgConfig struct {
 	OrgID                    string `json:"org_id"`
 	ServeAttestationRequired bool   `json:"serve_attestation_required"`

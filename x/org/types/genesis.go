@@ -1,13 +1,11 @@
 package types
 
 type GenesisState struct {
-	Orgs         []*Org           `json:"orgs"`
-	Members      []*MemberRecord  `json:"members"`
-	DynamicPrice *DynamicPrice    `json:"dynamic_price"`
-	Treasuries   []*Treasury      `json:"treasuries"`
-	RepTiers     []*RepTierConfig `json:"rep_tiers"`
-	OrgConfigs   []*OrgConfig     `json:"org_configs"`
-	Params       Params           `json:"params"`
+	Orgs         []*Org          `json:"orgs"`
+	Members      []*MemberRecord `json:"members"`
+	DynamicPrice *DynamicPrice   `json:"dynamic_price"`
+	OrgConfigs   []*OrgConfig    `json:"org_configs"`
+	Params       Params          `json:"params"`
 }
 
 func NewGenesisState(orgs []*Org, members []*MemberRecord, dynamicPrice *DynamicPrice) *GenesisState {

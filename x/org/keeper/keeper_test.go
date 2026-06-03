@@ -723,162 +723,6 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 	}
 }
 
-func TestFundTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithFundedBank(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	funder, _ := sdk.AccAddressFromBech32("cosmos1abc")
-	err = k.FundTreasury(ctx, "org1", funder, math.NewInt(500000))
-	if err != nil {
-		t.Fatalf("FundTreasury failed: %v", err)
-	}
-
-	balance, err := k.GetTreasuryBalance(ctx, "org1")
-	if err != nil {
-		t.Fatalf("GetTreasuryBalance failed: %v", err)
-	}
-	require.Equal(t, "500000", balance)
-}
-
-func TestFundTreasury_InsufficientBalance(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithStrictBank(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	funder, _ := sdk.AccAddressFromBech32("cosmos1abc")
-	err = k.FundTreasury(ctx, "org1", funder, math.NewInt(500000))
-	if err == nil {
-		t.Fatal("expected FundTreasury to fail with insufficient funds")
-	}
-}
-
-func TestWithdrawTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithFundedBank(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	funder, _ := sdk.AccAddressFromBech32("cosmos1abc")
-	err = k.FundTreasury(ctx, "org1", funder, math.NewInt(500000))
-	if err != nil {
-		t.Fatalf("FundTreasury failed: %v", err)
-	}
-
-	recipient, _ := sdk.AccAddressFromBech32("cosmos1def")
-	err = k.WithdrawTreasury(ctx, "org1", recipient, math.NewInt(200000))
-	if err != nil {
-		t.Fatalf("WithdrawTreasury failed: %v", err)
-	}
-
-	balance, err := k.GetTreasuryBalance(ctx, "org1")
-	if err != nil {
-		t.Fatalf("GetTreasuryBalance failed: %v", err)
-	}
-	require.Equal(t, "300000", balance)
-}
-
-func TestWithdrawTreasury_InsufficientTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithFundedBank(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	funder, _ := sdk.AccAddressFromBech32("cosmos1abc")
-	err = k.FundTreasury(ctx, "org1", funder, math.NewInt(100000))
-	if err != nil {
-		t.Fatalf("FundTreasury failed: %v", err)
-	}
-
-	recipient, _ := sdk.AccAddressFromBech32("cosmos1def")
-	err = k.WithdrawTreasury(ctx, "org1", recipient, math.NewInt(200000))
-	if err != types.ErrInsufficientTreasury {
-		t.Fatalf("expected ErrInsufficientTreasury, got: %v", err)
-	}
-}
-
-func TestDebitTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithFundedBank(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	balance, err := k.GetTreasuryBalanceInt(ctx, "org1")
-	if err != nil {
-		t.Fatalf("GetTreasuryBalanceInt failed: %v", err)
-	}
-	require.True(t, balance.IsZero())
-}
-
-func TestGetTreasuryBalance_NoTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	balance, err := k.GetTreasuryBalance(ctx, "org1")
-	if err != nil {
-		t.Fatalf("GetTreasuryBalance failed: %v", err)
-	}
-	require.Equal(t, "0", balance)
-}
-
-func TestSetRepTiers(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
-	err := k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != nil {
-		t.Fatalf("RegisterOrg failed: %v", err)
-	}
-
-	tiers := []*types.RepTierRecord{
-		{
-			MinReputation:            0,
-			MaxReputation:            50,
-			MaxContributionsPerEpoch: 3,
-			PayoutPerMemory:          "1",
-		},
-		{
-			MinReputation:            200,
-			MaxReputation:            1000,
-			MaxContributionsPerEpoch: 50,
-			PayoutPerMemory:          "5",
-		},
-	}
-
-	err = k.SetRepTiers(ctx, "org1", tiers)
-	if err != nil {
-		t.Fatalf("SetRepTiers failed: %v", err)
-	}
-
-	cfg, err := k.GetRepTiers(ctx, "org1")
-	if err != nil {
-		t.Fatalf("GetRepTiers failed: %v", err)
-	}
-	require.Len(t, cfg.Tiers, 2)
-}
-
 func TestSetOrgConfig(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
@@ -957,22 +801,6 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 			LastCreation:  100,
 			CreationCount: 5,
 		},
-		Treasuries: []*types.Treasury{
-			{OrgID: "org1", Balance: "500000"},
-		},
-		RepTiers: []*types.RepTierConfig{
-			{
-				OrgID: "org1",
-				Tiers: []*types.RepTierRecord{
-					{
-						MinReputation:            0,
-						MaxReputation:            50,
-						MaxContributionsPerEpoch: 3,
-						PayoutPerMemory:          "1",
-					},
-				},
-			},
-		},
 		OrgConfigs: []*types.OrgConfig{
 			{
 				OrgID:                    "org1",
@@ -989,13 +817,6 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 	exportedState, err := k1.ExportGenesis(ctx1)
 	if err != nil {
 		t.Fatalf("ExportGenesis failed: %v", err)
-	}
-
-	if len(exportedState.Treasuries) != 1 {
-		t.Fatalf("expected 1 treasury, got: %d", len(exportedState.Treasuries))
-	}
-	if len(exportedState.RepTiers) != 1 {
-		t.Fatalf("expected 1 rep tier config, got: %d", len(exportedState.RepTiers))
 	}
 	if len(exportedState.OrgConfigs) != 1 {
 		t.Fatalf("expected 1 org config, got: %d", len(exportedState.OrgConfigs))

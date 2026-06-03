@@ -57,14 +57,6 @@ func dynamicPriceKey() []byte {
 	return []byte("dynprice/")
 }
 
-func treasuryKey(orgID string) []byte {
-	return []byte(fmt.Sprintf("treasury/%s", orgID))
-}
-
-func repTierKey(orgID string) []byte {
-	return []byte(fmt.Sprintf("reptier/%s", orgID))
-}
-
 func orgConfigKey(orgID string) []byte {
 	return []byte(fmt.Sprintf("orgconfig/%s", orgID))
 }
@@ -130,20 +122,6 @@ func storedToDynamicPrice(stored types.StoredDynamicPrice) types.DynamicPrice {
 		Price:         stored.Price,
 		LastCreation:  stored.LastCreation,
 		CreationCount: stored.CreationCount,
-	}
-}
-
-func treasuryToStored(treasury *types.Treasury) *types.StoredTreasury {
-	return &types.StoredTreasury{
-		OrgId:   treasury.OrgID,
-		Balance: treasury.Balance,
-	}
-}
-
-func storedToTreasury(stored types.StoredTreasury) types.Treasury {
-	return types.Treasury{
-		OrgID:   stored.OrgId,
-		Balance: stored.Balance,
 	}
 }
 
@@ -831,157 +809,6 @@ func (k *Keeper) ComputeBurnPrice(ctx context.Context) math.Int {
 	return math.NewInt(int64(price))
 }
 
-func (k *Keeper) GetTreasuryBalance(ctx context.Context, orgID string) (string, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(treasuryKey(orgID))
-	if err != nil {
-		return "0", err
-	}
-	if bz == nil {
-		return "0", nil
-	}
-
-	var stored types.StoredTreasury
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return "0", fmt.Errorf("unmarshal treasury: %w", err)
-	}
-	return stored.Balance, nil
-}
-
-func (k *Keeper) GetTreasuryBalanceInt(ctx context.Context, orgID string) (math.Int, error) {
-	balance, err := k.GetTreasuryBalance(ctx, orgID)
-	if err != nil {
-		return math.ZeroInt(), err
-	}
-	if balance == "" {
-		return math.ZeroInt(), nil
-	}
-	val, ok := math.NewIntFromString(balance)
-	if !ok {
-		return math.ZeroInt(), fmt.Errorf("invalid treasury balance: %s", balance)
-	}
-	return val, nil
-}
-
-func (k *Keeper) FundTreasury(ctx context.Context, orgID string, funder sdk.AccAddress, amount math.Int) error {
-	store := k.getStore(ctx)
-
-	balance, err := k.GetTreasuryBalanceInt(ctx, orgID)
-	if err != nil {
-		return err
-	}
-
-	coins := sdk.NewCoins(sdk.NewCoin("uvibe", amount))
-	if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, funder, types.ModuleName, coins); err != nil {
-		return err
-	}
-
-	newBalance := balance.Add(amount)
-	bz, err := proto.Marshal(&types.StoredTreasury{
-		OrgId:   orgID,
-		Balance: newBalance.String(),
-	})
-	if err != nil {
-		return fmt.Errorf("marshal treasury: %w", err)
-	}
-	return store.Set(treasuryKey(orgID), bz)
-}
-
-func (k *Keeper) WithdrawTreasury(ctx context.Context, orgID string, recipient sdk.AccAddress, amount math.Int) error {
-	store := k.getStore(ctx)
-
-	balance, err := k.GetTreasuryBalanceInt(ctx, orgID)
-	if err != nil {
-		return err
-	}
-
-	if balance.LT(amount) {
-		return types.ErrInsufficientTreasury
-	}
-
-	coins := sdk.NewCoins(sdk.NewCoin("uvibe", amount))
-	if err := k.bankKeeper.SendCoinsFromModuleToAccount(ctx, types.ModuleName, recipient, coins); err != nil {
-		return err
-	}
-
-	newBalance := balance.Sub(amount)
-	bz, err := proto.Marshal(&types.StoredTreasury{
-		OrgId:   orgID,
-		Balance: newBalance.String(),
-	})
-	if err != nil {
-		return fmt.Errorf("marshal treasury: %w", err)
-	}
-	return store.Set(treasuryKey(orgID), bz)
-}
-
-func (k *Keeper) DebitTreasury(ctx context.Context, orgID string, amount math.Int) error {
-	store := k.getStore(ctx)
-
-	balance, err := k.GetTreasuryBalanceInt(ctx, orgID)
-	if err != nil {
-		return err
-	}
-
-	if balance.LT(amount) {
-		return types.ErrInsufficientTreasury
-	}
-
-	newBalance := balance.Sub(amount)
-	bz, err := proto.Marshal(&types.StoredTreasury{
-		OrgId:   orgID,
-		Balance: newBalance.String(),
-	})
-	if err != nil {
-		return fmt.Errorf("marshal treasury: %w", err)
-	}
-	return store.Set(treasuryKey(orgID), bz)
-}
-
-func (k *Keeper) GetRepTiers(ctx context.Context, orgID string) (*types.RepTierConfig, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(repTierKey(orgID))
-	if err != nil {
-		return nil, err
-	}
-	if bz == nil {
-		return nil, types.ErrTreasuryNotFound
-	}
-
-	var stored types.StoredRepTierConfig
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return nil, fmt.Errorf("unmarshal rep tier config: %w", err)
-	}
-	tiers := make([]*types.RepTierRecord, len(stored.Tiers))
-	for i, t := range stored.Tiers {
-		tiers[i] = &types.RepTierRecord{
-			MinReputation:            t.MinReputation,
-			MaxReputation:            t.MaxReputation,
-			MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-			PayoutPerMemory:          t.PayoutPerMemory,
-		}
-	}
-	return &types.RepTierConfig{OrgID: stored.OrgId, Tiers: tiers}, nil
-}
-
-func (k *Keeper) SetRepTiers(ctx context.Context, orgID string, tiers []*types.RepTierRecord) error {
-	store := k.getStore(ctx)
-	storedTiers := make([]*types.RepTier, len(tiers))
-	for i, t := range tiers {
-		storedTiers[i] = &types.RepTier{
-			MinReputation:            t.MinReputation,
-			MaxReputation:            t.MaxReputation,
-			MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-			PayoutPerMemory:          t.PayoutPerMemory,
-		}
-	}
-	bz, err := proto.Marshal(&types.StoredRepTierConfig{OrgId: orgID, Tiers: storedTiers})
-	if err != nil {
-		return fmt.Errorf("marshal rep tier config: %w", err)
-	}
-	return store.Set(repTierKey(orgID), bz)
-}
-
 func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConfig, error) {
 	store := k.getStore(ctx)
 	bz, err := store.Get(orgConfigKey(orgID))
@@ -1087,35 +914,6 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		}
 	}
 
-	for _, treasury := range state.Treasuries {
-		bz, err := proto.Marshal(treasuryToStored(treasury))
-		if err != nil {
-			return err
-		}
-		if err := store.Set(treasuryKey(treasury.OrgID), bz); err != nil {
-			return err
-		}
-	}
-
-	for _, repTier := range state.RepTiers {
-		storedTiers := make([]*types.RepTier, len(repTier.Tiers))
-		for i, t := range repTier.Tiers {
-			storedTiers[i] = &types.RepTier{
-				MinReputation:            t.MinReputation,
-				MaxReputation:            t.MaxReputation,
-				MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-				PayoutPerMemory:          t.PayoutPerMemory,
-			}
-		}
-		bz, err := proto.Marshal(&types.StoredRepTierConfig{OrgId: repTier.OrgID, Tiers: storedTiers})
-		if err != nil {
-			return err
-		}
-		if err := store.Set(repTierKey(repTier.OrgID), bz); err != nil {
-			return err
-		}
-	}
-
 	for _, orgConfig := range state.OrgConfigs {
 		bz, err := proto.Marshal(&types.StoredOrgConfig{
 			OrgId:                    orgConfig.OrgID,
@@ -1186,48 +984,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 	}
 
-	treasuryPrefix := []byte("treasury/")
-	treasuryIter, err := store.Iterator(treasuryPrefix, storetypes.PrefixEndBytes(treasuryPrefix))
-	if err != nil {
-		return nil, err
-	}
-	defer treasuryIter.Close()
-
-	var treasuries []*types.Treasury
-	for ; treasuryIter.Valid(); treasuryIter.Next() {
-		var stored types.StoredTreasury
-		if err := proto.Unmarshal(treasuryIter.Value(), &stored); err != nil {
-			continue
-		}
-		treasury := storedToTreasury(stored)
-		treasuries = append(treasuries, &treasury)
-	}
-
-	reptierPrefix := []byte("reptier/")
-	reptierIter, err := store.Iterator(reptierPrefix, storetypes.PrefixEndBytes(reptierPrefix))
-	if err != nil {
-		return nil, err
-	}
-	defer reptierIter.Close()
-
-	var repTiers []*types.RepTierConfig
-	for ; reptierIter.Valid(); reptierIter.Next() {
-		var stored types.StoredRepTierConfig
-		if err := proto.Unmarshal(reptierIter.Value(), &stored); err != nil {
-			continue
-		}
-		tiers := make([]*types.RepTierRecord, len(stored.Tiers))
-		for i, t := range stored.Tiers {
-			tiers[i] = &types.RepTierRecord{
-				MinReputation:            t.MinReputation,
-				MaxReputation:            t.MaxReputation,
-				MaxContributionsPerEpoch: t.MaxContributionsPerEpoch,
-				PayoutPerMemory:          t.PayoutPerMemory,
-			}
-		}
-		repTiers = append(repTiers, &types.RepTierConfig{OrgID: stored.OrgId, Tiers: tiers})
-	}
-
 	orgconfigPrefix := []byte("orgconfig/")
 	orgconfigIter, err := store.Iterator(orgconfigPrefix, storetypes.PrefixEndBytes(orgconfigPrefix))
 	if err != nil {
@@ -1253,8 +1009,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		Orgs:         orgs,
 		Members:      members,
 		DynamicPrice: dynamicPrice,
-		Treasuries:   treasuries,
-		RepTiers:     repTiers,
 		OrgConfigs:   orgConfigs,
 		Params:       params,
 	}, nil

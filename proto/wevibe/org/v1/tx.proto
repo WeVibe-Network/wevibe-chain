@@ -5,7 +5,6 @@ option go_package = "github.com/wevibe-network/wevibe-chain/x/org/types";
 
 import "cosmos/msg/v1/msg.proto";
 import "wevibe/org/v1/params.proto";
-import "wevibe/org/v1/state.proto";
 
 service Msg {
   option (cosmos.msg.v1.service) = true;
@@ -13,9 +12,6 @@ service Msg {
   rpc AddMember(MsgAddMember) returns (MsgAddMemberResponse);
   rpc RemoveMember(MsgRemoveMember) returns (MsgRemoveMemberResponse);
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
-  rpc FundTreasury(MsgFundTreasury) returns (MsgFundTreasuryResponse);
-  rpc WithdrawTreasury(MsgWithdrawTreasury) returns (MsgWithdrawTreasuryResponse);
-  rpc SetRepTiers(MsgSetRepTiers) returns (MsgSetRepTiersResponse);
   rpc SetOrgConfig(MsgSetOrgConfig) returns (MsgSetOrgConfigResponse);
   rpc GrantTrialAllowance(MsgGrantTrialAllowance) returns (MsgGrantTrialAllowanceResponse);
   rpc UpdateMemberRole(MsgUpdateMemberRole) returns (MsgUpdateMemberRoleResponse);
@@ -82,31 +78,6 @@ message MsgUpdateParams {
 }
 
 message MsgUpdateParamsResponse {}
-
-message MsgFundTreasury {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-  string amount = 3;
-}
-message MsgFundTreasuryResponse {}
-
-message MsgWithdrawTreasury {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-  string amount = 3;
-  string recipient = 4;
-}
-message MsgWithdrawTreasuryResponse {}
-
-message MsgSetRepTiers {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-  repeated RepTier tiers = 3;
-}
-message MsgSetRepTiersResponse {}
 
 message MsgSetOrgConfig {
   option (cosmos.msg.v1.signer) = "signer";

@@ -702,7 +702,6 @@ type mockOrgKeeper struct {
 	orgs           []*orgTypes.Org
 	configs        map[string]*orgTypes.OrgConfig
 	treasuryBal    map[string]math.Int
-	repTiers       map[string]*orgTypes.RepTierConfig
 	treasuryDebits map[string][]math.Int
 }
 
@@ -710,7 +709,6 @@ func newMockOrgKeeper() *mockOrgKeeper {
 	return &mockOrgKeeper{
 		configs:        make(map[string]*orgTypes.OrgConfig),
 		treasuryBal:    make(map[string]math.Int),
-		repTiers:       make(map[string]*orgTypes.RepTierConfig),
 		treasuryDebits: make(map[string][]math.Int),
 	}
 }
@@ -762,12 +760,6 @@ func TestDistributePayout_OneContributor(t *testing.T) {
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
 	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: true, MinContributionsPerEpoch: 1}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
-	orgKeeper.repTiers["org1"] = &orgTypes.RepTierConfig{
-		OrgID: "org1",
-		Tiers: []*orgTypes.RepTierRecord{
-			{MinReputation: 0, MaxReputation: 100, PayoutPerMemory: "100"},
-		},
-	}
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
 	ctx := context.Background()
@@ -811,12 +803,6 @@ func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
 	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: true, MinContributionsPerEpoch: 1}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(150)
-	orgKeeper.repTiers["org1"] = &orgTypes.RepTierConfig{
-		OrgID: "org1",
-		Tiers: []*orgTypes.RepTierRecord{
-			{MinReputation: 0, MaxReputation: 100, PayoutPerMemory: "100"},
-		},
-	}
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
 	ctx := context.Background()
@@ -856,12 +842,6 @@ func TestDistributePayout_ServeAttestationNotRequired(t *testing.T) {
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
 	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: false}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
-	orgKeeper.repTiers["org1"] = &orgTypes.RepTierConfig{
-		OrgID: "org1",
-		Tiers: []*orgTypes.RepTierRecord{
-			{MinReputation: 0, MaxReputation: 100, PayoutPerMemory: "100"},
-		},
-	}
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
 	ctx := context.Background()

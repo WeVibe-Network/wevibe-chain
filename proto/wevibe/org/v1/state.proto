@@ -39,23 +39,6 @@ message StoredDynamicPrice {
   uint64 creation_count = 3;
 }
 
-message StoredTreasury {
-  string org_id = 1;
-  string balance = 2;
-}
-
-message StoredRepTierConfig {
-  string org_id = 1;
-  repeated RepTier tiers = 2;
-}
-
-message RepTier {
-  uint64 min_reputation = 1;
-  uint64 max_reputation = 2;
-  uint64 max_contributions_per_epoch = 3;
-  string payout_per_memory = 4;
-}
-
 message StoredOrgConfig {
   string org_id = 1;
   bool serve_attestation_required = 2;

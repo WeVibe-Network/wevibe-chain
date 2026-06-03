@@ -5,8 +5,6 @@ import (
 
 	"github.com/stretchr/testify/require"
 
-	"cosmossdk.io/math"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/x/org/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
 )
@@ -140,69 +138,6 @@ func TestQueryParams_Set(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// GetTreasury
-// ---------------------------------------------------------------------------
-
-func TestQueryGetTreasury_Funded(t *testing.T) {
-	k, ctx, _ := newTestKeeperWithFundedBank(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
-	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-
-	funder, _ := sdk.AccAddressFromBech32("cosmos1abc")
-	require.NoError(t, k.FundTreasury(ctx, "org1", funder, math.NewInt(500000)))
-
-	resp, err := qs.GetTreasury(ctx, &types.QueryGetTreasuryRequest{OrgId: "org1"})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Equal(t, "500000", resp.Balance)
-}
-
-func TestQueryGetTreasury_NoTreasury(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	resp, err := qs.GetTreasury(ctx, &types.QueryGetTreasuryRequest{OrgId: "missing"})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Equal(t, "0", resp.Balance)
-}
-
-// ---------------------------------------------------------------------------
-// GetRepTiers
-// ---------------------------------------------------------------------------
-
-func TestQueryGetRepTiers_Success(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
-	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-
-	tiers := []*types.RepTierRecord{
-		{MinReputation: 0, MaxReputation: 50, MaxContributionsPerEpoch: 3, PayoutPerMemory: "1"},
-		{MinReputation: 200, MaxReputation: 1000, MaxContributionsPerEpoch: 50, PayoutPerMemory: "5"},
-	}
-	require.NoError(t, k.SetRepTiers(ctx, "org1", tiers))
-
-	resp, err := qs.GetRepTiers(ctx, &types.QueryGetRepTiersRequest{OrgId: "org1"})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Len(t, resp.Tiers, 2)
-	require.Equal(t, "1", resp.Tiers[0].PayoutPerMemory)
-}
-
-func TestQueryGetRepTiers_NotFound(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	resp, err := qs.GetRepTiers(ctx, &types.QueryGetRepTiersRequest{OrgId: "missing"})
-	require.Error(t, err)
-	require.Nil(t, resp)
-}
-
-// ---------------------------------------------------------------------------
 // GetOrgConfig
 // ---------------------------------------------------------------------------
 
@@ -264,7 +199,6 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 	// leader + one moderator member.
 	require.Equal(t, uint64(2), resp.MemberCount)
 	require.Equal(t, uint64(1), resp.ModeratorCount)
-	require.Equal(t, "0", resp.TreasuryBalance)
 }
 
 func TestQueryGetOrgProfile_EmptyOrgID(t *testing.T) {

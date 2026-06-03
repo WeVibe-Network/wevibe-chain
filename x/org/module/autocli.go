@@ -40,22 +40,6 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					Short:     "Query org module params",
 				},
 				{
-					RpcMethod: "GetTreasury",
-					Use:       "get-treasury [org-id]",
-					Short:     "Query org treasury balance",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "org_id"},
-					},
-				},
-				{
-					RpcMethod: "GetRepTiers",
-					Use:       "get-rep-tiers [org-id]",
-					Short:     "Query org rep tier configuration",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "org_id"},
-					},
-				},
-				{
 					RpcMethod: "GetOrgConfig",
 					Use:       "get-org-config [org-id]",
 					Short:     "Query org configuration",
@@ -100,33 +84,6 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					RpcMethod: "UpdateParams",
 					Use:       "update-params",
 					Short:     "Update org module params (governance only)",
-				},
-				{
-					RpcMethod: "FundTreasury",
-					Use:       "fund-treasury [org-id] [amount]",
-					Short:     "Fund an org treasury",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "org_id"},
-						{ProtoField: "amount"},
-					},
-				},
-				{
-					RpcMethod: "WithdrawTreasury",
-					Use:       "withdraw-treasury [org-id] [amount] [recipient]",
-					Short:     "Withdraw from org treasury",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "org_id"},
-						{ProtoField: "amount"},
-						{ProtoField: "recipient"},
-					},
-				},
-				{
-					RpcMethod: "SetRepTiers",
-					Use:       "set-rep-tiers [org-id]",
-					Short:     "Set rep tier configuration for an org",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "org_id"},
-					},
 				},
 				{
 					RpcMethod: "SetOrgConfig",
