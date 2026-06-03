@@ -48,6 +48,15 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 	if err := m.requireLeaderWallet(ctx, msg.OrgId, msg.Signer); err != nil {
 		return nil, err
 	}
+
+	member, err := m.keeper.orgKeeper.GetMember(ctx, msg.OrgId, msg.ContributorId)
+	if err != nil {
+		return nil, fmt.Errorf("%w: failed to load member record for contributor %s in org %s: %v", types.ErrNotContributor, msg.ContributorId, msg.OrgId, err)
+	}
+	if member == nil || member.Role != "contributor" {
+		return nil, types.ErrNotContributor
+	}
+
 	if !types.ValidMemoryType(msg.MemoryType) {
 		return nil, types.ErrInvalidMemoryType
 	}

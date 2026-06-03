@@ -44,6 +44,16 @@ func (t *testOrgKeeper) IsModerator(ctx context.Context, orgID, memberPubkey str
 	return false, nil
 }
 
+func (t *testOrgKeeper) GetMember(ctx context.Context, orgID, memberPubkey string) (*orgtypes.MemberRecord, error) {
+	if t.leaders[orgID] == memberPubkey {
+		return &orgtypes.MemberRecord{OrgID: orgID, Pubkey: memberPubkey, Role: "leader"}, nil
+	}
+	if mods, ok := t.moderators[orgID]; ok && mods[memberPubkey] {
+		return &orgtypes.MemberRecord{OrgID: orgID, Pubkey: memberPubkey, Role: "moderator"}, nil
+	}
+	return nil, orgtypes.ErrMemberNotFound
+}
+
 func (t *testOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgtypes.OrgConfig, error) {
 	if err, ok := t.configErrs[orgID]; ok && err != nil {
 		return nil, err

@@ -10,6 +10,7 @@ type OrgKeeper interface {
 	HasOrg(ctx context.Context, orgID string) (bool, error)
 	IsLeader(ctx context.Context, orgID string, memberPubkey string) (bool, error)
 	IsModerator(ctx context.Context, orgID string, memberPubkey string) (bool, error)
+	GetMember(ctx context.Context, orgID, memberPubkey string) (*orgtypes.MemberRecord, error)
 	GetOrgConfig(ctx context.Context, orgID string) (*orgtypes.OrgConfig, error)
 	IncrementOrgCommittedMemories(ctx context.Context, orgID string) error
 	IncrementOrgUpheldReports(ctx context.Context, orgID string) error

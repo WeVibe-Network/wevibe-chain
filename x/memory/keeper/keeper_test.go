@@ -28,6 +28,13 @@ func (m *mockOrgKeeper) IsModerator(ctx context.Context, orgID string, memberPub
 	return false, nil
 }
 
+func (m *mockOrgKeeper) GetMember(ctx context.Context, orgID, memberPubkey string) (*orgtypes.MemberRecord, error) {
+	if m.leaders[orgID] == memberPubkey {
+		return &orgtypes.MemberRecord{OrgID: orgID, Pubkey: memberPubkey, Role: "leader"}, nil
+	}
+	return nil, orgtypes.ErrMemberNotFound
+}
+
 func (m *mockOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgtypes.OrgConfig, error) {
 	return &orgtypes.OrgConfig{OrgID: orgID}, nil
 }

@@ -190,8 +190,8 @@ func (m *MsgUpdateMemberRole) ValidateBasic() error {
 	if m.Pubkey == "" {
 		return fmt.Errorf("pubkey cannot be empty")
 	}
-	if m.NewRole != "member" && m.NewRole != "moderator" {
-		return fmt.Errorf("new_role must be 'member' or 'moderator'")
+	if m.NewRole != "member" && m.NewRole != "moderator" && m.NewRole != "contributor" {
+		return fmt.Errorf("new_role must be 'member', 'moderator', or 'contributor'")
 	}
 	return nil
 }

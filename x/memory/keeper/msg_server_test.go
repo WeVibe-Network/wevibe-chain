@@ -22,6 +22,7 @@ import (
 type mockOrgKeeperServer struct {
 	orgs    map[string]bool
 	leaders map[string]string
+	members map[string]map[string]string
 }
 
 func (m *mockOrgKeeperServer) HasOrg(ctx context.Context, orgID string) (bool, error) {
@@ -34,6 +35,24 @@ func (m *mockOrgKeeperServer) IsLeader(ctx context.Context, orgID string, member
 
 func (m *mockOrgKeeperServer) IsModerator(ctx context.Context, orgID string, memberPubkey string) (bool, error) {
 	return false, nil
+}
+
+func (m *mockOrgKeeperServer) GetMember(ctx context.Context, orgID, memberPubkey string) (*orgtypes.MemberRecord, error) {
+	membersForOrg, ok := m.members[orgID]
+	if !ok {
+		return nil, orgtypes.ErrMemberNotFound
+	}
+
+	role, ok := membersForOrg[memberPubkey]
+	if !ok {
+		return nil, orgtypes.ErrMemberNotFound
+	}
+
+	return &orgtypes.MemberRecord{
+		OrgID:  orgID,
+		Pubkey: memberPubkey,
+		Role:   role,
+	}, nil
 }
 
 func (m *mockOrgKeeperServer) GetOrgConfig(ctx context.Context, orgID string) (*orgtypes.OrgConfig, error) {
@@ -49,9 +68,19 @@ func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperSe
 	storeService, cms := keeper.NewTestStoreService(t, storeKey)
 	logger := keeper.NewTestLogger()
 	sdk.DefaultBondDenom = "uvibe"
+	fixtureSeed := []byte("12345678901234567890123456789012")
+	fixturePrivateKey := ed25519.NewKeyFromSeed(fixtureSeed)
+	fixtureContributorPubkeyHex := hex.EncodeToString(fixturePrivateKey.Public().(ed25519.PublicKey))
 	mockOrg := &mockOrgKeeperServer{
 		orgs:    map[string]bool{"test-org": true},
 		leaders: map[string]string{"test-org": "leader-pubkey"},
+		members: map[string]map[string]string{
+			"test-org": {
+				"leader-pubkey":             "leader",
+				"contributor":               "contributor",
+				fixtureContributorPubkeyHex: "contributor",
+			},
+		},
 	}
 	k := NewKeeper(storeService, logger, "gov", mockOrg, &mockReputationKeeper{})
 	sdkCtx := sdk.NewContext(cms, tmproto.Header{Height: 1, Time: time.Now().UTC()}, false, logger)
@@ -191,6 +220,86 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 	}
 	if resp == nil {
 		t.Fatal("expected non-nil response")
+	}
+}
+
+func TestMsgSubmitCommitment_RequiresContributorRole(t *testing.T) {
+	tests := []struct {
+		name          string
+		contributorID string
+		role          string
+		setMember     bool
+		wantErr       error
+	}{
+		{
+			name:          "contributor accepted",
+			contributorID: "role-contributor",
+			role:          "contributor",
+			setMember:     true,
+			wantErr:       nil,
+		},
+		{
+			name:          "member rejected",
+			contributorID: "role-member",
+			role:          "member",
+			setMember:     true,
+			wantErr:       types.ErrNotContributor,
+		},
+		{
+			name:          "moderator rejected",
+			contributorID: "role-moderator",
+			role:          "moderator",
+			setMember:     true,
+			wantErr:       types.ErrNotContributor,
+		},
+		{
+			name:          "leader rejected",
+			contributorID: "role-leader",
+			role:          "leader",
+			setMember:     true,
+			wantErr:       types.ErrNotContributor,
+		},
+		{
+			name:          "non-member rejected",
+			contributorID: "role-non-member",
+			setMember:     false,
+			wantErr:       types.ErrNotContributor,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			srv, _, mockOrg, ctx := makeTestMsgServer(t)
+			if _, ok := mockOrg.members["test-org"]; !ok {
+				mockOrg.members["test-org"] = make(map[string]string)
+			}
+			if tt.setMember {
+				mockOrg.members["test-org"][tt.contributorID] = tt.role
+			} else {
+				delete(mockOrg.members["test-org"], tt.contributorID)
+			}
+
+			msg := &types.MsgSubmitCommitment{
+				Signer:        "leader-pubkey",
+				OrgId:         "test-org",
+				ContentHash:   []byte("12345678901234567890123456789012"),
+				Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+				ContributorId: tt.contributorID,
+				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
+			}
+
+			_, err := srv.SubmitCommitment(ctx, msg)
+			if tt.wantErr == nil {
+				if err != nil {
+					t.Fatalf("SubmitCommitment failed: %v", err)
+				}
+				return
+			}
+
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("expected error %v, got: %v", tt.wantErr, err)
+			}
+		})
 	}
 }
 

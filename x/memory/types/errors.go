@@ -6,6 +6,7 @@ var (
 	ErrInvalidContentHash           = errors.New("content hash must be 32 bytes")
 	ErrInvalidOrgID                 = errors.New("invalid org ID")
 	ErrInvalidContributor           = errors.New("invalid contributor ID")
+	ErrNotContributor               = errors.New("contributor role required to submit memory")
 	ErrInvalidApprover              = errors.New("invalid approver ID")
 	ErrInvalidBlob                  = errors.New("invalid encrypted blob")
 	ErrBlobTooLarge                 = errors.New("encrypted blob exceeds max size")
