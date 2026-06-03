@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
 )
 
@@ -163,33 +162,20 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 		return &types.MsgApproveMemoryResponse{}, nil
 	}
 
-	if err := m.keeper.ApproveMemory(ctx, msg.OrgId, msg.ContentHash, msg.EncryptedBlob, msg.CommittingLeader, msg.WrappedDekEnc, msg.MemoryType); err != nil {
-		return nil, err
-	}
-
-	store := m.keeper.getStore(ctx)
-	storedApprovedKey := approvedKey(msg.OrgId, msg.ContentHash)
-	bz, err := store.Get(storedApprovedKey)
-	if err != nil {
-		return nil, err
-	}
-
-	var storedApproved types.StoredMemoryCommitment
-	if err := proto.Unmarshal(bz, &storedApproved); err != nil {
-		return nil, fmt.Errorf("unmarshal approved memory: %w", err)
-	}
-
-	storedApproved.PlaintextHash = msg.PlaintextHash
-	storedApproved.Salt = msg.Salt
-	storedApproved.CiphertextHash = msg.CiphertextHash
-	storedApproved.WrappedDekHash = wrappedDekHash[:]
-	storedApproved.ContributorSig = msg.ContributorSig
-
-	bz, err = proto.Marshal(&storedApproved)
-	if err != nil {
-		return nil, fmt.Errorf("marshal approved memory: %w", err)
-	}
-	if err := store.Set(storedApprovedKey, bz); err != nil {
+	if err := m.keeper.ApproveMemory(
+		ctx,
+		msg.OrgId,
+		msg.ContentHash,
+		msg.EncryptedBlob,
+		msg.CommittingLeader,
+		msg.WrappedDekEnc,
+		msg.PlaintextHash,
+		msg.Salt,
+		msg.CiphertextHash,
+		wrappedDekHash[:],
+		msg.ContributorSig,
+		msg.MemoryType,
+	); err != nil {
 		return nil, err
 	}
 

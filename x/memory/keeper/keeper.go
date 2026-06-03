@@ -314,7 +314,14 @@ func (k *Keeper) SubmitCommitment(ctx context.Context, commitment *types.Pending
 	return nil
 }
 
-func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, encryptedBlob []byte, committingLeader string, wrappedDekEnc []byte, memoryType types.MemoryType) error {
+func (k *Keeper) ApproveMemory(
+	ctx context.Context,
+	orgID string,
+	contentHash, encryptedBlob []byte,
+	committingLeader string,
+	wrappedDekEnc, plaintextHash, salt, ciphertextHash, wrappedDekHash, contributorSig []byte,
+	memoryType types.MemoryType,
+) error {
 	if !types.ValidMemoryType(memoryType) {
 		return types.ErrInvalidMemoryType
 	}
@@ -379,6 +386,11 @@ func (k *Keeper) ApproveMemory(ctx context.Context, orgID string, contentHash, e
 		LastActiveEpoch:    currentEpoch,
 		ApprovedAtEpoch:    k.getCurrentEpoch(ctx),
 		WrappedDekEnc:      wrappedDekEnc,
+		PlaintextHash:      plaintextHash,
+		Salt:               salt,
+		CiphertextHash:     ciphertextHash,
+		WrappedDekHash:     wrappedDekHash,
+		ContributorSig:     contributorSig,
 		MemoryType:         memoryType,
 	}
 

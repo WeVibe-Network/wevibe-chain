@@ -65,7 +65,7 @@ func newPendingCommitment(orgID string, contentHash []byte, keywords []string, c
 }
 
 func approveMemory(k *Keeper, ctx context.Context, orgID string, contentHash, encryptedBlob []byte, leader string, wrappedDekEnc []byte) error {
-	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, leader, wrappedDekEnc, types.MemoryType_MEMORY_TYPE_MEMORY)
+	return k.ApproveMemory(ctx, orgID, contentHash, encryptedBlob, leader, wrappedDekEnc, nil, nil, nil, nil, nil, types.MemoryType_MEMORY_TYPE_MEMORY)
 }
 
 func TestSubmitCommitment(t *testing.T) {

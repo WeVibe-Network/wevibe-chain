@@ -28,8 +28,6 @@ var (
 	ErrInvalidValidityBounds        = errors.New("valid_after must be less than valid_until")
 	ErrMemoryArchived               = errors.New("memory is archived")
 	ErrSelfRelation                 = errors.New("memory cannot relate to itself")
-	ErrDecayRateBelowFloor          = errors.New("org decay rate below protocol minimum")
-	ErrInvalidConfidence            = errors.New("confidence exceeds maximum basis points")
 	ErrInvalidMemoryType            = errors.New("invalid memory type")
 	ErrInvalidReporter              = errors.New("invalid reporter ID")
 	ErrInvalidReportReason          = errors.New("invalid report reason")

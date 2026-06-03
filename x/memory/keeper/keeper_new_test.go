@@ -37,7 +37,7 @@ func TestReportMemory_StoresTriplet(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_MEMORY)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), nil, nil, nil, nil, nil, types.MemoryType_MEMORY_TYPE_MEMORY)
 
 	plaintext := []byte("revealed plaintext content")
 	ciphertext := []byte("encrypted blob")
@@ -99,7 +99,7 @@ func TestReportMemory_OversizedStoresHashOnly(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_MEMORY)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), nil, nil, nil, nil, nil, types.MemoryType_MEMORY_TYPE_MEMORY)
 
 	plaintext := make([]byte, 5000)
 	hash := sha256.Sum256(plaintext)
@@ -156,7 +156,7 @@ func TestReportMemory_RejectsOversizedPlaintextWithoutFlag(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_MEMORY)
+	_ = k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), nil, nil, nil, nil, nil, types.MemoryType_MEMORY_TYPE_MEMORY)
 
 	plaintext := make([]byte, 5000)
 	hash := sha256.Sum256(plaintext)
@@ -199,7 +199,7 @@ func TestEndToEnd_MemoryLifecycle_WithSocialGraph(t *testing.T) {
 	)
 	_ = k.SubmitCommitment(ctx, commitment)
 
-	err := k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), types.MemoryType_MEMORY_TYPE_MEMORY)
+	err := k.ApproveMemory(ctx, "test-org", contentHash, []byte("encrypted"), "wevibe1leader000000000000000000000000000000000", []byte("wrappedDek"), nil, nil, nil, nil, nil, types.MemoryType_MEMORY_TYPE_MEMORY)
 	if err != nil {
 		t.Fatalf("ApproveMemory failed: %v", err)
 	}
