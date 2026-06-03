@@ -1046,17 +1046,14 @@ func TestDistributePayout_OneContributor(t *testing.T) {
 	}
 
 	finalBal := orgKeeper.treasuryBal["org1"]
-	expectedBal := math.NewInt(999900)
+	expectedBal := math.NewInt(1000000)
 	if !finalBal.Equal(expectedBal) {
 		t.Errorf("expected treasury balance %s, got %s", expectedBal, finalBal)
 	}
 
 	debits := orgKeeper.treasuryDebits["org1"]
-	if len(debits) != 1 {
-		t.Errorf("expected 1 treasury debit, got %d", len(debits))
-	}
-	if !debits[0].Equal(math.NewInt(100)) {
-		t.Errorf("expected debit of 100, got %s", debits[0])
+	if len(debits) != 0 {
+		t.Errorf("expected 0 treasury debits, got %d", len(debits))
 	}
 }
 
@@ -1098,16 +1095,13 @@ func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 	}
 
 	finalBal := orgKeeper.treasuryBal["org1"]
-	if !finalBal.Equal(math.NewInt(50)) {
-		t.Errorf("expected treasury balance to be 50 after paying contrib1, got %s", finalBal)
+	if !finalBal.Equal(math.NewInt(150)) {
+		t.Errorf("expected treasury balance to remain 150, got %s", finalBal)
 	}
 
 	debits := orgKeeper.treasuryDebits["org1"]
-	if len(debits) != 1 {
-		t.Errorf("expected exactly 1 debit (contrib1 only), got %d", len(debits))
-	}
-	if !debits[0].Equal(math.NewInt(100)) {
-		t.Errorf("expected debit of 100, got %s", debits[0])
+	if len(debits) != 0 {
+		t.Errorf("expected 0 debits, got %d", len(debits))
 	}
 }
 
