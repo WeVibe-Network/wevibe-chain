@@ -351,13 +351,15 @@ func TestDefaultParams(t *testing.T) {
 	require.Equal(t, uint64(10), p.BurnPriceDecayEpochs)
 	require.Equal(t, uint64(10000000), p.BaseBurnPrice)
 	require.Equal(t, uint64(20), p.BurnPriceIncreasePercent)
+	require.Equal(t, uint64(32), p.SlotCap)
 }
 
 func TestParamsValidate(t *testing.T) {
 	require.NoError(t, types.DefaultParams().Validate())
 
-	// zero-value params are also valid (Validate is currently a no-op).
-	require.NoError(t, (types.Params{}).Validate())
+	zero := types.DefaultParams()
+	zero.SlotCap = 0
+	require.Error(t, zero.Validate())
 }
 
 // ---------------------------------------------------------------------------

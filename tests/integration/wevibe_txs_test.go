@@ -10,7 +10,6 @@ import (
 
 func TestMsgRegisterOrg_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	msg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -22,6 +21,8 @@ func TestMsgRegisterOrg_Integration(t *testing.T) {
 	result, err := suite.DeliverMsg(msg)
 	require.NoError(t, err)
 	require.NotNil(t, result)
+
+	orgID := orgtypes.FormatOrgID(0)
 
 	org, err := suite.QueryOrg(orgID)
 	require.NoError(t, err)
@@ -46,12 +47,11 @@ func TestMsgRegisterOrg_Duplicate(t *testing.T) {
 
 	_, err = suite.DeliverMsg(msg)
 	require.Error(t, err)
-	require.ErrorIs(t, err, orgtypes.ErrOrgAlreadyExists)
+	require.ErrorIs(t, err, orgtypes.ErrLeaderAlreadyOwnsOrg)
 }
 
 func TestMsgAddMember_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -62,6 +62,7 @@ func TestMsgAddMember_Integration(t *testing.T) {
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)
+	orgID := orgtypes.FormatOrgID(0)
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),
@@ -77,7 +78,6 @@ func TestMsgAddMember_Integration(t *testing.T) {
 
 func TestMsgRemoveMember_Integration(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -88,6 +88,7 @@ func TestMsgRemoveMember_Integration(t *testing.T) {
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)
+	orgID := orgtypes.FormatOrgID(0)
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),

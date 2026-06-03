@@ -23,10 +23,10 @@ func TestQueryGetOrg_Success(t *testing.T) {
 	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
-	resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: "org1"})
+	resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, "org1", resp.OrgId)
+	require.Equal(t, org.OrgID, resp.OrgId)
 	require.Equal(t, queryLeader, resp.Leader)
 	require.Equal(t, "example.com", resp.Domain)
 	require.Equal(t, uint64(1000000), resp.StorageQuota)
@@ -55,16 +55,16 @@ func TestQueryGetMembers_Success(t *testing.T) {
 	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord("org1", "member_pubkey_aaaa1234567890123456789012", "member")))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord("org1", "member_pubkey_bbbb1234567890123456789012", "moderator")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_aaaa1234567890123456789012", "member")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_bbbb1234567890123456789012", "moderator")))
 
-	resp, err := qs.GetMembers(ctx, &types.QueryGetMembersRequest{OrgId: "org1"})
+	resp, err := qs.GetMembers(ctx, &types.QueryGetMembersRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	// leader is added as a member during RegisterOrg, plus the two added above.
 	require.Len(t, resp.Members, 3)
 	for _, m := range resp.Members {
-		require.Equal(t, "org1", m.OrgId)
+		require.Equal(t, org.OrgID, m.OrgId)
 		require.NotEmpty(t, m.Pubkey)
 	}
 }
@@ -89,9 +89,9 @@ func TestQueryIsMember_True(t *testing.T) {
 
 	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord("org1", "member_pubkey_cccc1234567890123456789012", "member")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_cccc1234567890123456789012", "member")))
 
-	resp, err := qs.IsMember(ctx, &types.QueryIsMemberRequest{OrgId: "org1", Pubkey: "member_pubkey_cccc1234567890123456789012"})
+	resp, err := qs.IsMember(ctx, &types.QueryIsMemberRequest{OrgId: org.OrgID, Pubkey: "member_pubkey_cccc1234567890123456789012"})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.IsMember)
@@ -149,14 +149,14 @@ func TestQueryGetOrgConfig_Success(t *testing.T) {
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	cfg := &types.OrgConfig{
-		OrgID:                    "org1",
+		OrgID:                    org.OrgID,
 		ServeAttestationRequired: true,
 		MinContributionsPerEpoch: 7,
 		ContestStakeVibe:         123,
 	}
-	require.NoError(t, k.SetOrgConfig(ctx, "org1", cfg))
+	require.NoError(t, k.SetOrgConfig(ctx, org.OrgID, cfg))
 
-	resp, err := qs.GetOrgConfig(ctx, &types.QueryGetOrgConfigRequest{OrgId: "org1"})
+	resp, err := qs.GetOrgConfig(ctx, &types.QueryGetOrgConfigRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.True(t, resp.ServeAttestationRequired)
@@ -187,12 +187,12 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 
 	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord("org1", "member_pubkey_dddd1234567890123456789012", "moderator")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "moderator")))
 
-	resp, err := qs.GetOrgProfile(ctx, &types.QueryGetOrgProfileRequest{OrgId: "org1"})
+	resp, err := qs.GetOrgProfile(ctx, &types.QueryGetOrgProfileRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.Equal(t, "org1", resp.OrgId)
+	require.Equal(t, org.OrgID, resp.OrgId)
 	require.Equal(t, queryLeader, resp.Leader)
 	require.Equal(t, "example.com", resp.Domain)
 	require.Equal(t, int32(types.OrgStatus_ACTIVE), resp.Status)

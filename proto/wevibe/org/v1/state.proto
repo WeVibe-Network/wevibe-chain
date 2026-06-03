@@ -25,6 +25,11 @@ message StoredOrg {
   // from `leader` which is the ed25519 member pubkey). The on-chain authority
   // for org-decision messages; the signer that may rotate the serving key.
   string leader_wallet_address = 15;
+  uint64 slot = 16;
+}
+
+message StoredSlotRegistry {
+  uint64 next_slot = 1;
 }
 
 message StoredMemberRecord {

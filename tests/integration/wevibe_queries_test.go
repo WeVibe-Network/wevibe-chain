@@ -15,7 +15,6 @@ import (
 
 func TestQueryOrg_GetOrg(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	msg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -25,6 +24,7 @@ func TestQueryOrg_GetOrg(t *testing.T) {
 	}
 	_, err := suite.DeliverMsg(msg)
 	require.NoError(t, err)
+	orgID := orgtypes.FormatOrgID(0)
 
 	queryServer := orgkeeper.NewQueryServerImpl(suite.OrgKeeper)
 	resp, err := queryServer.GetOrg(suite.Ctx, &orgtypes.QueryGetOrgRequest{
@@ -39,7 +39,6 @@ func TestQueryOrg_GetOrg(t *testing.T) {
 
 func TestQueryOrg_GetMembers(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -50,6 +49,7 @@ func TestQueryOrg_GetMembers(t *testing.T) {
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)
+	orgID := orgtypes.FormatOrgID(0)
 
 	memberMsg := &orgtypes.MsgAddMember{
 		Signer: suite.UserAddr.String(),
@@ -63,7 +63,6 @@ func TestQueryOrg_GetMembers(t *testing.T) {
 
 func TestQueryOrg_IsMember(t *testing.T) {
 	suite := NewTestSuite(t)
-	orgID := orgtypes.DeriveOrgID(suite.UserAddr)
 
 	orgMsg := &orgtypes.MsgRegisterOrg{
 		Signer:          suite.UserAddr.String(),
@@ -73,6 +72,7 @@ func TestQueryOrg_IsMember(t *testing.T) {
 	}
 	_, err := suite.DeliverMsg(orgMsg)
 	require.NoError(t, err)
+	orgID := orgtypes.FormatOrgID(0)
 
 	queryServer := orgkeeper.NewQueryServerImpl(suite.OrgKeeper)
 

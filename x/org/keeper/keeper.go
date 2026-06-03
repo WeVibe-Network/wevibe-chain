@@ -57,6 +57,10 @@ func dynamicPriceKey() []byte {
 	return []byte("dynprice/")
 }
 
+func slotRegistryKey() []byte {
+	return []byte("slotreg/")
+}
+
 func orgConfigKey(orgID string) []byte {
 	return []byte(fmt.Sprintf("orgconfig/%s", orgID))
 }
@@ -66,6 +70,7 @@ const ParamsKey = "params"
 func orgToStored(org *types.Org) *types.StoredOrg {
 	return &types.StoredOrg{
 		OrgId:               org.OrgID,
+		Slot:                org.Slot,
 		Leader:              org.Leader,
 		Domain:              org.Domain,
 		CreatedAt:           org.CreatedAt,
@@ -81,6 +86,7 @@ func orgToStored(org *types.Org) *types.StoredOrg {
 func storedToOrg(stored types.StoredOrg) types.Org {
 	return types.Org{
 		OrgID:               stored.OrgId,
+		Slot:                stored.Slot,
 		Leader:              stored.Leader,
 		Domain:              stored.Domain,
 		CreatedAt:           stored.CreatedAt,
@@ -150,7 +156,51 @@ func (k *Keeper) GetParams(ctx context.Context) (types.Params, error) {
 	return params, nil
 }
 
+func (k *Keeper) GetNextSlot(ctx context.Context) (uint64, error) {
+	store := k.getStore(ctx)
+	bz, err := store.Get(slotRegistryKey())
+	if err != nil {
+		return 0, fmt.Errorf("get slot registry: %w", err)
+	}
+	if bz == nil {
+		return 0, nil
+	}
+
+	var registry types.StoredSlotRegistry
+	if err := proto.Unmarshal(bz, &registry); err != nil {
+		return 0, fmt.Errorf("unmarshal slot registry: %w", err)
+	}
+
+	return registry.NextSlot, nil
+}
+
+func (k *Keeper) SetNextSlot(ctx context.Context, nextSlot uint64) error {
+	store := k.getStore(ctx)
+	bz, err := proto.Marshal(&types.StoredSlotRegistry{NextSlot: nextSlot})
+	if err != nil {
+		return fmt.Errorf("marshal slot registry: %w", err)
+	}
+
+	return store.Set(slotRegistryKey(), bz)
+}
+
 func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.AccAddress) error {
+	nextSlot, err := k.GetNextSlot(ctx)
+	if err != nil {
+		return err
+	}
+
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return err
+	}
+	if nextSlot >= params.SlotCap {
+		return types.ErrSlotCapReached
+	}
+
+	org.Slot = nextSlot
+	org.OrgID = types.FormatOrgID(nextSlot)
+
 	if err := org.Validate(); err != nil {
 		return err
 	}
@@ -205,10 +255,15 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 	}
 	store.Set(leaderKey, leaderBz)
 
+	if err := k.SetNextSlot(ctx, nextSlot+1); err != nil {
+		return err
+	}
+
 	k.updateDynamicPriceOnCreation(ctx)
 
 	k.logger.Info("org registered",
 		"org_id", org.OrgID,
+		"slot", org.Slot,
 		"leader", org.Leader,
 	)
 	return nil
@@ -881,6 +936,10 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		return err
 	}
 
+	if err := k.SetNextSlot(ctx, state.NextSlot); err != nil {
+		return err
+	}
+
 	for _, org := range state.Orgs {
 		if err := org.Validate(); err != nil {
 			return err
@@ -933,6 +992,11 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) {
 	store := k.getStore(ctx)
 	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	nextSlot, err := k.GetNextSlot(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -1010,6 +1074,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		Members:      members,
 		DynamicPrice: dynamicPrice,
 		OrgConfigs:   orgConfigs,
+		NextSlot:     nextSlot,
 		Params:       params,
 	}, nil
 }

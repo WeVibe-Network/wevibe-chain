@@ -3,6 +3,7 @@ package keeper_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"testing"
 
 	"cosmossdk.io/math"
@@ -204,16 +205,17 @@ func TestRegisterOrg(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	has, err := k.HasOrg(ctx, "org1")
+	has, err := k.HasOrg(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("HasOrg failed: %v", err)
 	}
 	if !has {
 		t.Fatal("expected org to exist")
 	}
+	require.Equal(t, types.FormatOrgID(0), org.OrgID)
 }
 
-func TestRegisterOrg_DuplicateOrg(t *testing.T) {
+func TestRegisterOrg_DuplicateLeader(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
 	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
@@ -224,9 +226,29 @@ func TestRegisterOrg_DuplicateOrg(t *testing.T) {
 	}
 
 	err = k.RegisterOrg(ctx, org, testCreatorAddr)
-	if err != types.ErrOrgAlreadyExists {
-		t.Fatalf("expected ErrOrgAlreadyExists, got: %v", err)
+	if err != types.ErrLeaderAlreadyOwnsOrg {
+		t.Fatalf("expected ErrLeaderAlreadyOwnsOrg, got: %v", err)
 	}
+}
+
+func TestRegisterOrg_SlotCapReached(t *testing.T) {
+	k, ctx, _ := newTestKeeper(t)
+
+	params, err := k.GetParams(ctx)
+	require.NoError(t, err)
+	params.SlotCap = 32
+	require.NoError(t, k.SetParams(ctx, params))
+
+	for i := 0; i < 32; i++ {
+		org := types.NewOrg("", fmt.Sprintf("leader-%d", i), "", 1000000, 5000)
+		err := k.RegisterOrg(ctx, org, testCreatorAddr)
+		require.NoError(t, err)
+		require.Equal(t, types.FormatOrgID(uint64(i)), org.OrgID)
+		require.Equal(t, uint64(i), org.Slot)
+	}
+
+	err = k.RegisterOrg(ctx, types.NewOrg("", "leader-over-cap", "", 1000000, 5000), testCreatorAddr)
+	require.ErrorIs(t, err, types.ErrSlotCapReached)
 }
 
 func TestGetOrg(t *testing.T) {
@@ -239,12 +261,12 @@ func TestGetOrg(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	retrieved, err := k.GetOrg(ctx, "org1")
+	retrieved, err := k.GetOrg(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetOrg failed: %v", err)
 	}
-	if retrieved.OrgID != "org1" {
-		t.Fatalf("expected org1, got: %s", retrieved.OrgID)
+	if retrieved.OrgID != org.OrgID {
+		t.Fatalf("expected %s, got: %s", org.OrgID, retrieved.OrgID)
 	}
 	if retrieved.Leader != "leader_pubkey_12345678901234567890123456789012" {
 		t.Fatalf("unexpected leader: %s", retrieved.Leader)
@@ -269,13 +291,13 @@ func TestAddMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("AddMember failed: %v", err)
 	}
 
-	isMember, err := k.IsMember(ctx, "org1", "member_pubkey_123456789012345678901234")
+	isMember, err := k.IsMember(ctx, org.OrgID, "member_pubkey_123456789012345678901234")
 	if err != nil {
 		t.Fatalf("IsMember failed: %v", err)
 	}
@@ -293,7 +315,7 @@ func TestAddMember_DuplicateMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("first AddMember failed: %v", err)
@@ -314,18 +336,18 @@ func TestRemoveMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("AddMember failed: %v", err)
 	}
 
-	err = k.RemoveMember(ctx, "org1", "member_pubkey_123456789012345678901234")
+	err = k.RemoveMember(ctx, org.OrgID, "member_pubkey_123456789012345678901234")
 	if err != nil {
 		t.Fatalf("RemoveMember failed: %v", err)
 	}
 
-	isMember, err := k.IsMember(ctx, "org1", "member_pubkey_123456789012345678901234")
+	isMember, err := k.IsMember(ctx, org.OrgID, "member_pubkey_123456789012345678901234")
 	if err != nil {
 		t.Fatalf("IsMember failed: %v", err)
 	}
@@ -352,7 +374,7 @@ func TestIsLeader(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	isLeader, err := k.IsLeader(ctx, "org1", "leader_pubkey_12345678901234567890123456789012")
+	isLeader, err := k.IsLeader(ctx, org.OrgID, "leader_pubkey_12345678901234567890123456789012")
 	if err != nil {
 		t.Fatalf("IsLeader failed: %v", err)
 	}
@@ -360,7 +382,7 @@ func TestIsLeader(t *testing.T) {
 		t.Fatal("expected leader to be recognized as leader")
 	}
 
-	isLeader, err = k.IsLeader(ctx, "org1", "some_other_pubkey")
+	isLeader, err = k.IsLeader(ctx, org.OrgID, "some_other_pubkey")
 	if err != nil {
 		t.Fatalf("IsLeader failed: %v", err)
 	}
@@ -378,12 +400,12 @@ func TestUpdateOrgStatus(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	err = k.UpdateOrgStatus(ctx, "org1", types.OrgStatus_DORMANT)
+	err = k.UpdateOrgStatus(ctx, org.OrgID, types.OrgStatus_DORMANT)
 	if err != nil {
 		t.Fatalf("UpdateOrgStatus failed: %v", err)
 	}
 
-	updated, err := k.GetOrg(ctx, "org1")
+	updated, err := k.GetOrg(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetOrg failed: %v", err)
 	}
@@ -401,12 +423,12 @@ func TestUpdateStorageQuota(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	err = k.UpdateStorageQuota(ctx, "org1", 2000000)
+	err = k.UpdateStorageQuota(ctx, org.OrgID, 2000000)
 	if err != nil {
 		t.Fatalf("UpdateStorageQuota failed: %v", err)
 	}
 
-	updated, err := k.GetOrg(ctx, "org1")
+	updated, err := k.GetOrg(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetOrg failed: %v", err)
 	}
@@ -472,8 +494,8 @@ func TestGetAllMembers(t *testing.T) {
 	}
 
 	members := []*types.MemberRecord{
-		types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord("org1", "member2_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org.OrgID, "member1_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org.OrgID, "member2_pubkey_123456789012345678901", "member"),
 	}
 
 	for _, m := range members {
@@ -483,7 +505,7 @@ func TestGetAllMembers(t *testing.T) {
 		}
 	}
 
-	allMembers, err := k.GetAllMembers(ctx, "org1")
+	allMembers, err := k.GetAllMembers(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetAllMembers failed: %v", err)
 	}
@@ -543,7 +565,7 @@ func TestSDKTransactionIsolation(t *testing.T) {
 		t.Fatalf("RegisterOrg in tx1 failed: %v", err)
 	}
 
-	has, err := k1.HasOrg(ctx1, "org1")
+	has, err := k1.HasOrg(ctx1, org1.OrgID)
 	if err != nil {
 		t.Fatalf("HasOrg in tx1 failed: %v", err)
 	}
@@ -559,7 +581,7 @@ func TestSDKTransactionIsolation(t *testing.T) {
 	k2 := keeper.NewKeeper(storeService2, logger2, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", bank2, nil)
 	ctx2 := context.Background()
 
-	has, err = k2.HasOrg(ctx2, "org1")
+	has, err = k2.HasOrg(ctx2, org1.OrgID)
 	if err != nil {
 		t.Fatalf("HasOrg in tx2 failed: %v", err)
 	}
@@ -590,7 +612,7 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 	k2 := keeper.NewKeeper(storeService2, logger2, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", bank2, nil)
 	ctx2 := context.Background()
 
-	has, err := k2.HasOrg(ctx2, "org1")
+	has, err := k2.HasOrg(ctx2, org.OrgID)
 	if err != nil {
 		t.Fatalf("HasOrg failed: %v", err)
 	}
@@ -598,11 +620,11 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 		t.Fatal("expected org to persist after commit")
 	}
 
-	retrieved, err := k2.GetOrg(ctx2, "org1")
+	retrieved, err := k2.GetOrg(ctx2, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetOrg failed: %v", err)
 	}
-	if retrieved.OrgID != "org1" {
+	if retrieved.OrgID != org.OrgID {
 		t.Fatal("retrieved org doesn't match stored org")
 	}
 }
@@ -682,11 +704,13 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 			t.Fatalf("RegisterOrg failed: %v", err)
 		}
 	}
+	org0ID := orgs[0].OrgID
+	org1ID := orgs[1].OrgID
 
 	members := []*types.MemberRecord{
-		types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord("org1", "member2_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord("org2", "member3_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org0ID, "member1_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org0ID, "member2_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org1ID, "member3_pubkey_123456789012345678901", "member"),
 	}
 
 	for _, m := range members {
@@ -704,7 +728,7 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 		t.Fatalf("expected 2 orgs, got: %d", len(allOrgs))
 	}
 
-	for _, orgID := range []string{"org1", "org2"} {
+	for _, orgID := range []string{org0ID, org1ID} {
 		has, err := k.HasOrg(ctx, orgID)
 		if err != nil {
 			t.Fatalf("HasOrg failed: %v", err)
@@ -714,7 +738,7 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 		}
 	}
 
-	org1Members, err := k.GetAllMembers(ctx, "org1")
+	org1Members, err := k.GetAllMembers(ctx, org0ID)
 	if err != nil {
 		t.Fatalf("GetAllMembers failed: %v", err)
 	}
@@ -733,16 +757,16 @@ func TestSetOrgConfig(t *testing.T) {
 	}
 
 	cfg := &types.OrgConfig{
-		OrgID:                    "org1",
+		OrgID:                    org.OrgID,
 		ServeAttestationRequired: true,
 	}
 
-	err = k.SetOrgConfig(ctx, "org1", cfg)
+	err = k.SetOrgConfig(ctx, org.OrgID, cfg)
 	if err != nil {
 		t.Fatalf("SetOrgConfig failed: %v", err)
 	}
 
-	retrieved, err := k.GetOrgConfig(ctx, "org1")
+	retrieved, err := k.GetOrgConfig(ctx, org.OrgID)
 	if err != nil {
 		t.Fatalf("GetOrgConfig failed: %v", err)
 	}

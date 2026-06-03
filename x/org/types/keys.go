@@ -20,6 +20,7 @@ type MemberKey struct {
 
 type Org struct {
 	OrgID           string    `json:"org_id"`
+	Slot            uint64    `json:"slot"`
 	Leader          string    `json:"leader"`
 	Domain          string    `json:"domain"`
 	CreatedAt       uint64    `json:"created_at"`

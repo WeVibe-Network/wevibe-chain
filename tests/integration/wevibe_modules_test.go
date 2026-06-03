@@ -27,7 +27,7 @@ func registerOrg(t *testing.T, suite *TestSuite) string {
 		RetrievalBudget: 500,
 	})
 	require.NoError(t, err)
-	return orgtypes.DeriveOrgID(suite.UserAddr)
+	return orgtypes.FormatOrgID(0)
 }
 
 // ---------------------------------------------------------------------------
