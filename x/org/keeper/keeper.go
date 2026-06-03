@@ -188,6 +188,16 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 		return types.ErrOrgAlreadyExists
 	}
 
+	orgs, err := k.GetAllOrgs(ctx)
+	if err != nil {
+		return err
+	}
+	for _, existingOrg := range orgs {
+		if existingOrg.Leader == org.Leader {
+			return types.ErrLeaderAlreadyOwnsOrg
+		}
+	}
+
 	burnPrice := k.ComputeBurnPrice(ctx)
 	if burnPrice.IsPositive() {
 		burnCoins := sdk.NewCoins(sdk.NewCoin("uvibe", burnPrice))
