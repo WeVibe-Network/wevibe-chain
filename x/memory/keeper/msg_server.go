@@ -53,7 +53,14 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 	if err != nil {
 		return nil, fmt.Errorf("%w: failed to load member record for contributor %s in org %s: %v", types.ErrNotContributor, msg.ContributorId, msg.OrgId, err)
 	}
-	if member == nil || member.Role != "contributor" {
+	if member == nil {
+		return nil, types.ErrNotContributor
+	}
+
+	switch member.Role {
+	case "contributor", "moderator", "leader":
+		// allowed
+	default:
 		return nil, types.ErrNotContributor
 	}
 

@@ -246,18 +246,18 @@ func TestMsgSubmitCommitment_RequiresContributorRole(t *testing.T) {
 			wantErr:       types.ErrNotContributor,
 		},
 		{
-			name:          "moderator rejected",
+			name:          "moderator accepted",
 			contributorID: "role-moderator",
 			role:          "moderator",
 			setMember:     true,
-			wantErr:       types.ErrNotContributor,
+			wantErr:       nil,
 		},
 		{
-			name:          "leader rejected",
+			name:          "leader accepted",
 			contributorID: "role-leader",
 			role:          "leader",
 			setMember:     true,
-			wantErr:       types.ErrNotContributor,
+			wantErr:       nil,
 		},
 		{
 			name:          "non-member rejected",
