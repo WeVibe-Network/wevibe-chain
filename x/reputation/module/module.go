@@ -1,11 +1,13 @@
 package reputation
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
 	"github.com/cosmos/cosmos-sdk/client"
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -24,6 +26,9 @@ var (
 	_ depinject.OnePerModuleType = (*Module)(nil)
 	_ appmodule.AppModule        = (*Module)(nil)
 	_ module.HasServices         = (*Module)(nil)
+	_ interface {
+		RegisterGRPCGatewayRoutes(client.Context, *runtime.ServeMux)
+	} = (*Module)(nil)
 	// HasGenesis (and the embedded HasGenesisBasics) make the SDK ModuleManager
 	// run DefaultGenesis/InitGenesis/ExportGenesis for this module. Without it
 	// the module's genesis path is silently skipped and the module is never
@@ -97,4 +102,12 @@ func (m *Module) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMes
 func (m *Module) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(m.keeper))
 	types.RegisterQueryServer(cfg.QueryServer(), keeper.NewQueryServerImpl(m.keeper))
+}
+
+// RegisterGRPCGatewayRoutes registers the module's REST query routes on the
+// gRPC-gateway mux so the chain serves them over the REST API (port 1317).
+func (m *Module) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	if err := types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx)); err != nil {
+		panic(err)
+	}
 }

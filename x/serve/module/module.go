@@ -5,10 +5,12 @@ import (
 
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 
+	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/wevibe-network/wevibe-chain/x/serve/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/serve/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
 type Module struct {
@@ -17,8 +19,11 @@ type Module struct {
 
 var (
 	_ depinject.OnePerModuleType = (*Module)(nil)
-	_ appmodule.AppModule       = (*Module)(nil)
-	_ module.HasServices        = (*Module)(nil)
+	_ appmodule.AppModule        = (*Module)(nil)
+	_ module.HasServices         = (*Module)(nil)
+	_ interface {
+		RegisterGRPCGatewayRoutes(client.Context, *runtime.ServeMux)
+	} = (*Module)(nil)
 )
 
 func NewModule(k *keeper.Keeper) *Module {
@@ -26,7 +31,7 @@ func NewModule(k *keeper.Keeper) *Module {
 }
 
 func (m *Module) IsOnePerModuleType() {}
-func (m *Module) IsAppModule()       {}
+func (m *Module) IsAppModule()        {}
 
 func (m *Module) DefaultGenesis() []byte {
 	state := &types.GenesisState{}
@@ -56,4 +61,12 @@ func (m *Module) ExportGenesis(ctx context.Context) ([]byte, error) {
 func (m *Module) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(m.keeper))
 	types.RegisterQueryServer(cfg.QueryServer(), keeper.NewQueryServerImpl(m.keeper))
+}
+
+// RegisterGRPCGatewayRoutes registers the module's REST query routes on the
+// gRPC-gateway mux so the chain serves them over the REST API (port 1317).
+func (m *Module) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	if err := types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx)); err != nil {
+		panic(err)
+	}
 }
