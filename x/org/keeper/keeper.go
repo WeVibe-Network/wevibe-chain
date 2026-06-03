@@ -239,6 +239,10 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 
 	store.Set(key, bz)
 
+	if err := k.grantServingFeegrant(ctx, types.OrgAccountAddress(org.OrgID), org.HubServingAddress); err != nil {
+		return err
+	}
+
 	leaderKey := memberKey(org.OrgID, org.Leader)
 	leaderBz, err := proto.Marshal(&types.StoredMemberRecord{
 		OrgId:  org.OrgID,
@@ -469,6 +473,14 @@ func (k *Keeper) SetServingKey(ctx context.Context, orgID, newServingKey, signer
 		return fmt.Errorf("marshal org: %w", err)
 	}
 	if err := store.Set(key, bz); err != nil {
+		return err
+	}
+
+	// Feegrant keeper in this SDK version does not expose a keeper-level revoke
+	// API. old grant is harmless — x/serve auth requires
+	// signer==HubServingAddress, so the de-whitelisted old key cannot submit
+	// serve/deny regardless of a lingering feegrant.
+	if err := k.grantServingFeegrant(ctx, types.OrgAccountAddress(orgID), newServingKey); err != nil {
 		return err
 	}
 

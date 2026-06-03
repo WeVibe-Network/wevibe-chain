@@ -25,10 +25,17 @@ var (
 )
 
 type mockFeegrantKeeper struct {
+	grantCalls    []feegrantGrantCall
 	lastGranter   sdk.AccAddress
 	lastGrantee   sdk.AccAddress
 	lastAllowance feegrant.FeeAllowanceI
 	err           error
+}
+
+type feegrantGrantCall struct {
+	granter   sdk.AccAddress
+	grantee   sdk.AccAddress
+	allowance feegrant.FeeAllowanceI
 }
 
 func newMockFeegrantKeeper() *mockFeegrantKeeper {
@@ -36,6 +43,7 @@ func newMockFeegrantKeeper() *mockFeegrantKeeper {
 }
 
 func (m *mockFeegrantKeeper) GrantAllowance(ctx context.Context, granter, grantee sdk.AccAddress, allowance feegrant.FeeAllowanceI) error {
+	m.grantCalls = append(m.grantCalls, feegrantGrantCall{granter: granter, grantee: grantee, allowance: allowance})
 	m.lastGranter = granter
 	m.lastGrantee = grantee
 	m.lastAllowance = allowance
@@ -51,6 +59,24 @@ func setupMsgServer(t *testing.T) (types.MsgServer, context.Context, *mockBankKe
 	k := keeper.NewKeeper(storeService, logger, validAuthority, bank, feegrantKeeper)
 	sdkCtx := sdk.NewContext(cms, tmproto.Header{Height: 1, Time: time.Now().UTC()}, false, logger)
 	return keeper.NewMsgServerImpl(k), sdk.WrapSDKContext(sdkCtx), bank, feegrantKeeper
+}
+
+func assertServingFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowanceI) {
+	t.Helper()
+
+	allowed, ok := allowance.(*feegrant.AllowedMsgAllowance)
+	require.True(t, ok)
+	require.ElementsMatch(t,
+		[]string{"/wevibe.serve.v1.MsgSubmitServeBatch", "/wevibe.serve.v1.MsgSubmitDenialBatch"},
+		allowed.AllowedMessages,
+	)
+
+	innerAllowance, err := allowed.GetAllowance()
+	require.NoError(t, err)
+	basic, ok := innerAllowance.(*feegrant.BasicAllowance)
+	require.True(t, ok)
+	require.Empty(t, basic.SpendLimit)
+	require.Nil(t, basic.Expiration)
 }
 
 func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
@@ -567,30 +593,36 @@ func TestMsgCloseOrg_AlreadyClosed(t *testing.T) {
 // ── CO-044: serving-key registration + rotation (D-S32-CO044-*) ──
 
 func TestMsgRegisterOrg_WithServingKeyAndLeaderWallet(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
+	srv, ctx, _, feegrantKeeper := setupMsgServer(t)
 
 	resp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
-		HubServingKey:   "wevibe1serving000000",
+		HubServingKey:   validMember,
 		LeaderWallet:    validLeader,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, types.FormatOrgID(0), resp.OrgId)
+	require.Len(t, feegrantKeeper.grantCalls, 1)
+
+	grantCall := feegrantKeeper.grantCalls[0]
+	require.Equal(t, types.OrgAccountAddress(resp.OrgId).String(), grantCall.granter.String())
+	require.Equal(t, validMember, grantCall.grantee.String())
+	assertServingFeegrantAllowance(t, grantCall.allowance)
 }
 
 func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
+	srv, ctx, _, feegrantKeeper := setupMsgServer(t)
 
 	orgResp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
 		Signer:          validLeader,
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
-		HubServingKey:   "wevibe1serving000000",
+		HubServingKey:   validMember,
 		LeaderWallet:    validLeader,
 	})
 	require.NoError(t, err)
@@ -599,9 +631,15 @@ func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
 	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
 		Signer:        validLeader,
 		OrgId:         orgID,
-		NewServingKey: "wevibe1rotated000000",
+		NewServingKey: validSigner,
 	})
 	require.NoError(t, err)
+	require.Len(t, feegrantKeeper.grantCalls, 2)
+
+	reGrantCall := feegrantKeeper.grantCalls[1]
+	require.Equal(t, types.OrgAccountAddress(orgID).String(), reGrantCall.granter.String())
+	require.Equal(t, validSigner, reGrantCall.grantee.String())
+	assertServingFeegrantAllowance(t, reGrantCall.allowance)
 }
 
 // R-BLAST-RADIUS: a non-leader-wallet signer cannot rotate the serving key.
@@ -613,7 +651,7 @@ func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
 		Leader:          validLeader,
 		StorageQuota:    1000,
 		RetrievalBudget: 500,
-		HubServingKey:   "wevibe1serving000000",
+		HubServingKey:   validMember,
 		LeaderWallet:    validLeader,
 	})
 	require.NoError(t, err)
@@ -622,7 +660,7 @@ func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
 	_, err = srv.SetServingKey(ctx, &types.MsgSetServingKey{
 		Signer:        validSigner, // not the leader wallet
 		OrgId:         orgID,
-		NewServingKey: "wevibe1evil000000000",
+		NewServingKey: validAuthority,
 	})
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
