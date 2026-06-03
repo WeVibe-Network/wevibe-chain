@@ -29,42 +29,6 @@ func TestMsgMintDailyEmission_ValidateBasic_ZeroEpoch(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// MsgDistributeOperatorRewards.ValidateBasic
-// ---------------------------------------------------------------------------
-
-func TestMsgDistributeOperatorRewards_ValidateBasic_Valid(t *testing.T) {
-	msg := &types.MsgDistributeOperatorRewards{
-		Signer:  "cosmos1abc",
-		Rewards: []*types.OperatorRewardEntry{{OperatorId: "op1", Amount: 100}},
-		Epoch:   1,
-	}
-	require.NoError(t, msg.ValidateBasic())
-}
-
-func TestMsgDistributeOperatorRewards_ValidateBasic_EmptySigner(t *testing.T) {
-	msg := &types.MsgDistributeOperatorRewards{
-		Signer:  "",
-		Rewards: []*types.OperatorRewardEntry{{OperatorId: "op1", Amount: 100}},
-		Epoch:   1,
-	}
-	require.Error(t, msg.ValidateBasic())
-}
-
-func TestMsgDistributeOperatorRewards_ValidateBasic_EmptyRewards(t *testing.T) {
-	// nil rewards slice (len == 0)
-	msg := &types.MsgDistributeOperatorRewards{Signer: "cosmos1abc", Rewards: nil, Epoch: 1}
-	require.Error(t, msg.ValidateBasic())
-
-	// explicitly empty (non-nil) rewards slice (len == 0)
-	msg2 := &types.MsgDistributeOperatorRewards{
-		Signer:  "cosmos1abc",
-		Rewards: []*types.OperatorRewardEntry{},
-		Epoch:   1,
-	}
-	require.Error(t, msg2.ValidateBasic())
-}
-
-// ---------------------------------------------------------------------------
 // MsgUpdateParams.ValidateBasic
 // ---------------------------------------------------------------------------
 
@@ -182,69 +146,14 @@ func TestEmissionPool_Validate_ZeroShares(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// WorkScore helpers + Validate
+// DailyEmission / ValidatorReward constructors
 // ---------------------------------------------------------------------------
 
-func TestNewWorkScore_ComputesDerivedScores(t *testing.T) {
-	w := types.NewWorkScore("op1", "org1", 1.5, 0.9, 100, 7)
-	require.Equal(t, "op1", w.OperatorID)
-	require.Equal(t, "org1", w.OrgID)
-	require.Equal(t, 1.5, w.RarityMultiplier)
-	require.Equal(t, 0.9, w.AvailabilityScore)
-	require.Equal(t, uint64(100), w.RetrievalVolume)
-	require.Equal(t, uint64(7), w.Epoch)
-
-	expectedStorage := 0.3 * 0.9
-	expectedRetrieval := 0.7 * 100.0
-	require.Equal(t, expectedStorage, w.StorageScore)
-	require.Equal(t, expectedRetrieval, w.RetrievalScore)
-	require.Equal(t, 1.5*(expectedStorage+expectedRetrieval), w.TotalScore)
-}
-
-func TestNewWorkScore_ZeroValues(t *testing.T) {
-	w := types.NewWorkScore("op1", "org1", 0, 0, 0, 0)
-	require.Equal(t, 0.0, w.StorageScore)
-	require.Equal(t, 0.0, w.RetrievalScore)
-	require.Equal(t, 0.0, w.TotalScore)
-}
-
-func TestWorkScore_Validate_Valid(t *testing.T) {
-	w := types.NewWorkScore("op1", "org1", 1.0, 1.0, 1, 1)
-	require.NoError(t, w.Validate())
-}
-
-func TestWorkScore_Validate_EmptyOperatorID(t *testing.T) {
-	w := &types.WorkScore{OperatorID: "", OrgID: "org1"}
-	require.ErrorIs(t, w.Validate(), types.ErrInvalidOperatorID)
-}
-
-func TestWorkScore_Validate_EmptyOrgID(t *testing.T) {
-	w := &types.WorkScore{OperatorID: "op1", OrgID: ""}
-	require.ErrorIs(t, w.Validate(), types.ErrInvalidOrgID)
-}
-
-// ---------------------------------------------------------------------------
-// DailyEmission / OperatorReward / ValidatorReward constructors
-// ---------------------------------------------------------------------------
-
-func TestNewDailyEmission_InitializesMaps(t *testing.T) {
-	e := types.NewDailyEmission(1, 10000, 8000, 2000)
+func TestNewDailyEmission(t *testing.T) {
+	e := types.NewDailyEmission(1, 10000, 2000)
 	require.Equal(t, uint64(1), e.Epoch)
 	require.Equal(t, uint64(10000), e.TotalEmitted)
-	require.Equal(t, uint64(8000), e.OperatorShare)
 	require.Equal(t, uint64(2000), e.ValidatorShare)
-	require.NotNil(t, e.OperatorRewards)
-	require.NotNil(t, e.ValidatorRewards)
-	require.Empty(t, e.OperatorRewards)
-	require.Empty(t, e.ValidatorRewards)
-}
-
-func TestNewOperatorReward(t *testing.T) {
-	r := types.NewOperatorReward("op1", "org1", 500, 3)
-	require.Equal(t, "op1", r.OperatorID)
-	require.Equal(t, "org1", r.OrgID)
-	require.Equal(t, uint64(500), r.Amount)
-	require.Equal(t, uint64(3), r.Epoch)
 }
 
 func TestNewValidatorReward(t *testing.T) {
@@ -320,25 +229,11 @@ func TestDailyEmission_StoredRoundTrip(t *testing.T) {
 	require.Nil(t, types.DailyEmissionToStored(nil))
 	require.Nil(t, types.StoredToDailyEmission(nil))
 
-	e := types.NewDailyEmission(1, 10000, 8000, 2000)
-	e.OperatorRewards["op1"] = 5000
-	e.ValidatorRewards["val1"] = 1000
+	e := types.NewDailyEmission(1, 10000, 2000)
 	got := types.StoredToDailyEmission(types.DailyEmissionToStored(e))
 	require.Equal(t, e.Epoch, got.Epoch)
 	require.Equal(t, e.TotalEmitted, got.TotalEmitted)
-	require.Equal(t, e.OperatorShare, got.OperatorShare)
 	require.Equal(t, e.ValidatorShare, got.ValidatorShare)
-	require.Equal(t, e.OperatorRewards, got.OperatorRewards)
-	require.Equal(t, e.ValidatorRewards, got.ValidatorRewards)
-}
-
-func TestWorkScore_StoredRoundTrip(t *testing.T) {
-	require.Nil(t, types.WorkScoreToStored(nil))
-	require.Nil(t, types.StoredToWorkScore(nil))
-
-	w := types.NewWorkScore("op1", "org1", 1.5, 0.9, 100, 7)
-	got := types.StoredToWorkScore(types.WorkScoreToStored(w))
-	require.Equal(t, w, got)
 }
 
 func TestBootstrapCredit_StoredRoundTrip(t *testing.T) {
@@ -368,32 +263,23 @@ func TestNewGenesisState(t *testing.T) {
 	pool := types.NewEmissionPool(1000, 10, 80, 20, 0)
 	gs := types.NewGenesisState(
 		pool,
-		[]*types.DailyEmission{types.NewDailyEmission(1, 10000, 8000, 2000)},
-		[]*types.OperatorReward{types.NewOperatorReward("op1", "org1", 500, 1)},
-		[]*types.ValidatorReward{types.NewValidatorReward("val1", 250, 1)},
+		[]*types.DailyEmission{types.NewDailyEmission(1, 10000, 2000)},
 		[]*types.BootstrapCredit{types.NewBootstrapCredit("op1", 1000)},
-		[]*types.WorkScore{types.NewWorkScore("op1", "org1", 1.0, 1.0, 1, 1)},
 		[]*types.AsymmetricGate{types.NewAsymmetricGate("op1", "org1", true, 1)},
 		42,
 	)
 	require.Equal(t, pool, gs.EmissionPool)
 	require.Len(t, gs.DailyEmissions, 1)
-	require.Len(t, gs.OperatorRewards, 1)
-	require.Len(t, gs.ValidatorRewards, 1)
 	require.Len(t, gs.BootstrapCredits, 1)
-	require.Len(t, gs.WorkScores, 1)
 	require.Len(t, gs.AsymmetricGates, 1)
 	require.Equal(t, uint64(42), gs.BootstrapExpiry)
 }
 
 func TestNewGenesisState_EmptyCollections(t *testing.T) {
-	gs := types.NewGenesisState(nil, nil, nil, nil, nil, nil, nil, 0)
+	gs := types.NewGenesisState(nil, nil, nil, nil, 0)
 	require.Nil(t, gs.EmissionPool)
 	require.Empty(t, gs.DailyEmissions)
-	require.Empty(t, gs.OperatorRewards)
-	require.Empty(t, gs.ValidatorRewards)
 	require.Empty(t, gs.BootstrapCredits)
-	require.Empty(t, gs.WorkScores)
 	require.Empty(t, gs.AsymmetricGates)
 	require.Equal(t, uint64(0), gs.BootstrapExpiry)
 }
@@ -402,10 +288,8 @@ func TestGenesisState_JSONRoundTrip(t *testing.T) {
 	pool := types.NewEmissionPool(1000, 10, 80, 20, 3)
 	gs := types.NewGenesisState(
 		pool,
-		[]*types.DailyEmission{types.NewDailyEmission(1, 10000, 8000, 2000)},
-		nil, nil,
+		[]*types.DailyEmission{types.NewDailyEmission(1, 10000, 2000)},
 		[]*types.BootstrapCredit{types.NewBootstrapCredit("op1", 1000)},
-		[]*types.WorkScore{types.NewWorkScore("op1", "org1", 1.0, 1.0, 1, 1)},
 		nil,
 		99,
 	)
@@ -420,7 +304,6 @@ func TestGenesisState_JSONRoundTrip(t *testing.T) {
 	require.Equal(t, gs.EmissionPool, out.EmissionPool)
 	require.Len(t, out.DailyEmissions, 1)
 	require.Len(t, out.BootstrapCredits, 1)
-	require.Len(t, out.WorkScores, 1)
 	require.Equal(t, "op1", out.BootstrapCredits[0].OperatorID)
 }
 
@@ -439,9 +322,6 @@ func TestModuleNameConstant(t *testing.T) {
 
 func TestEventConstants(t *testing.T) {
 	require.Equal(t, "emission_minted", types.EventEmissionMinted)
-	require.Equal(t, "operator_reward_distributed", types.EventOperatorRewardDistributed)
-	require.Equal(t, "validator_reward_distributed", types.EventValidatorRewardDistributed)
 	require.Equal(t, "bootstrap_credit_redeemed", types.EventBootstrapCreditRedeemed)
-	require.Equal(t, "work_score_computed", types.EventWorkScoreComputed)
 	require.Equal(t, "asymmetric_gate_updated", types.EventAsymmetricGateUpdated)
 }

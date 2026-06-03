@@ -32,26 +32,9 @@ func (m *msgServer) MintDailyEmission(ctx context.Context, msg *types.MsgMintDai
 
 	return &types.MsgMintDailyEmissionResponse{
 		TotalEmitted:   emission.TotalEmitted,
-		OperatorShare:  emission.OperatorShare,
+		OperatorShare:  0,
 		ValidatorShare: emission.ValidatorShare,
 	}, nil
-}
-
-func (m *msgServer) DistributeOperatorRewards(ctx context.Context, msg *types.MsgDistributeOperatorRewards) (*types.MsgDistributeOperatorRewardsResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
-	rewards := make(map[string]uint64)
-	for _, entry := range msg.Rewards {
-		rewards[entry.OperatorId] = entry.Amount
-	}
-
-	if err := m.keeper.DistributeOperatorRewards(ctx, rewards, msg.Epoch); err != nil {
-		return nil, err
-	}
-
-	return &types.MsgDistributeOperatorRewardsResponse{}, nil
 }
 
 func (m *msgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {

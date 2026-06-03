@@ -51,9 +51,6 @@ func (k *Keeper) getStore(ctx context.Context) store.KVStore {
 const (
 	KeyPrefixPool          = "pool/"
 	KeyPrefixEmission      = "emission/"
-	KeyPrefixOpReward      = "opreward/"
-	KeyPrefixValReward     = "valreward/"
-	KeyPrefixWorkScore     = "workscore/"
 	KeyPrefixGate          = "gate/"
 	KeyPrefixBootstrap     = "bootstrap/"
 	KeyPrefixBootstrapPool = "bootstrappool/"
@@ -66,18 +63,6 @@ func poolKey() []byte {
 
 func emissionKey(epoch uint64) []byte {
 	return []byte(fmt.Sprintf("%s%s", KeyPrefixEmission, strconv.FormatUint(epoch, 10)))
-}
-
-func opRewardKey(operatorID string) []byte {
-	return []byte(KeyPrefixOpReward + operatorID)
-}
-
-func valRewardKey(validatorID string) []byte {
-	return []byte(KeyPrefixValReward + validatorID)
-}
-
-func workScoreKey(operatorID, orgID string, epoch uint64) []byte {
-	return []byte(fmt.Sprintf("%s%s/%s/%s", KeyPrefixWorkScore, operatorID, orgID, strconv.FormatUint(epoch, 10)))
 }
 
 func gateKey(operatorID, orgID string, epoch uint64) []byte {
@@ -266,12 +251,11 @@ func (k *Keeper) MintDailyEmission(ctx context.Context, epoch uint64) (*types.Da
 
 	totalEmitted := validatorEmission + distributedToContributors
 
-	emission := types.NewDailyEmission(epoch, totalEmitted, 0, validatorEmission)
+	emission := types.NewDailyEmission(epoch, totalEmitted, validatorEmission)
 
 	storedEmission := types.StoredDailyEmission{
 		Epoch:          emission.Epoch,
 		TotalEmitted:   emission.TotalEmitted,
-		OperatorShare:  0,
 		ValidatorShare: validatorEmission,
 	}
 	emissionBz, err := proto.Marshal(&storedEmission)
@@ -378,216 +362,6 @@ func (k *Keeper) GetDailyEmission(ctx context.Context, epoch uint64) (*types.Dai
 func (k *Keeper) SetAvgRetrievalVolume(ctx context.Context, avg uint64) {
 	store := k.getStore(ctx)
 	store.Set([]byte("avgresrievalvolume"), []byte(strconv.FormatUint(avg, 10)))
-}
-
-func (k *Keeper) ComputeWorkScore(ctx context.Context, operatorID, orgID string, rarityMultiplier, availabilityScore float64, retrievalVolume, epoch uint64) (*types.WorkScore, error) {
-	if operatorID == "" {
-		return nil, types.ErrInvalidOperatorID
-	}
-	if orgID == "" {
-		return nil, types.ErrInvalidOrgID
-	}
-
-	score := types.NewWorkScore(operatorID, orgID, rarityMultiplier, availabilityScore, retrievalVolume, epoch)
-
-	storedScore := types.StoredWorkScore{
-		OperatorId:        score.OperatorID,
-		OrgId:             score.OrgID,
-		RarityMultiplier:  score.RarityMultiplier,
-		AvailabilityScore: score.AvailabilityScore,
-		RetrievalVolume:   score.RetrievalVolume,
-		StorageScore:      score.StorageScore,
-		RetrievalScore:    score.RetrievalScore,
-		TotalScore:        score.TotalScore,
-		Epoch:             score.Epoch,
-	}
-	bz, err := proto.Marshal(&storedScore)
-	if err != nil {
-		return nil, fmt.Errorf("marshal work score: %w", err)
-	}
-
-	store := k.getStore(ctx)
-	if err := store.Set(workScoreKey(operatorID, orgID, epoch), bz); err != nil {
-		return nil, err
-	}
-
-	k.logger.Info("work score computed",
-		"operator_id", operatorID,
-		"org_id", orgID,
-		"rarity_multiplier", rarityMultiplier,
-		"availability_score", availabilityScore,
-		"retrieval_volume", retrievalVolume,
-		"total_score", score.TotalScore,
-	)
-
-	return score, nil
-}
-
-func (k *Keeper) GetWorkScore(ctx context.Context, operatorID, orgID string, epoch uint64) (*types.WorkScore, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(workScoreKey(operatorID, orgID, epoch))
-	if err != nil {
-		return nil, err
-	}
-	if bz == nil {
-		return nil, types.ErrNoWorkScore
-	}
-
-	var stored types.StoredWorkScore
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return nil, fmt.Errorf("unmarshal work score: %w", err)
-	}
-	return &types.WorkScore{
-		OperatorID:        stored.OperatorId,
-		OrgID:             stored.OrgId,
-		RarityMultiplier:  stored.RarityMultiplier,
-		AvailabilityScore: stored.AvailabilityScore,
-		RetrievalVolume:   stored.RetrievalVolume,
-		StorageScore:      stored.StorageScore,
-		RetrievalScore:    stored.RetrievalScore,
-		TotalScore:        stored.TotalScore,
-		Epoch:             stored.Epoch,
-	}, nil
-}
-
-func (k *Keeper) GetOperatorWorkScores(ctx context.Context, operatorID string, epoch uint64) ([]*types.WorkScore, error) {
-	store := k.getStore(ctx)
-	prefix := []byte(fmt.Sprintf("%s%s/", KeyPrefixWorkScore, operatorID))
-	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
-
-	var scores []*types.WorkScore
-	for ; iter.Valid(); iter.Next() {
-		var stored types.StoredWorkScore
-		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
-			continue
-		}
-		if stored.Epoch == epoch {
-			scores = append(scores, &types.WorkScore{
-				OperatorID:        stored.OperatorId,
-				OrgID:             stored.OrgId,
-				RarityMultiplier:  stored.RarityMultiplier,
-				AvailabilityScore: stored.AvailabilityScore,
-				RetrievalVolume:   stored.RetrievalVolume,
-				StorageScore:      stored.StorageScore,
-				RetrievalScore:    stored.RetrievalScore,
-				TotalScore:        stored.TotalScore,
-				Epoch:             stored.Epoch,
-			})
-		}
-	}
-	return scores, nil
-}
-
-func (k *Keeper) ComputeTotalWorkScore(ctx context.Context, operatorID string, epoch uint64) (float64, error) {
-	scores, err := k.GetOperatorWorkScores(ctx, operatorID, epoch)
-	if err != nil {
-		return 0, err
-	}
-
-	var total float64
-	for _, score := range scores {
-		total += score.TotalScore
-	}
-	return total, nil
-}
-
-func (k *Keeper) DistributeOperatorRewards(ctx context.Context, rewards map[string]uint64, epoch uint64) error {
-	_, err := k.GetEmissionPool(ctx)
-	if err != nil {
-		return types.ErrNoEmissionPool
-	}
-
-	emission, err := k.GetDailyEmission(ctx, epoch)
-	if err != nil {
-		return fmt.Errorf("daily emission not found for epoch")
-	}
-
-	store := k.getStore(ctx)
-	for opID, amount := range rewards {
-		bz := []byte(strconv.FormatUint(amount, 10))
-		store.Set(opRewardKey(opID), bz)
-
-		if emission.OperatorRewards == nil {
-			emission.OperatorRewards = make(map[string]uint64)
-		}
-		emission.OperatorRewards[opID] = amount
-
-		k.logger.Info("operator reward distributed",
-			"operator_id", opID,
-			"amount", amount,
-			"epoch", epoch,
-		)
-	}
-
-	emissionBz, err := proto.Marshal(types.DailyEmissionToStored(emission))
-	if err != nil {
-		return fmt.Errorf("marshal emission: %w", err)
-	}
-	if err := store.Set(emissionKey(epoch), emissionBz); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (k *Keeper) DistributeValidatorRewards(ctx context.Context, rewards map[string]uint64, epoch uint64) error {
-	_, err := k.GetEmissionPool(ctx)
-	if err != nil {
-		return types.ErrNoEmissionPool
-	}
-
-	emission, err := k.GetDailyEmission(ctx, epoch)
-	if err != nil {
-		return fmt.Errorf("daily emission not found for epoch")
-	}
-
-	store := k.getStore(ctx)
-	for valID, amount := range rewards {
-		bz := []byte(strconv.FormatUint(amount, 10))
-		store.Set(valRewardKey(valID), bz)
-
-		if emission.ValidatorRewards == nil {
-			emission.ValidatorRewards = make(map[string]uint64)
-		}
-		emission.ValidatorRewards[valID] = amount
-
-		k.logger.Info("validator reward distributed",
-			"validator_id", valID,
-			"amount", amount,
-			"epoch", epoch,
-		)
-	}
-
-	emissionBz, err := proto.Marshal(types.DailyEmissionToStored(emission))
-	if err != nil {
-		return fmt.Errorf("marshal emission: %w", err)
-	}
-	if err := store.Set(emissionKey(epoch), emissionBz); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (k *Keeper) GetOperatorReward(ctx context.Context, operatorID string) (uint64, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(opRewardKey(operatorID))
-	if err != nil {
-		return 0, err
-	}
-	if bz == nil {
-		return 0, types.ErrNoPendingReward
-	}
-
-	amount, err := strconv.ParseUint(string(bz), 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("unmarshal operator reward: %w", err)
-	}
-	return amount, nil
 }
 
 func (k *Keeper) SetAsymmetricGate(ctx context.Context, gate *types.AsymmetricGate) error {
@@ -789,73 +563,6 @@ func (k *Keeper) IsBootstrapExpired(ctx context.Context, currentEpoch uint64) bo
 	return currentEpoch > k.getBootstrapExpiry(ctx)
 }
 
-func (k *Keeper) GetAllOperatorRewards(ctx context.Context) (map[string]uint64, error) {
-	store := k.getStore(ctx)
-	prefix := []byte(KeyPrefixOpReward)
-	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
-
-	rewards := make(map[string]uint64)
-	for ; iter.Valid(); iter.Next() {
-		amount, err := strconv.ParseUint(string(iter.Value()), 10, 64)
-		if err != nil {
-			continue
-		}
-		key := string(iter.Key())
-		opID := key[len(KeyPrefixOpReward):]
-		rewards[opID] = amount
-	}
-	return rewards, nil
-}
-
-func (k *Keeper) GetAllValidatorRewards(ctx context.Context) (map[string]uint64, error) {
-	store := k.getStore(ctx)
-	prefix := []byte(KeyPrefixValReward)
-	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
-
-	rewards := make(map[string]uint64)
-	for ; iter.Valid(); iter.Next() {
-		amount, err := strconv.ParseUint(string(iter.Value()), 10, 64)
-		if err != nil {
-			continue
-		}
-		key := string(iter.Key())
-		valID := key[len(KeyPrefixValReward):]
-		rewards[valID] = amount
-	}
-	return rewards, nil
-}
-
-func (k *Keeper) GetAllWorkScores(ctx context.Context, epoch uint64) ([]*types.WorkScore, error) {
-	store := k.getStore(ctx)
-	prefix := []byte(KeyPrefixWorkScore)
-	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
-
-	var scores []*types.WorkScore
-	for ; iter.Valid(); iter.Next() {
-		var stored types.StoredWorkScore
-		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
-			continue
-		}
-		score := types.StoredToWorkScore(&stored)
-		if score.Epoch == epoch {
-			scores = append(scores, score)
-		}
-	}
-	return scores, nil
-}
-
 func (k *Keeper) ComputeRarityMultiplier(ctx context.Context, orgID string, totalOperators, activeOperators uint64) float64 {
 	if totalOperators == 0 {
 		return 1.0
@@ -897,36 +604,12 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		}
 	}
 
-	for _, reward := range state.OperatorRewards {
-		bz := []byte(strconv.FormatUint(reward.Amount, 10))
-		if err := store.Set(opRewardKey(reward.OperatorID), bz); err != nil {
-			return err
-		}
-	}
-
-	for _, reward := range state.ValidatorRewards {
-		bz := []byte(strconv.FormatUint(reward.Amount, 10))
-		if err := store.Set(valRewardKey(reward.ValidatorID), bz); err != nil {
-			return err
-		}
-	}
-
 	for _, credit := range state.BootstrapCredits {
 		bz, err := proto.Marshal(types.BootstrapCreditToStored(credit))
 		if err != nil {
 			return err
 		}
 		if err := store.Set(bootstrapKey(credit.OperatorID), bz); err != nil {
-			return err
-		}
-	}
-
-	for _, score := range state.WorkScores {
-		bz, err := proto.Marshal(types.WorkScoreToStored(score))
-		if err != nil {
-			return err
-		}
-		if err := store.Set(workScoreKey(score.OperatorID, score.OrgID, score.Epoch), bz); err != nil {
 			return err
 		}
 	}
@@ -982,42 +665,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 	}
 
-	var operatorRewards []*types.OperatorReward
-	{
-		prefix := []byte(KeyPrefixOpReward)
-		iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-		if err != nil {
-			return nil, err
-		}
-		defer iter.Close()
-		for ; iter.Valid(); iter.Next() {
-			amount, err := strconv.ParseUint(string(iter.Value()), 10, 64)
-			if err == nil {
-				key := string(iter.Key())
-				opID := key[len(KeyPrefixOpReward):]
-				operatorRewards = append(operatorRewards, &types.OperatorReward{OperatorID: opID, Amount: amount})
-			}
-		}
-	}
-
-	var validatorRewards []*types.ValidatorReward
-	{
-		prefix := []byte(KeyPrefixValReward)
-		iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-		if err != nil {
-			return nil, err
-		}
-		defer iter.Close()
-		for ; iter.Valid(); iter.Next() {
-			amount, err := strconv.ParseUint(string(iter.Value()), 10, 64)
-			if err == nil {
-				key := string(iter.Key())
-				valID := key[len(KeyPrefixValReward):]
-				validatorRewards = append(validatorRewards, &types.ValidatorReward{ValidatorID: valID, Amount: amount})
-			}
-		}
-	}
-
 	var bootstrapCredits []*types.BootstrapCredit
 	{
 		prefix := []byte(KeyPrefixBootstrap)
@@ -1030,22 +677,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 			var stored types.StoredBootstrapCredit
 			if err := proto.Unmarshal(iter.Value(), &stored); err == nil {
 				bootstrapCredits = append(bootstrapCredits, types.StoredToBootstrapCredit(&stored))
-			}
-		}
-	}
-
-	var workScores []*types.WorkScore
-	{
-		prefix := []byte(KeyPrefixWorkScore)
-		iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-		if err != nil {
-			return nil, err
-		}
-		defer iter.Close()
-		for ; iter.Valid(); iter.Next() {
-			var stored types.StoredWorkScore
-			if err := proto.Unmarshal(iter.Value(), &stored); err == nil {
-				workScores = append(workScores, types.StoredToWorkScore(&stored))
 			}
 		}
 	}
@@ -1071,10 +702,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 	return types.NewGenesisState(
 		emissionPool,
 		dailyEmissions,
-		operatorRewards,
-		validatorRewards,
 		bootstrapCredits,
-		workScores,
 		asymmetricGates,
 		bootstrapExpiry,
 	), nil

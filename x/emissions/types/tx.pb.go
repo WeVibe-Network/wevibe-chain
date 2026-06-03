@@ -140,154 +140,6 @@ func (m *MsgMintDailyEmissionResponse) GetValidatorShare() uint64 {
 	return 0
 }
 
-type MsgDistributeOperatorRewards struct {
-	Signer  string                 `protobuf:"bytes,1,opt,name=signer,proto3" json:"signer,omitempty"`
-	Rewards []*OperatorRewardEntry `protobuf:"bytes,2,rep,name=rewards,proto3" json:"rewards,omitempty"`
-	Epoch   uint64                 `protobuf:"varint,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
-}
-
-func (m *MsgDistributeOperatorRewards) Reset()         { *m = MsgDistributeOperatorRewards{} }
-func (m *MsgDistributeOperatorRewards) String() string { return proto.CompactTextString(m) }
-func (*MsgDistributeOperatorRewards) ProtoMessage()    {}
-func (*MsgDistributeOperatorRewards) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cfd6b74432a46c3b, []int{2}
-}
-func (m *MsgDistributeOperatorRewards) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *MsgDistributeOperatorRewards) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_MsgDistributeOperatorRewards.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *MsgDistributeOperatorRewards) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgDistributeOperatorRewards.Merge(m, src)
-}
-func (m *MsgDistributeOperatorRewards) XXX_Size() int {
-	return m.Size()
-}
-func (m *MsgDistributeOperatorRewards) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgDistributeOperatorRewards.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MsgDistributeOperatorRewards proto.InternalMessageInfo
-
-func (m *MsgDistributeOperatorRewards) GetSigner() string {
-	if m != nil {
-		return m.Signer
-	}
-	return ""
-}
-
-func (m *MsgDistributeOperatorRewards) GetRewards() []*OperatorRewardEntry {
-	if m != nil {
-		return m.Rewards
-	}
-	return nil
-}
-
-func (m *MsgDistributeOperatorRewards) GetEpoch() uint64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
-type OperatorRewardEntry struct {
-	OperatorId string `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
-	Amount     uint64 `protobuf:"varint,2,opt,name=amount,proto3" json:"amount,omitempty"`
-}
-
-func (m *OperatorRewardEntry) Reset()         { *m = OperatorRewardEntry{} }
-func (m *OperatorRewardEntry) String() string { return proto.CompactTextString(m) }
-func (*OperatorRewardEntry) ProtoMessage()    {}
-func (*OperatorRewardEntry) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cfd6b74432a46c3b, []int{3}
-}
-func (m *OperatorRewardEntry) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *OperatorRewardEntry) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_OperatorRewardEntry.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *OperatorRewardEntry) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_OperatorRewardEntry.Merge(m, src)
-}
-func (m *OperatorRewardEntry) XXX_Size() int {
-	return m.Size()
-}
-func (m *OperatorRewardEntry) XXX_DiscardUnknown() {
-	xxx_messageInfo_OperatorRewardEntry.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_OperatorRewardEntry proto.InternalMessageInfo
-
-func (m *OperatorRewardEntry) GetOperatorId() string {
-	if m != nil {
-		return m.OperatorId
-	}
-	return ""
-}
-
-func (m *OperatorRewardEntry) GetAmount() uint64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
-type MsgDistributeOperatorRewardsResponse struct {
-}
-
-func (m *MsgDistributeOperatorRewardsResponse) Reset()         { *m = MsgDistributeOperatorRewardsResponse{} }
-func (m *MsgDistributeOperatorRewardsResponse) String() string { return proto.CompactTextString(m) }
-func (*MsgDistributeOperatorRewardsResponse) ProtoMessage()    {}
-func (*MsgDistributeOperatorRewardsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cfd6b74432a46c3b, []int{4}
-}
-func (m *MsgDistributeOperatorRewardsResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *MsgDistributeOperatorRewardsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_MsgDistributeOperatorRewardsResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *MsgDistributeOperatorRewardsResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_MsgDistributeOperatorRewardsResponse.Merge(m, src)
-}
-func (m *MsgDistributeOperatorRewardsResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *MsgDistributeOperatorRewardsResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_MsgDistributeOperatorRewardsResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_MsgDistributeOperatorRewardsResponse proto.InternalMessageInfo
-
 type MsgUpdateParams struct {
 	Authority string  `protobuf:"bytes,1,opt,name=authority,proto3" json:"authority,omitempty"`
 	Params    *Params `protobuf:"bytes,2,opt,name=params,proto3" json:"params,omitempty"`
@@ -297,7 +149,7 @@ func (m *MsgUpdateParams) Reset()         { *m = MsgUpdateParams{} }
 func (m *MsgUpdateParams) String() string { return proto.CompactTextString(m) }
 func (*MsgUpdateParams) ProtoMessage()    {}
 func (*MsgUpdateParams) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cfd6b74432a46c3b, []int{5}
+	return fileDescriptor_cfd6b74432a46c3b, []int{2}
 }
 func (m *MsgUpdateParams) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -347,7 +199,7 @@ func (m *MsgUpdateParamsResponse) Reset()         { *m = MsgUpdateParamsResponse
 func (m *MsgUpdateParamsResponse) String() string { return proto.CompactTextString(m) }
 func (*MsgUpdateParamsResponse) ProtoMessage()    {}
 func (*MsgUpdateParamsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_cfd6b74432a46c3b, []int{6}
+	return fileDescriptor_cfd6b74432a46c3b, []int{3}
 }
 func (m *MsgUpdateParamsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -379,9 +231,6 @@ var xxx_messageInfo_MsgUpdateParamsResponse proto.InternalMessageInfo
 func init() {
 	proto.RegisterType((*MsgMintDailyEmission)(nil), "wevibe.emissions.v1.MsgMintDailyEmission")
 	proto.RegisterType((*MsgMintDailyEmissionResponse)(nil), "wevibe.emissions.v1.MsgMintDailyEmissionResponse")
-	proto.RegisterType((*MsgDistributeOperatorRewards)(nil), "wevibe.emissions.v1.MsgDistributeOperatorRewards")
-	proto.RegisterType((*OperatorRewardEntry)(nil), "wevibe.emissions.v1.OperatorRewardEntry")
-	proto.RegisterType((*MsgDistributeOperatorRewardsResponse)(nil), "wevibe.emissions.v1.MsgDistributeOperatorRewardsResponse")
 	proto.RegisterType((*MsgUpdateParams)(nil), "wevibe.emissions.v1.MsgUpdateParams")
 	proto.RegisterType((*MsgUpdateParamsResponse)(nil), "wevibe.emissions.v1.MsgUpdateParamsResponse")
 }
@@ -389,41 +238,33 @@ func init() {
 func init() { proto.RegisterFile("wevibe/emissions/v1/tx.proto", fileDescriptor_cfd6b74432a46c3b) }
 
 var fileDescriptor_cfd6b74432a46c3b = []byte{
-	// 541 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x31, 0x6f, 0xd3, 0x40,
-	0x14, 0xae, 0x93, 0x36, 0xa8, 0x2f, 0x6d, 0x2a, 0xae, 0x15, 0x4d, 0x4d, 0x64, 0x22, 0x53, 0x20,
-	0x54, 0x60, 0x2b, 0xe9, 0x02, 0x8c, 0x55, 0x33, 0x30, 0x04, 0x90, 0x11, 0x4b, 0x97, 0xea, 0x12,
-	0x9f, 0x9c, 0x13, 0xb1, 0xcf, 0xdc, 0x5d, 0x92, 0x66, 0x43, 0x6c, 0x6c, 0x48, 0xcc, 0xfc, 0x87,
-	0xfe, 0x0c, 0xc6, 0x8e, 0x8c, 0x28, 0x19, 0x3a, 0xf2, 0x17, 0x50, 0x7c, 0xe7, 0x24, 0xa5, 0x0e,
-	0x94, 0xf1, 0x7d, 0xf7, 0xdd, 0xf7, 0xbd, 0x7b, 0xef, 0xd3, 0x41, 0x65, 0x48, 0x06, 0xb4, 0x4d,
-	0x5c, 0x12, 0x52, 0x21, 0x28, 0x8b, 0x84, 0x3b, 0xa8, 0xbb, 0xf2, 0xcc, 0x89, 0x39, 0x93, 0x0c,
-	0x6d, 0xab, 0x53, 0x67, 0x76, 0xea, 0x0c, 0xea, 0xe6, 0x6e, 0x87, 0x89, 0x90, 0x09, 0x37, 0x14,
-	0xc1, 0x94, 0x1c, 0x8a, 0x40, 0xb1, 0xcd, 0x6a, 0x96, 0x56, 0x8c, 0x39, 0x0e, 0x85, 0x62, 0xd8,
-	0x27, 0xb0, 0xd3, 0x12, 0x41, 0x8b, 0x46, 0xf2, 0x18, 0xd3, 0xde, 0xa8, 0xa9, 0x89, 0xa8, 0x02,
-	0xeb, 0xb8, 0x2f, 0xbb, 0x8c, 0x53, 0x39, 0x2a, 0x1b, 0x55, 0xa3, 0xb6, 0xee, 0xcd, 0x01, 0xb4,
-	0x03, 0x6b, 0x24, 0x66, 0x9d, 0x6e, 0x39, 0x57, 0x35, 0x6a, 0xab, 0x9e, 0x2a, 0x5e, 0x94, 0x3e,
-	0x5d, 0x9e, 0x1f, 0xcc, 0x59, 0xf6, 0x57, 0x03, 0x2a, 0x59, 0xe2, 0x1e, 0x11, 0x31, 0x8b, 0x04,
-	0x41, 0xf7, 0x61, 0x53, 0x32, 0x89, 0x7b, 0xa7, 0x24, 0xa4, 0x52, 0x12, 0x3f, 0x31, 0x5a, 0xf5,
-	0x36, 0x12, 0xb0, 0xa9, 0x30, 0xf4, 0x00, 0x4a, 0x2c, 0x26, 0x1c, 0x4b, 0xc6, 0x4f, 0x45, 0x17,
-	0x73, 0xa2, 0x4d, 0x37, 0x53, 0xf4, 0xed, 0x14, 0x44, 0x8f, 0x60, 0x6b, 0x80, 0x7b, 0xd4, 0x5f,
-	0xe0, 0xe5, 0x13, 0x5e, 0x69, 0x06, 0x27, 0x44, 0xfb, 0x9b, 0xea, 0xea, 0x98, 0x0a, 0xc9, 0x69,
-	0xbb, 0x2f, 0xc9, 0x6b, 0xad, 0xe3, 0x91, 0x21, 0xe6, 0xbe, 0x40, 0x77, 0xa0, 0x20, 0x68, 0x10,
-	0x11, 0xae, 0xdf, 0xad, 0x2b, 0x74, 0x04, 0xb7, 0xb8, 0xa2, 0x94, 0x73, 0xd5, 0x7c, 0xad, 0xd8,
-	0xa8, 0x39, 0x19, 0xcb, 0x70, 0xae, 0xca, 0x35, 0x23, 0xc9, 0x47, 0x5e, 0x7a, 0x71, 0x3e, 0xb8,
-	0xfc, 0xe2, 0xe0, 0x8a, 0xd3, 0xc1, 0x69, 0x1b, 0xfb, 0x15, 0x6c, 0x67, 0x48, 0xa0, 0x7b, 0x50,
-	0x9c, 0x8d, 0x81, 0xfa, 0xba, 0x35, 0x48, 0xa1, 0x97, 0xfe, 0xb4, 0x6d, 0x1c, 0xb2, 0x7e, 0x24,
-	0xf5, 0x7c, 0x74, 0x65, 0x3f, 0x84, 0xfd, 0xbf, 0x3d, 0x37, 0x5d, 0x86, 0x2d, 0x61, 0xab, 0x25,
-	0x82, 0x77, 0xb1, 0x8f, 0x25, 0x79, 0x93, 0x44, 0xe4, 0x1f, 0x21, 0x38, 0x84, 0x82, 0x8a, 0x52,
-	0x62, 0x58, 0x6c, 0xdc, 0xcd, 0x1c, 0x87, 0x92, 0xf2, 0x34, 0xf5, 0x5a, 0x46, 0xf6, 0x60, 0xf7,
-	0x0f, 0xd7, 0xb4, 0xa1, 0xc6, 0xaf, 0x1c, 0xe4, 0x5b, 0x22, 0x40, 0x1f, 0xe0, 0xf6, 0xf5, 0x7c,
-	0x3e, 0xce, 0x34, 0xcb, 0x4a, 0x9b, 0x59, 0xbf, 0x31, 0x75, 0x16, 0xcc, 0xcf, 0x06, 0xec, 0x2d,
-	0x0f, 0xc8, 0x52, 0xc1, 0xa5, 0x57, 0xcc, 0xe7, 0xff, 0x7d, 0x65, 0xd6, 0x4b, 0x1b, 0x36, 0xae,
-	0x2c, 0x65, 0x7f, 0x99, 0xd4, 0x22, 0xcb, 0x7c, 0x72, 0x13, 0x56, 0xea, 0x61, 0xae, 0x7d, 0xbc,
-	0x3c, 0x3f, 0x30, 0x8e, 0xbc, 0xef, 0x63, 0xcb, 0xb8, 0x18, 0x5b, 0xc6, 0xcf, 0xb1, 0x65, 0x7c,
-	0x99, 0x58, 0x2b, 0x17, 0x13, 0x6b, 0xe5, 0xc7, 0xc4, 0x5a, 0x39, 0x79, 0x16, 0x50, 0xd9, 0xed,
-	0xb7, 0x9d, 0x0e, 0x0b, 0x5d, 0x25, 0xfc, 0x34, 0x22, 0x72, 0xc8, 0xf8, 0xfb, 0xb4, 0xec, 0x74,
-	0x31, 0x8d, 0xdc, 0xb3, 0x85, 0xaf, 0x46, 0x8e, 0x62, 0x22, 0xda, 0x85, 0xe4, 0x9f, 0x39, 0xfc,
-	0x1d, 0x00, 0x00, 0xff, 0xff, 0x89, 0xad, 0xc7, 0x20, 0xd7, 0x04, 0x00, 0x00,
+	// 414 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0x4f, 0x8b, 0xda, 0x40,
+	0x18, 0xc6, 0x9d, 0xfa, 0x07, 0x9c, 0xfa, 0x87, 0xa6, 0x82, 0x36, 0x95, 0x20, 0xb6, 0xa5, 0x56,
+	0xda, 0x04, 0xf5, 0x52, 0x7a, 0x2c, 0xf5, 0x18, 0x28, 0x29, 0xbd, 0x78, 0x91, 0x49, 0x1c, 0x92,
+	0xa1, 0x26, 0x93, 0x66, 0xc6, 0xa8, 0xb7, 0xd2, 0x4f, 0xb0, 0xb0, 0x5f, 0xc4, 0x8f, 0xb1, 0x47,
+	0x8f, 0x7b, 0x5c, 0xcc, 0xc1, 0xaf, 0xb1, 0x98, 0x31, 0xea, 0xae, 0x59, 0xd6, 0xe3, 0x3c, 0xef,
+	0x8f, 0xe7, 0x61, 0x9e, 0xf7, 0x85, 0xcd, 0x39, 0x0e, 0x89, 0x89, 0x35, 0xec, 0x12, 0xc6, 0x08,
+	0xf5, 0x98, 0x16, 0xf6, 0x34, 0xbe, 0x50, 0xfd, 0x80, 0x72, 0x2a, 0xbd, 0x16, 0x53, 0xf5, 0x30,
+	0x55, 0xc3, 0x9e, 0x5c, 0xb7, 0x28, 0x73, 0x29, 0xd3, 0x5c, 0x66, 0xef, 0x60, 0x97, 0xd9, 0x82,
+	0x96, 0x5b, 0x69, 0x5e, 0x3e, 0x0a, 0x90, 0xcb, 0x04, 0xd1, 0x1e, 0xc1, 0x9a, 0xce, 0x6c, 0x9d,
+	0x78, 0xfc, 0x07, 0x22, 0xd3, 0xe5, 0x70, 0x0f, 0x4a, 0x4d, 0x58, 0x44, 0x33, 0xee, 0xd0, 0x80,
+	0xf0, 0x65, 0x03, 0xb4, 0x40, 0xa7, 0x68, 0x1c, 0x05, 0xa9, 0x06, 0xf3, 0xd8, 0xa7, 0x96, 0xd3,
+	0x78, 0xd1, 0x02, 0x9d, 0x9c, 0x21, 0x1e, 0xdf, 0x2a, 0xff, 0xb7, 0xab, 0xee, 0x91, 0x6a, 0x5f,
+	0x03, 0xd8, 0x4c, 0x33, 0x37, 0x30, 0xf3, 0xa9, 0xc7, 0xb0, 0xf4, 0x0e, 0x96, 0x39, 0xe5, 0x68,
+	0x3a, 0xc6, 0x2e, 0xe1, 0x1c, 0x4f, 0xe2, 0xa0, 0x9c, 0x51, 0x8a, 0xc5, 0xa1, 0xd0, 0xa4, 0x0f,
+	0xb0, 0x42, 0x7d, 0x1c, 0x20, 0x4e, 0x83, 0x31, 0x73, 0x50, 0x80, 0xf7, 0xa1, 0xe5, 0x44, 0xfd,
+	0xb5, 0x13, 0xa5, 0x8f, 0xb0, 0x1a, 0xa2, 0x29, 0x99, 0x9c, 0x70, 0xd9, 0x98, 0xab, 0x1c, 0xe4,
+	0x18, 0x6c, 0x73, 0x58, 0xd5, 0x99, 0xfd, 0xdb, 0x9f, 0x20, 0x8e, 0x7f, 0xc6, 0x55, 0x3c, 0xf3,
+	0xd9, 0x01, 0x2c, 0x88, 0xca, 0xe2, 0xe0, 0x97, 0xfd, 0xb7, 0x6a, 0xca, 0x0e, 0x54, 0x61, 0x65,
+	0xec, 0xd1, 0xb3, 0x2e, 0xde, 0xc0, 0xfa, 0xa3, 0xd4, 0xa4, 0x85, 0x7e, 0x04, 0x60, 0x56, 0x67,
+	0xb6, 0xf4, 0x17, 0xbe, 0x3a, 0xdf, 0xc3, 0xa7, 0xd4, 0xb0, 0xb4, 0x56, 0xe5, 0xde, 0xc5, 0xe8,
+	0x61, 0x01, 0x26, 0x2c, 0x3d, 0x28, 0xe2, 0xfd, 0x53, 0x16, 0xa7, 0x94, 0xfc, 0xf9, 0x12, 0x2a,
+	0xc9, 0x90, 0xf3, 0xff, 0xb6, 0xab, 0x2e, 0xf8, 0x6e, 0xdc, 0x6c, 0x14, 0xb0, 0xde, 0x28, 0xe0,
+	0x6e, 0xa3, 0x80, 0xab, 0x48, 0xc9, 0xac, 0x23, 0x25, 0x73, 0x1b, 0x29, 0x99, 0xd1, 0x57, 0x9b,
+	0x70, 0x67, 0x66, 0xaa, 0x16, 0x75, 0x35, 0x61, 0xfc, 0xc5, 0xc3, 0x7c, 0x4e, 0x83, 0x3f, 0xc9,
+	0xd3, 0x72, 0x10, 0xf1, 0xb4, 0xc5, 0xc9, 0x19, 0xf3, 0xa5, 0x8f, 0x99, 0x59, 0x88, 0x6f, 0x78,
+	0x70, 0x1f, 0x00, 0x00, 0xff, 0xff, 0x39, 0xb5, 0xb5, 0x11, 0x33, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -439,7 +280,6 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type MsgClient interface {
 	MintDailyEmission(ctx context.Context, in *MsgMintDailyEmission, opts ...grpc.CallOption) (*MsgMintDailyEmissionResponse, error)
-	DistributeOperatorRewards(ctx context.Context, in *MsgDistributeOperatorRewards, opts ...grpc.CallOption) (*MsgDistributeOperatorRewardsResponse, error)
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
 }
 
@@ -460,15 +300,6 @@ func (c *msgClient) MintDailyEmission(ctx context.Context, in *MsgMintDailyEmiss
 	return out, nil
 }
 
-func (c *msgClient) DistributeOperatorRewards(ctx context.Context, in *MsgDistributeOperatorRewards, opts ...grpc.CallOption) (*MsgDistributeOperatorRewardsResponse, error) {
-	out := new(MsgDistributeOperatorRewardsResponse)
-	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Msg/DistributeOperatorRewards", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error) {
 	out := new(MsgUpdateParamsResponse)
 	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Msg/UpdateParams", in, out, opts...)
@@ -481,7 +312,6 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	MintDailyEmission(context.Context, *MsgMintDailyEmission) (*MsgMintDailyEmissionResponse, error)
-	DistributeOperatorRewards(context.Context, *MsgDistributeOperatorRewards) (*MsgDistributeOperatorRewardsResponse, error)
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
 }
 
@@ -491,9 +321,6 @@ type UnimplementedMsgServer struct {
 
 func (*UnimplementedMsgServer) MintDailyEmission(ctx context.Context, req *MsgMintDailyEmission) (*MsgMintDailyEmissionResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method MintDailyEmission not implemented")
-}
-func (*UnimplementedMsgServer) DistributeOperatorRewards(ctx context.Context, req *MsgDistributeOperatorRewards) (*MsgDistributeOperatorRewardsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method DistributeOperatorRewards not implemented")
 }
 func (*UnimplementedMsgServer) UpdateParams(ctx context.Context, req *MsgUpdateParams) (*MsgUpdateParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateParams not implemented")
@@ -517,24 +344,6 @@ func _Msg_MintDailyEmission_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(MsgServer).MintDailyEmission(ctx, req.(*MsgMintDailyEmission))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Msg_DistributeOperatorRewards_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(MsgDistributeOperatorRewards)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(MsgServer).DistributeOperatorRewards(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/wevibe.emissions.v1.Msg/DistributeOperatorRewards",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(MsgServer).DistributeOperatorRewards(ctx, req.(*MsgDistributeOperatorRewards))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -565,10 +374,6 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "MintDailyEmission",
 			Handler:    _Msg_MintDailyEmission_Handler,
-		},
-		{
-			MethodName: "DistributeOperatorRewards",
-			Handler:    _Msg_DistributeOperatorRewards_Handler,
 		},
 		{
 			MethodName: "UpdateParams",
@@ -649,113 +454,6 @@ func (m *MsgMintDailyEmissionResponse) MarshalToSizedBuffer(dAtA []byte) (int, e
 		i--
 		dAtA[i] = 0x8
 	}
-	return len(dAtA) - i, nil
-}
-
-func (m *MsgDistributeOperatorRewards) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *MsgDistributeOperatorRewards) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *MsgDistributeOperatorRewards) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		i = encodeVarintTx(dAtA, i, uint64(m.Epoch))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.Rewards) > 0 {
-		for iNdEx := len(m.Rewards) - 1; iNdEx >= 0; iNdEx-- {
-			{
-				size, err := m.Rewards[iNdEx].MarshalToSizedBuffer(dAtA[:i])
-				if err != nil {
-					return 0, err
-				}
-				i -= size
-				i = encodeVarintTx(dAtA, i, uint64(size))
-			}
-			i--
-			dAtA[i] = 0x12
-		}
-	}
-	if len(m.Signer) > 0 {
-		i -= len(m.Signer)
-		copy(dAtA[i:], m.Signer)
-		i = encodeVarintTx(dAtA, i, uint64(len(m.Signer)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *OperatorRewardEntry) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *OperatorRewardEntry) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *OperatorRewardEntry) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Amount != 0 {
-		i = encodeVarintTx(dAtA, i, uint64(m.Amount))
-		i--
-		dAtA[i] = 0x10
-	}
-	if len(m.OperatorId) > 0 {
-		i -= len(m.OperatorId)
-		copy(dAtA[i:], m.OperatorId)
-		i = encodeVarintTx(dAtA, i, uint64(len(m.OperatorId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *MsgDistributeOperatorRewardsResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *MsgDistributeOperatorRewardsResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *MsgDistributeOperatorRewardsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
 	return len(dAtA) - i, nil
 }
 
@@ -866,53 +564,6 @@ func (m *MsgMintDailyEmissionResponse) Size() (n int) {
 	if m.ValidatorShare != 0 {
 		n += 1 + sovTx(uint64(m.ValidatorShare))
 	}
-	return n
-}
-
-func (m *MsgDistributeOperatorRewards) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.Signer)
-	if l > 0 {
-		n += 1 + l + sovTx(uint64(l))
-	}
-	if len(m.Rewards) > 0 {
-		for _, e := range m.Rewards {
-			l = e.Size()
-			n += 1 + l + sovTx(uint64(l))
-		}
-	}
-	if m.Epoch != 0 {
-		n += 1 + sovTx(uint64(m.Epoch))
-	}
-	return n
-}
-
-func (m *OperatorRewardEntry) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.OperatorId)
-	if l > 0 {
-		n += 1 + l + sovTx(uint64(l))
-	}
-	if m.Amount != 0 {
-		n += 1 + sovTx(uint64(m.Amount))
-	}
-	return n
-}
-
-func (m *MsgDistributeOperatorRewardsResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
 	return n
 }
 
@@ -1135,292 +786,6 @@ func (m *MsgMintDailyEmissionResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTx(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTx
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *MsgDistributeOperatorRewards) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTx
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: MsgDistributeOperatorRewards: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgDistributeOperatorRewards: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Signer", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthTx
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTx
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Signer = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Rewards", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthTx
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthTx
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.Rewards = append(m.Rewards, &OperatorRewardEntry{})
-			if err := m.Rewards[len(m.Rewards)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
-				return err
-			}
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTx(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTx
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *OperatorRewardEntry) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTx
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: OperatorRewardEntry: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: OperatorRewardEntry: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthTx
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthTx
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OperatorId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
-			}
-			m.Amount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowTx
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Amount |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipTx(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthTx
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *MsgDistributeOperatorRewardsResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowTx
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: MsgDistributeOperatorRewardsResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: MsgDistributeOperatorRewardsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])

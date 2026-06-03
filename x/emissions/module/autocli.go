@@ -15,24 +15,6 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					Short:     "Query emission pool state",
 				},
 				{
-					RpcMethod: "GetWorkScore",
-					Use:       "work-score [operator-id] [org-id] [epoch]",
-					Short:     "Query operator work score",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "operator_id"},
-						{ProtoField: "org_id"},
-						{ProtoField: "epoch"},
-					},
-				},
-				{
-					RpcMethod: "GetOperatorReward",
-					Use:       "operator-reward [operator-id]",
-					Short:     "Query pending operator reward",
-					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
-						{ProtoField: "operator_id"},
-					},
-				},
-				{
 					RpcMethod: "Params",
 					Use:       "params",
 					Short:     "Query emissions module params",

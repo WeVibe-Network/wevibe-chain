@@ -9,7 +9,6 @@ import "wevibe/emissions/v1/params.proto";
 service Msg {
   option (cosmos.msg.v1.service) = true;
   rpc MintDailyEmission(MsgMintDailyEmission) returns (MsgMintDailyEmissionResponse);
-  rpc DistributeOperatorRewards(MsgDistributeOperatorRewards) returns (MsgDistributeOperatorRewardsResponse);
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
 }
 
@@ -24,20 +23,6 @@ message MsgMintDailyEmissionResponse {
   uint64 operator_share = 2;
   uint64 validator_share = 3;
 }
-
-message MsgDistributeOperatorRewards {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  repeated OperatorRewardEntry rewards = 2;
-  uint64 epoch = 3;
-}
-
-message OperatorRewardEntry {
-  string operator_id = 1;
-  uint64 amount = 2;
-}
-
-message MsgDistributeOperatorRewardsResponse {}
 
 message MsgUpdateParams {
   option (cosmos.msg.v1.signer) = "authority";

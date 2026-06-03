@@ -20,28 +20,13 @@ message StoredEmissionPool {
 message StoredDailyEmission {
   uint64 epoch = 1;
   uint64 total_emitted = 2;
-  uint64 operator_share = 3;
   uint64 validator_share = 4;
-  map<string, uint64> operator_rewards = 5;
-  map<string, uint64> validator_rewards = 6;
 }
 
 message StoredBootstrapCredit {
   string operator_id = 1;
   uint64 credits = 2;
   uint64 redeemed = 3;
-}
-
-message StoredWorkScore {
-  string operator_id = 1;
-  string org_id = 2;
-  double rarity_multiplier = 3;
-  double availability_score = 4;
-  uint64 retrieval_volume = 5;
-  double storage_score = 6;
-  double retrieval_score = 7;
-  double total_score = 8;
-  uint64 epoch = 9;
 }
 
 message StoredAsymmetricGate {

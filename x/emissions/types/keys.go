@@ -31,79 +31,17 @@ func (p *EmissionPool) Validate() error {
 	return nil
 }
 
-type WorkScore struct {
-	OperatorID          string  `json:"operator_id"`
-	OrgID               string  `json:"org_id"`
-	RarityMultiplier   float64 `json:"rarity_multiplier"`
-	AvailabilityScore  float64 `json:"availability_score"`
-	RetrievalVolume    uint64  `json:"retrieval_volume"`
-	StorageScore        float64 `json:"storage_score"`
-	RetrievalScore      float64 `json:"retrieval_score"`
-	TotalScore          float64 `json:"total_score"`
-	Epoch               uint64  `json:"epoch"`
-}
-
-func NewWorkScore(operatorID, orgID string, rarityMultiplier, availabilityScore float64, retrievalVolume, epoch uint64) *WorkScore {
-	storageScore := 0.3 * availabilityScore
-	retrievalScore := 0.7 * float64(retrievalVolume)
-	totalScore := rarityMultiplier * (storageScore + retrievalScore)
-
-	return &WorkScore{
-		OperatorID:         operatorID,
-		OrgID:              orgID,
-		RarityMultiplier:   rarityMultiplier,
-		AvailabilityScore:  availabilityScore,
-		RetrievalVolume:     retrievalVolume,
-		StorageScore:       storageScore,
-		RetrievalScore:     retrievalScore,
-		TotalScore:         totalScore,
-		Epoch:              epoch,
-	}
-}
-
-func (w *WorkScore) Validate() error {
-	if w.OperatorID == "" {
-		return ErrInvalidOperatorID
-	}
-	if w.OrgID == "" {
-		return ErrInvalidOrgID
-	}
-	return nil
-}
-
 type DailyEmission struct {
 	Epoch          uint64 `json:"epoch"`
 	TotalEmitted   uint64 `json:"total_emitted"`
-	OperatorShare  uint64 `json:"operator_share"`
 	ValidatorShare uint64 `json:"validator_share"`
-	OperatorRewards map[string]uint64 `json:"operator_rewards"`
-	ValidatorRewards map[string]uint64 `json:"validator_rewards"`
 }
 
-func NewDailyEmission(epoch, totalEmitted, operatorShare, validatorShare uint64) *DailyEmission {
+func NewDailyEmission(epoch, totalEmitted, validatorShare uint64) *DailyEmission {
 	return &DailyEmission{
-		Epoch:             epoch,
-		TotalEmitted:      totalEmitted,
-		OperatorShare:     operatorShare,
-		ValidatorShare:    validatorShare,
-		OperatorRewards:   make(map[string]uint64),
-		ValidatorRewards:  make(map[string]uint64),
-	}
-}
-
-type OperatorReward struct {
-	OperatorID string `json:"operator_id"`
-	OrgID      string `json:"org_id"`
-	Amount     uint64 `json:"amount"`
-	Epoch      uint64 `json:"epoch"`
-}
-
-func NewOperatorReward(operatorID, orgID string, amount, epoch uint64) *OperatorReward {
-	return &OperatorReward{
-		OperatorID: operatorID,
-		OrgID:      orgID,
-		Amount:     amount,
-		Epoch:      epoch,
+		Epoch:          epoch,
+		TotalEmitted:   totalEmitted,
+		ValidatorShare: validatorShare,
 	}
 }
 
@@ -165,12 +103,6 @@ func NewAsymmetricGate(operatorID, orgID string, storagePassed bool, epoch uint6
 	}
 }
 
-type OperatorState struct {
-	OperatorID         string  `json:"operator_id"`
-	TotalPendingReward uint64  `json:"total_pending_reward"`
-	WorkScores         []*WorkScore `json:"work_scores"`
-}
-
 func EmissionPoolToStored(p *EmissionPool) *StoredEmissionPool {
 	if p == nil {
 		return nil
@@ -214,12 +146,9 @@ func DailyEmissionToStored(e *DailyEmission) *StoredDailyEmission {
 		return nil
 	}
 	return &StoredDailyEmission{
-		Epoch:            e.Epoch,
-		TotalEmitted:     e.TotalEmitted,
-		OperatorShare:    e.OperatorShare,
-		ValidatorShare:   e.ValidatorShare,
-		OperatorRewards:  e.OperatorRewards,
-		ValidatorRewards: e.ValidatorRewards,
+		Epoch:          e.Epoch,
+		TotalEmitted:   e.TotalEmitted,
+		ValidatorShare: e.ValidatorShare,
 	}
 }
 
@@ -228,46 +157,9 @@ func StoredToDailyEmission(s *StoredDailyEmission) *DailyEmission {
 		return nil
 	}
 	return &DailyEmission{
-		Epoch:            s.Epoch,
-		TotalEmitted:     s.TotalEmitted,
-		OperatorShare:    s.OperatorShare,
-		ValidatorShare:   s.ValidatorShare,
-		OperatorRewards:  s.OperatorRewards,
-		ValidatorRewards: s.ValidatorRewards,
-	}
-}
-
-func WorkScoreToStored(w *WorkScore) *StoredWorkScore {
-	if w == nil {
-		return nil
-	}
-	return &StoredWorkScore{
-		OperatorId:         w.OperatorID,
-		OrgId:              w.OrgID,
-		RarityMultiplier:   w.RarityMultiplier,
-		AvailabilityScore:  w.AvailabilityScore,
-		RetrievalVolume:    w.RetrievalVolume,
-		StorageScore:       w.StorageScore,
-		RetrievalScore:     w.RetrievalScore,
-		TotalScore:         w.TotalScore,
-		Epoch:              w.Epoch,
-	}
-}
-
-func StoredToWorkScore(s *StoredWorkScore) *WorkScore {
-	if s == nil {
-		return nil
-	}
-	return &WorkScore{
-		OperatorID:         s.OperatorId,
-		OrgID:              s.OrgId,
-		RarityMultiplier:   s.RarityMultiplier,
-		AvailabilityScore:  s.AvailabilityScore,
-		RetrievalVolume:    s.RetrievalVolume,
-		StorageScore:       s.StorageScore,
-		RetrievalScore:     s.RetrievalScore,
-		TotalScore:         s.TotalScore,
-		Epoch:              s.Epoch,
+		Epoch:          s.Epoch,
+		TotalEmitted:   s.TotalEmitted,
+		ValidatorShare: s.ValidatorShare,
 	}
 }
 
@@ -277,8 +169,8 @@ func BootstrapCreditToStored(b *BootstrapCredit) *StoredBootstrapCredit {
 	}
 	return &StoredBootstrapCredit{
 		OperatorId: b.OperatorID,
-		Credits:     b.Credits,
-		Redeemed:    b.Redeemed,
+		Credits:    b.Credits,
+		Redeemed:   b.Redeemed,
 	}
 }
 

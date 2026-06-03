@@ -5,7 +5,6 @@ package types
 
 import (
 	context "context"
-	encoding_binary "encoding/binary"
 	fmt "fmt"
 	grpc1 "github.com/cosmos/gogoproto/grpc"
 	proto "github.com/cosmos/gogoproto/proto"
@@ -141,246 +140,6 @@ func (m *QueryGetEmissionPoolResponse) GetEpoch() uint64 {
 	return 0
 }
 
-type QueryGetWorkScoreRequest struct {
-	OperatorId string `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
-	OrgId      string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	Epoch      uint64 `protobuf:"varint,3,opt,name=epoch,proto3" json:"epoch,omitempty"`
-}
-
-func (m *QueryGetWorkScoreRequest) Reset()         { *m = QueryGetWorkScoreRequest{} }
-func (m *QueryGetWorkScoreRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryGetWorkScoreRequest) ProtoMessage()    {}
-func (*QueryGetWorkScoreRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{2}
-}
-func (m *QueryGetWorkScoreRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryGetWorkScoreRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryGetWorkScoreRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryGetWorkScoreRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetWorkScoreRequest.Merge(m, src)
-}
-func (m *QueryGetWorkScoreRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryGetWorkScoreRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetWorkScoreRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryGetWorkScoreRequest proto.InternalMessageInfo
-
-func (m *QueryGetWorkScoreRequest) GetOperatorId() string {
-	if m != nil {
-		return m.OperatorId
-	}
-	return ""
-}
-
-func (m *QueryGetWorkScoreRequest) GetOrgId() string {
-	if m != nil {
-		return m.OrgId
-	}
-	return ""
-}
-
-func (m *QueryGetWorkScoreRequest) GetEpoch() uint64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
-type QueryGetWorkScoreResponse struct {
-	OperatorId        string  `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
-	OrgId             string  `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	RarityMultiplier  float64 `protobuf:"fixed64,3,opt,name=rarity_multiplier,json=rarityMultiplier,proto3" json:"rarity_multiplier,omitempty"`
-	AvailabilityScore float64 `protobuf:"fixed64,4,opt,name=availability_score,json=availabilityScore,proto3" json:"availability_score,omitempty"`
-	RetrievalVolume   uint64  `protobuf:"varint,5,opt,name=retrieval_volume,json=retrievalVolume,proto3" json:"retrieval_volume,omitempty"`
-	TotalScore        float64 `protobuf:"fixed64,6,opt,name=total_score,json=totalScore,proto3" json:"total_score,omitempty"`
-	Epoch             uint64  `protobuf:"varint,7,opt,name=epoch,proto3" json:"epoch,omitempty"`
-}
-
-func (m *QueryGetWorkScoreResponse) Reset()         { *m = QueryGetWorkScoreResponse{} }
-func (m *QueryGetWorkScoreResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryGetWorkScoreResponse) ProtoMessage()    {}
-func (*QueryGetWorkScoreResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{3}
-}
-func (m *QueryGetWorkScoreResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryGetWorkScoreResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryGetWorkScoreResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryGetWorkScoreResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetWorkScoreResponse.Merge(m, src)
-}
-func (m *QueryGetWorkScoreResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryGetWorkScoreResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetWorkScoreResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryGetWorkScoreResponse proto.InternalMessageInfo
-
-func (m *QueryGetWorkScoreResponse) GetOperatorId() string {
-	if m != nil {
-		return m.OperatorId
-	}
-	return ""
-}
-
-func (m *QueryGetWorkScoreResponse) GetOrgId() string {
-	if m != nil {
-		return m.OrgId
-	}
-	return ""
-}
-
-func (m *QueryGetWorkScoreResponse) GetRarityMultiplier() float64 {
-	if m != nil {
-		return m.RarityMultiplier
-	}
-	return 0
-}
-
-func (m *QueryGetWorkScoreResponse) GetAvailabilityScore() float64 {
-	if m != nil {
-		return m.AvailabilityScore
-	}
-	return 0
-}
-
-func (m *QueryGetWorkScoreResponse) GetRetrievalVolume() uint64 {
-	if m != nil {
-		return m.RetrievalVolume
-	}
-	return 0
-}
-
-func (m *QueryGetWorkScoreResponse) GetTotalScore() float64 {
-	if m != nil {
-		return m.TotalScore
-	}
-	return 0
-}
-
-func (m *QueryGetWorkScoreResponse) GetEpoch() uint64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
-type QueryGetOperatorRewardRequest struct {
-	OperatorId string `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
-}
-
-func (m *QueryGetOperatorRewardRequest) Reset()         { *m = QueryGetOperatorRewardRequest{} }
-func (m *QueryGetOperatorRewardRequest) String() string { return proto.CompactTextString(m) }
-func (*QueryGetOperatorRewardRequest) ProtoMessage()    {}
-func (*QueryGetOperatorRewardRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{4}
-}
-func (m *QueryGetOperatorRewardRequest) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryGetOperatorRewardRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryGetOperatorRewardRequest.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryGetOperatorRewardRequest) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetOperatorRewardRequest.Merge(m, src)
-}
-func (m *QueryGetOperatorRewardRequest) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryGetOperatorRewardRequest) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetOperatorRewardRequest.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryGetOperatorRewardRequest proto.InternalMessageInfo
-
-func (m *QueryGetOperatorRewardRequest) GetOperatorId() string {
-	if m != nil {
-		return m.OperatorId
-	}
-	return ""
-}
-
-type QueryGetOperatorRewardResponse struct {
-	Amount uint64 `protobuf:"varint,1,opt,name=amount,proto3" json:"amount,omitempty"`
-}
-
-func (m *QueryGetOperatorRewardResponse) Reset()         { *m = QueryGetOperatorRewardResponse{} }
-func (m *QueryGetOperatorRewardResponse) String() string { return proto.CompactTextString(m) }
-func (*QueryGetOperatorRewardResponse) ProtoMessage()    {}
-func (*QueryGetOperatorRewardResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{5}
-}
-func (m *QueryGetOperatorRewardResponse) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *QueryGetOperatorRewardResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_QueryGetOperatorRewardResponse.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *QueryGetOperatorRewardResponse) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_QueryGetOperatorRewardResponse.Merge(m, src)
-}
-func (m *QueryGetOperatorRewardResponse) XXX_Size() int {
-	return m.Size()
-}
-func (m *QueryGetOperatorRewardResponse) XXX_DiscardUnknown() {
-	xxx_messageInfo_QueryGetOperatorRewardResponse.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_QueryGetOperatorRewardResponse proto.InternalMessageInfo
-
-func (m *QueryGetOperatorRewardResponse) GetAmount() uint64 {
-	if m != nil {
-		return m.Amount
-	}
-	return 0
-}
-
 type QueryParamsRequest struct {
 }
 
@@ -388,7 +147,7 @@ func (m *QueryParamsRequest) Reset()         { *m = QueryParamsRequest{} }
 func (m *QueryParamsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryParamsRequest) ProtoMessage()    {}
 func (*QueryParamsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{6}
+	return fileDescriptor_c0d4eb1f4737b161, []int{2}
 }
 func (m *QueryParamsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -425,7 +184,7 @@ func (m *QueryParamsResponse) Reset()         { *m = QueryParamsResponse{} }
 func (m *QueryParamsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryParamsResponse) ProtoMessage()    {}
 func (*QueryParamsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c0d4eb1f4737b161, []int{7}
+	return fileDescriptor_c0d4eb1f4737b161, []int{3}
 }
 func (m *QueryParamsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -464,10 +223,6 @@ func (m *QueryParamsResponse) GetParams() *Params {
 func init() {
 	proto.RegisterType((*QueryGetEmissionPoolRequest)(nil), "wevibe.emissions.v1.QueryGetEmissionPoolRequest")
 	proto.RegisterType((*QueryGetEmissionPoolResponse)(nil), "wevibe.emissions.v1.QueryGetEmissionPoolResponse")
-	proto.RegisterType((*QueryGetWorkScoreRequest)(nil), "wevibe.emissions.v1.QueryGetWorkScoreRequest")
-	proto.RegisterType((*QueryGetWorkScoreResponse)(nil), "wevibe.emissions.v1.QueryGetWorkScoreResponse")
-	proto.RegisterType((*QueryGetOperatorRewardRequest)(nil), "wevibe.emissions.v1.QueryGetOperatorRewardRequest")
-	proto.RegisterType((*QueryGetOperatorRewardResponse)(nil), "wevibe.emissions.v1.QueryGetOperatorRewardResponse")
 	proto.RegisterType((*QueryParamsRequest)(nil), "wevibe.emissions.v1.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "wevibe.emissions.v1.QueryParamsResponse")
 }
@@ -475,51 +230,34 @@ func init() {
 func init() { proto.RegisterFile("wevibe/emissions/v1/query.proto", fileDescriptor_c0d4eb1f4737b161) }
 
 var fileDescriptor_c0d4eb1f4737b161 = []byte{
-	// 701 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x55, 0x5f, 0x4f, 0x13, 0x4b,
-	0x14, 0x67, 0x0b, 0xed, 0x0d, 0x07, 0x2e, 0x7f, 0x06, 0xee, 0x4d, 0x69, 0x69, 0x81, 0xde, 0xdc,
-	0x80, 0x31, 0x74, 0xa5, 0xf8, 0x40, 0x7c, 0x30, 0xc4, 0x44, 0x0d, 0x26, 0x44, 0x5c, 0x12, 0x4d,
-	0x7c, 0x69, 0xa6, 0xed, 0xa4, 0x9d, 0xb0, 0xbb, 0xb3, 0xcc, 0xce, 0x2e, 0x36, 0x84, 0xc4, 0xf8,
-	0x09, 0x34, 0x3e, 0xf1, 0x41, 0x4c, 0xfc, 0x04, 0xc6, 0x47, 0x12, 0x5f, 0x7c, 0x34, 0xe0, 0x07,
-	0x31, 0x7b, 0x76, 0xba, 0x2e, 0xb8, 0x20, 0xf8, 0xb8, 0xbf, 0xf3, 0x3b, 0xbf, 0xf3, 0x3b, 0x67,
-	0xce, 0x69, 0x61, 0xe1, 0x80, 0x85, 0xbc, 0xc5, 0x4c, 0xe6, 0x70, 0xdf, 0xe7, 0xc2, 0xf5, 0xcd,
-	0x70, 0xcd, 0xdc, 0x0f, 0x98, 0xec, 0xd7, 0x3d, 0x29, 0x94, 0x20, 0x33, 0x31, 0xa1, 0x9e, 0x10,
-	0xea, 0xe1, 0x5a, 0x69, 0xbe, 0x2b, 0x44, 0xd7, 0x66, 0x26, 0xf5, 0xb8, 0x49, 0x5d, 0x57, 0x28,
-	0xaa, 0x30, 0x84, 0x29, 0xa5, 0xc5, 0x2c, 0x4d, 0x8f, 0x4a, 0xea, 0x68, 0x46, 0xad, 0x02, 0xe5,
-	0x67, 0x51, 0x8d, 0xc7, 0x4c, 0x3d, 0xd4, 0xa4, 0x1d, 0x21, 0x6c, 0x8b, 0xed, 0x07, 0xcc, 0x57,
-	0xb5, 0x4f, 0x06, 0xcc, 0x67, 0xc7, 0x7d, 0x4f, 0xb8, 0x3e, 0x23, 0x4b, 0x30, 0xae, 0x84, 0xa2,
-	0x76, 0xd3, 0x0f, 0x3c, 0xcf, 0xee, 0x17, 0x8d, 0x45, 0x63, 0x65, 0xc4, 0x1a, 0x43, 0x6c, 0x17,
-	0x21, 0x52, 0x01, 0xe8, 0x50, 0x6e, 0xf7, 0x9b, 0x0e, 0x77, 0x55, 0x31, 0x87, 0x84, 0x51, 0x44,
-	0xb6, 0xb9, 0xab, 0xc8, 0xff, 0x30, 0x21, 0x3c, 0x26, 0xa9, 0x12, 0xb2, 0xe9, 0xf7, 0xa8, 0x64,
-	0xc5, 0x61, 0xa4, 0xfc, 0x3d, 0x40, 0x77, 0x23, 0x90, 0x2c, 0xc3, 0x64, 0x48, 0x6d, 0xde, 0x49,
-	0xf1, 0x46, 0x90, 0x37, 0x91, 0xc0, 0x31, 0x71, 0x16, 0xf2, 0xcc, 0x13, 0xed, 0x5e, 0x31, 0x8f,
-	0xe1, 0xf8, 0xa3, 0xd6, 0x83, 0xe2, 0xa0, 0x8f, 0x17, 0x42, 0xee, 0xed, 0xb6, 0x85, 0x64, 0xba,
-	0x49, 0xb2, 0x00, 0x63, 0x89, 0x03, 0xde, 0xc1, 0x16, 0x46, 0x2d, 0x18, 0x40, 0x5b, 0x1d, 0xf2,
-	0x0f, 0x14, 0x84, 0xec, 0x46, 0xb1, 0x1c, 0xc6, 0xf2, 0x42, 0x76, 0xb7, 0x3a, 0x3f, 0x2b, 0x0d,
-	0xa7, 0x2b, 0xbd, 0xcb, 0xc1, 0x5c, 0x46, 0x29, 0x3d, 0xaf, 0x3f, 0xad, 0x75, 0x1b, 0xa6, 0x25,
-	0x95, 0x5c, 0xf5, 0x9b, 0x4e, 0x60, 0x2b, 0xee, 0xd9, 0x9c, 0x49, 0xac, 0x6b, 0x58, 0x53, 0x71,
-	0x60, 0x3b, 0xc1, 0xc9, 0x2a, 0x10, 0x1a, 0x52, 0x6e, 0xd3, 0x16, 0xb7, 0xa3, 0x14, 0x3f, 0xb2,
-	0x80, 0xe3, 0x32, 0xac, 0xe9, 0x74, 0x04, 0xbd, 0x91, 0x5b, 0x30, 0x25, 0x99, 0x92, 0x9c, 0x85,
-	0xd4, 0x6e, 0x86, 0xc2, 0x0e, 0x1c, 0xa6, 0x87, 0x37, 0x99, 0xe0, 0xcf, 0x11, 0x8e, 0xec, 0xeb,
-	0xe7, 0x46, 0xc9, 0x02, 0x4a, 0x42, 0xfc, 0xda, 0xa8, 0x95, 0xcc, 0xe4, 0xaf, 0xf4, 0x4c, 0x36,
-	0xa1, 0x32, 0x18, 0xc9, 0x53, 0xdd, 0xaa, 0xc5, 0x0e, 0xa8, 0xec, 0x5c, 0xf7, 0x09, 0x6a, 0x1b,
-	0x50, 0xbd, 0x4c, 0x41, 0x4f, 0xf6, 0x5f, 0x28, 0x50, 0x47, 0x04, 0xae, 0xd2, 0x3b, 0xa8, 0xbf,
-	0x6a, 0xb3, 0x40, 0x30, 0x73, 0x07, 0xd7, 0x7e, 0xb0, 0xd8, 0x4f, 0x60, 0xe6, 0x1c, 0xaa, 0x45,
-	0xd6, 0xa1, 0x10, 0x9f, 0x07, 0x8a, 0x8c, 0x35, 0xca, 0xf5, 0x8c, 0xa3, 0xab, 0xeb, 0x24, 0x4d,
-	0x6d, 0x1c, 0xe7, 0x21, 0x8f, 0x62, 0xe4, 0xd8, 0x80, 0xc9, 0x0b, 0x97, 0x42, 0xee, 0x64, 0x4a,
-	0x5c, 0x71, 0x74, 0xa5, 0xb5, 0x1b, 0x64, 0xc4, 0xbe, 0x6b, 0x4b, 0x6f, 0xbe, 0x7c, 0x7f, 0x9f,
-	0x2b, 0x93, 0x39, 0x33, 0xf3, 0xe2, 0x23, 0x1f, 0x1f, 0x0c, 0x18, 0x4f, 0xaf, 0x24, 0x59, 0xbd,
-	0xb2, 0xcc, 0xc5, 0x2b, 0x29, 0xd5, 0xaf, 0x4b, 0xd7, 0x96, 0x1e, 0xa1, 0xa5, 0x4d, 0x72, 0x3f,
-	0xd3, 0xd2, 0x81, 0x90, 0x7b, 0xf1, 0x12, 0x99, 0x87, 0xa9, 0x97, 0x3f, 0x32, 0x0f, 0xe3, 0xed,
-	0x3f, 0x32, 0x0f, 0x71, 0x75, 0x8e, 0xc8, 0x47, 0x03, 0xa6, 0x7f, 0x79, 0x75, 0xd2, 0xb8, 0xd2,
-	0x4d, 0xe6, 0x92, 0x95, 0xd6, 0x6f, 0x94, 0xa3, 0xdb, 0xb8, 0x87, 0x6d, 0xdc, 0x25, 0x8d, 0xcc,
-	0x36, 0x12, 0xeb, 0x12, 0xb3, 0xce, 0xf7, 0x42, 0x5e, 0x1b, 0x50, 0x88, 0x77, 0x85, 0x2c, 0x5f,
-	0x5e, 0xfb, 0xdc, 0x62, 0x96, 0x56, 0x7e, 0x4f, 0xd4, 0xce, 0xfe, 0x43, 0x67, 0x15, 0x52, 0x36,
-	0x2f, 0xff, 0x95, 0x7f, 0x60, 0x7d, 0x3e, 0xad, 0x1a, 0x27, 0xa7, 0x55, 0xe3, 0xdb, 0x69, 0xd5,
-	0x78, 0x7b, 0x56, 0x1d, 0x3a, 0x39, 0xab, 0x0e, 0x7d, 0x3d, 0xab, 0x0e, 0xbd, 0xdc, 0xe8, 0x72,
-	0xd5, 0x0b, 0x5a, 0xf5, 0xb6, 0x70, 0xb4, 0xc0, 0xaa, 0xcb, 0x54, 0xf4, 0x2e, 0x83, 0xcf, 0x76,
-	0x8f, 0x72, 0xd7, 0x7c, 0x95, 0xd2, 0x55, 0x7d, 0x8f, 0xf9, 0xad, 0x02, 0xfe, 0x75, 0xac, 0xff,
-	0x08, 0x00, 0x00, 0xff, 0xff, 0xd6, 0x1c, 0xaa, 0x1b, 0xb2, 0x06, 0x00, 0x00,
+	// 428 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0xc1, 0x8e, 0x12, 0x31,
+	0x18, 0xc7, 0x29, 0x2e, 0x24, 0x76, 0x75, 0x37, 0xe9, 0xee, 0x61, 0x9c, 0x59, 0x46, 0x18, 0x63,
+	0xe0, 0xe2, 0x54, 0xe0, 0xe2, 0xd9, 0xc4, 0x98, 0x98, 0x98, 0x20, 0xdc, 0xbc, 0x90, 0x02, 0x0d,
+	0xd3, 0x38, 0xd3, 0x96, 0x69, 0x67, 0x70, 0x6e, 0xc6, 0x27, 0x30, 0xf1, 0xe4, 0x0b, 0xf8, 0x28,
+	0xc6, 0x23, 0x89, 0x17, 0x8f, 0x06, 0x7c, 0x10, 0x43, 0x67, 0x20, 0x60, 0x06, 0xcd, 0x1e, 0xfb,
+	0xff, 0x7e, 0xdf, 0xd7, 0xef, 0xff, 0x6f, 0xe1, 0xc3, 0x25, 0x4d, 0xd9, 0x84, 0x62, 0x1a, 0x31,
+	0xa5, 0x98, 0xe0, 0x0a, 0xa7, 0x5d, 0xbc, 0x48, 0x68, 0x9c, 0xf9, 0x32, 0x16, 0x5a, 0xa0, 0xab,
+	0x1c, 0xf0, 0xf7, 0x80, 0x9f, 0x76, 0xed, 0x9b, 0xb9, 0x10, 0xf3, 0x90, 0x62, 0x22, 0x19, 0x26,
+	0x9c, 0x0b, 0x4d, 0xb4, 0x29, 0x99, 0x16, 0xbb, 0x59, 0x36, 0x53, 0x92, 0x98, 0x44, 0x05, 0xe1,
+	0x35, 0xa0, 0xf3, 0x66, 0x7b, 0xc7, 0x4b, 0xaa, 0x5f, 0x14, 0xd0, 0x40, 0x88, 0x70, 0x48, 0x17,
+	0x09, 0x55, 0xda, 0xfb, 0x06, 0xe0, 0x4d, 0x79, 0x5d, 0x49, 0xc1, 0x15, 0x45, 0x2d, 0x78, 0x4f,
+	0x0b, 0x4d, 0xc2, 0xb1, 0x4a, 0xa4, 0x0c, 0x33, 0x0b, 0x34, 0x41, 0xe7, 0x6c, 0x78, 0x6e, 0xb4,
+	0x91, 0x91, 0x50, 0x03, 0xc2, 0x19, 0x61, 0x61, 0x36, 0x8e, 0x18, 0xd7, 0x56, 0xd5, 0x00, 0x77,
+	0x8d, 0xf2, 0x9a, 0x71, 0x8d, 0x1e, 0xc3, 0x0b, 0x21, 0x69, 0x4c, 0xb4, 0x88, 0xc7, 0x2a, 0x20,
+	0x31, 0xb5, 0xee, 0x18, 0xe4, 0xfe, 0x4e, 0x1d, 0x6d, 0x45, 0xd4, 0x86, 0x97, 0x29, 0x09, 0xd9,
+	0xec, 0x80, 0x3b, 0x33, 0xdc, 0xc5, 0x5e, 0xce, 0xc1, 0x6b, 0x58, 0xa3, 0x52, 0x4c, 0x03, 0xab,
+	0x66, 0xca, 0xf9, 0xc1, 0xbb, 0x86, 0xc8, 0xf8, 0x18, 0x18, 0xf3, 0x3b, 0x7b, 0xaf, 0xe0, 0xd5,
+	0x91, 0x5a, 0x98, 0xea, 0xc3, 0x7a, 0x1e, 0x92, 0xb1, 0x73, 0xde, 0x73, 0xfc, 0x92, 0xe8, 0xfd,
+	0xa2, 0xa9, 0x40, 0x7b, 0x5f, 0xab, 0xb0, 0x66, 0x86, 0xa1, 0x2f, 0x00, 0x5e, 0xfe, 0x95, 0x17,
+	0x7a, 0x5a, 0x3a, 0xe2, 0x1f, 0xd1, 0xdb, 0xdd, 0x5b, 0x74, 0xe4, 0x7b, 0x7b, 0xad, 0x8f, 0x3f,
+	0x7e, 0x7f, 0xae, 0x3a, 0xe8, 0x01, 0x2e, 0x7d, 0xf7, 0xed, 0x1e, 0x1f, 0x00, 0xac, 0xe7, 0x8b,
+	0xa3, 0xf6, 0xe9, 0x0b, 0x8e, 0x52, 0xb2, 0x3b, 0xff, 0x07, 0x8b, 0x05, 0x1e, 0x99, 0x05, 0x1a,
+	0xc8, 0xc1, 0xa7, 0x3f, 0xde, 0xf3, 0xe1, 0xf7, 0xb5, 0x0b, 0x56, 0x6b, 0x17, 0xfc, 0x5a, 0xbb,
+	0xe0, 0xd3, 0xc6, 0xad, 0xac, 0x36, 0x6e, 0xe5, 0xe7, 0xc6, 0xad, 0xbc, 0x7d, 0x36, 0x67, 0x3a,
+	0x48, 0x26, 0xfe, 0x54, 0x44, 0xc5, 0x80, 0x27, 0x9c, 0xea, 0xa5, 0x88, 0xdf, 0xed, 0x8e, 0xd3,
+	0x80, 0x30, 0x8e, 0xdf, 0x1f, 0xcc, 0xd5, 0x99, 0xa4, 0x6a, 0x52, 0x37, 0xbf, 0xb9, 0xff, 0x27,
+	0x00, 0x00, 0xff, 0xff, 0xd9, 0xf5, 0x28, 0x1c, 0x45, 0x03, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -535,8 +273,6 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type QueryClient interface {
 	GetEmissionPool(ctx context.Context, in *QueryGetEmissionPoolRequest, opts ...grpc.CallOption) (*QueryGetEmissionPoolResponse, error)
-	GetWorkScore(ctx context.Context, in *QueryGetWorkScoreRequest, opts ...grpc.CallOption) (*QueryGetWorkScoreResponse, error)
-	GetOperatorReward(ctx context.Context, in *QueryGetOperatorRewardRequest, opts ...grpc.CallOption) (*QueryGetOperatorRewardResponse, error)
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
 }
 
@@ -557,24 +293,6 @@ func (c *queryClient) GetEmissionPool(ctx context.Context, in *QueryGetEmissionP
 	return out, nil
 }
 
-func (c *queryClient) GetWorkScore(ctx context.Context, in *QueryGetWorkScoreRequest, opts ...grpc.CallOption) (*QueryGetWorkScoreResponse, error) {
-	out := new(QueryGetWorkScoreResponse)
-	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Query/GetWorkScore", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (c *queryClient) GetOperatorReward(ctx context.Context, in *QueryGetOperatorRewardRequest, opts ...grpc.CallOption) (*QueryGetOperatorRewardResponse, error) {
-	out := new(QueryGetOperatorRewardResponse)
-	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Query/GetOperatorReward", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error) {
 	out := new(QueryParamsResponse)
 	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Query/Params", in, out, opts...)
@@ -587,8 +305,6 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	GetEmissionPool(context.Context, *QueryGetEmissionPoolRequest) (*QueryGetEmissionPoolResponse, error)
-	GetWorkScore(context.Context, *QueryGetWorkScoreRequest) (*QueryGetWorkScoreResponse, error)
-	GetOperatorReward(context.Context, *QueryGetOperatorRewardRequest) (*QueryGetOperatorRewardResponse, error)
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 }
 
@@ -598,12 +314,6 @@ type UnimplementedQueryServer struct {
 
 func (*UnimplementedQueryServer) GetEmissionPool(ctx context.Context, req *QueryGetEmissionPoolRequest) (*QueryGetEmissionPoolResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetEmissionPool not implemented")
-}
-func (*UnimplementedQueryServer) GetWorkScore(ctx context.Context, req *QueryGetWorkScoreRequest) (*QueryGetWorkScoreResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetWorkScore not implemented")
-}
-func (*UnimplementedQueryServer) GetOperatorReward(ctx context.Context, req *QueryGetOperatorRewardRequest) (*QueryGetOperatorRewardResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetOperatorReward not implemented")
 }
 func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsRequest) (*QueryParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Params not implemented")
@@ -627,42 +337,6 @@ func _Query_GetEmissionPool_Handler(srv interface{}, ctx context.Context, dec fu
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(QueryServer).GetEmissionPool(ctx, req.(*QueryGetEmissionPoolRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Query_GetWorkScore_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGetWorkScoreRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).GetWorkScore(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/wevibe.emissions.v1.Query/GetWorkScore",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetWorkScore(ctx, req.(*QueryGetWorkScoreRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
-func _Query_GetOperatorReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(QueryGetOperatorRewardRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(QueryServer).GetOperatorReward(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/wevibe.emissions.v1.Query/GetOperatorReward",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(QueryServer).GetOperatorReward(ctx, req.(*QueryGetOperatorRewardRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -693,14 +367,6 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetEmissionPool",
 			Handler:    _Query_GetEmissionPool_Handler,
-		},
-		{
-			MethodName: "GetWorkScore",
-			Handler:    _Query_GetWorkScore_Handler,
-		},
-		{
-			MethodName: "GetOperatorReward",
-			Handler:    _Query_GetOperatorReward_Handler,
 		},
 		{
 			MethodName: "Params",
@@ -776,171 +442,6 @@ func (m *QueryGetEmissionPoolResponse) MarshalToSizedBuffer(dAtA []byte) (int, e
 	}
 	if m.TotalSupply != 0 {
 		i = encodeVarintQuery(dAtA, i, uint64(m.TotalSupply))
-		i--
-		dAtA[i] = 0x8
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *QueryGetWorkScoreRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryGetWorkScoreRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryGetWorkScoreRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		i = encodeVarintQuery(dAtA, i, uint64(m.Epoch))
-		i--
-		dAtA[i] = 0x18
-	}
-	if len(m.OrgId) > 0 {
-		i -= len(m.OrgId)
-		copy(dAtA[i:], m.OrgId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.OrgId)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.OperatorId) > 0 {
-		i -= len(m.OperatorId)
-		copy(dAtA[i:], m.OperatorId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.OperatorId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *QueryGetWorkScoreResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryGetWorkScoreResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryGetWorkScoreResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		i = encodeVarintQuery(dAtA, i, uint64(m.Epoch))
-		i--
-		dAtA[i] = 0x38
-	}
-	if m.TotalScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.TotalScore))))
-		i--
-		dAtA[i] = 0x31
-	}
-	if m.RetrievalVolume != 0 {
-		i = encodeVarintQuery(dAtA, i, uint64(m.RetrievalVolume))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.AvailabilityScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.AvailabilityScore))))
-		i--
-		dAtA[i] = 0x21
-	}
-	if m.RarityMultiplier != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.RarityMultiplier))))
-		i--
-		dAtA[i] = 0x19
-	}
-	if len(m.OrgId) > 0 {
-		i -= len(m.OrgId)
-		copy(dAtA[i:], m.OrgId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.OrgId)))
-		i--
-		dAtA[i] = 0x12
-	}
-	if len(m.OperatorId) > 0 {
-		i -= len(m.OperatorId)
-		copy(dAtA[i:], m.OperatorId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.OperatorId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *QueryGetOperatorRewardRequest) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryGetOperatorRewardRequest) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryGetOperatorRewardRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if len(m.OperatorId) > 0 {
-		i -= len(m.OperatorId)
-		copy(dAtA[i:], m.OperatorId)
-		i = encodeVarintQuery(dAtA, i, uint64(len(m.OperatorId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *QueryGetOperatorRewardResponse) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *QueryGetOperatorRewardResponse) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *QueryGetOperatorRewardResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Amount != 0 {
-		i = encodeVarintQuery(dAtA, i, uint64(m.Amount))
 		i--
 		dAtA[i] = 0x8
 	}
@@ -1045,83 +546,6 @@ func (m *QueryGetEmissionPoolResponse) Size() (n int) {
 	}
 	if m.Epoch != 0 {
 		n += 1 + sovQuery(uint64(m.Epoch))
-	}
-	return n
-}
-
-func (m *QueryGetWorkScoreRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.OperatorId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	l = len(m.OrgId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	if m.Epoch != 0 {
-		n += 1 + sovQuery(uint64(m.Epoch))
-	}
-	return n
-}
-
-func (m *QueryGetWorkScoreResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.OperatorId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	l = len(m.OrgId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	if m.RarityMultiplier != 0 {
-		n += 9
-	}
-	if m.AvailabilityScore != 0 {
-		n += 9
-	}
-	if m.RetrievalVolume != 0 {
-		n += 1 + sovQuery(uint64(m.RetrievalVolume))
-	}
-	if m.TotalScore != 0 {
-		n += 9
-	}
-	if m.Epoch != 0 {
-		n += 1 + sovQuery(uint64(m.Epoch))
-	}
-	return n
-}
-
-func (m *QueryGetOperatorRewardRequest) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.OperatorId)
-	if l > 0 {
-		n += 1 + l + sovQuery(uint64(l))
-	}
-	return n
-}
-
-func (m *QueryGetOperatorRewardResponse) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	if m.Amount != 0 {
-		n += 1 + sovQuery(uint64(m.Amount))
 	}
 	return n
 }
@@ -1324,475 +748,6 @@ func (m *QueryGetEmissionPoolResponse) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.Epoch |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryGetWorkScoreRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetWorkScoreRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetWorkScoreRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OperatorId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OrgId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryGetWorkScoreResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetWorkScoreResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetWorkScoreResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OperatorId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OrgId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RarityMultiplier", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.RarityMultiplier = float64(math.Float64frombits(v))
-		case 4:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AvailabilityScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.AvailabilityScore = float64(math.Float64frombits(v))
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RetrievalVolume", wireType)
-			}
-			m.RetrievalVolume = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.RetrievalVolume |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TotalScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.TotalScore = float64(math.Float64frombits(v))
-		case 7:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryGetOperatorRewardRequest) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetOperatorRewardRequest: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetOperatorRewardRequest: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthQuery
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OperatorId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		default:
-			iNdEx = preIndex
-			skippy, err := skipQuery(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthQuery
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *QueryGetOperatorRewardResponse) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowQuery
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: QueryGetOperatorRewardResponse: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: QueryGetOperatorRewardResponse: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Amount", wireType)
-			}
-			m.Amount = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowQuery
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Amount |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}

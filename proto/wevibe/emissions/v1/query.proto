@@ -10,12 +10,6 @@ service Query {
   rpc GetEmissionPool(QueryGetEmissionPoolRequest) returns (QueryGetEmissionPoolResponse) {
     option (google.api.http).get = "/wevibe/emissions/v1/pool";
   }
-  rpc GetWorkScore(QueryGetWorkScoreRequest) returns (QueryGetWorkScoreResponse) {
-    option (google.api.http).get = "/wevibe/emissions/v1/work_score/{operator_id}/{org_id}/{epoch}";
-  }
-  rpc GetOperatorReward(QueryGetOperatorRewardRequest) returns (QueryGetOperatorRewardResponse) {
-    option (google.api.http).get = "/wevibe/emissions/v1/operator_reward/{operator_id}";
-  }
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
     option (google.api.http).get = "/wevibe/emissions/v1/params";
   }
@@ -29,30 +23,6 @@ message QueryGetEmissionPoolResponse {
   uint64 operator_share = 3;
   uint64 validator_share = 4;
   uint64 epoch = 5;
-}
-
-message QueryGetWorkScoreRequest {
-  string operator_id = 1;
-  string org_id = 2;
-  uint64 epoch = 3;
-}
-
-message QueryGetWorkScoreResponse {
-  string operator_id = 1;
-  string org_id = 2;
-  double rarity_multiplier = 3;
-  double availability_score = 4;
-  uint64 retrieval_volume = 5;
-  double total_score = 6;
-  uint64 epoch = 7;
-}
-
-message QueryGetOperatorRewardRequest {
-  string operator_id = 1;
-}
-
-message QueryGetOperatorRewardResponse {
-  uint64 amount = 1;
 }
 
 message QueryParamsRequest {}

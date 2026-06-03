@@ -40,25 +40,3 @@ func TestMsgMintDailyEmission_NoPool(t *testing.T) {
 	_, err := srv.MintDailyEmission(ctx, msg)
 	require.Error(t, err)
 }
-
-func TestMsgDistributeOperatorRewards_ValidateBasic(t *testing.T) {
-	msg := &types.MsgDistributeOperatorRewards{}
-	require.Error(t, msg.ValidateBasic())
-
-	msg.Signer = "cosmos1abc"
-	msg.Rewards = []*types.OperatorRewardEntry{{OperatorId: "op1", Amount: 100}}
-	require.NoError(t, msg.ValidateBasic())
-}
-
-func TestMsgDistributeOperatorRewards_NoEmission(t *testing.T) {
-	srv, ctx := setupMsgServer(t)
-
-	msg := &types.MsgDistributeOperatorRewards{
-		Signer:  "cosmos1abc",
-		Rewards: []*types.OperatorRewardEntry{{OperatorId: "op1", Amount: 100}},
-		Epoch:   1,
-	}
-
-	_, err := srv.DistributeOperatorRewards(ctx, msg)
-	require.Error(t, err)
-}

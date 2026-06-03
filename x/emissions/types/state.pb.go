@@ -4,7 +4,6 @@
 package types
 
 import (
-	encoding_binary "encoding/binary"
 	fmt "fmt"
 	proto "github.com/cosmos/gogoproto/proto"
 	io "io"
@@ -141,12 +140,9 @@ func (m *StoredEmissionPool) GetTotalEpochsElapsed() uint64 {
 }
 
 type StoredDailyEmission struct {
-	Epoch            uint64            `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
-	TotalEmitted     uint64            `protobuf:"varint,2,opt,name=total_emitted,json=totalEmitted,proto3" json:"total_emitted,omitempty"`
-	OperatorShare    uint64            `protobuf:"varint,3,opt,name=operator_share,json=operatorShare,proto3" json:"operator_share,omitempty"`
-	ValidatorShare   uint64            `protobuf:"varint,4,opt,name=validator_share,json=validatorShare,proto3" json:"validator_share,omitempty"`
-	OperatorRewards  map[string]uint64 `protobuf:"bytes,5,rep,name=operator_rewards,json=operatorRewards,proto3" json:"operator_rewards,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
-	ValidatorRewards map[string]uint64 `protobuf:"bytes,6,rep,name=validator_rewards,json=validatorRewards,proto3" json:"validator_rewards,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"varint,2,opt,name=value,proto3"`
+	Epoch          uint64 `protobuf:"varint,1,opt,name=epoch,proto3" json:"epoch,omitempty"`
+	TotalEmitted   uint64 `protobuf:"varint,2,opt,name=total_emitted,json=totalEmitted,proto3" json:"total_emitted,omitempty"`
+	ValidatorShare uint64 `protobuf:"varint,4,opt,name=validator_share,json=validatorShare,proto3" json:"validator_share,omitempty"`
 }
 
 func (m *StoredDailyEmission) Reset()         { *m = StoredDailyEmission{} }
@@ -196,32 +192,11 @@ func (m *StoredDailyEmission) GetTotalEmitted() uint64 {
 	return 0
 }
 
-func (m *StoredDailyEmission) GetOperatorShare() uint64 {
-	if m != nil {
-		return m.OperatorShare
-	}
-	return 0
-}
-
 func (m *StoredDailyEmission) GetValidatorShare() uint64 {
 	if m != nil {
 		return m.ValidatorShare
 	}
 	return 0
-}
-
-func (m *StoredDailyEmission) GetOperatorRewards() map[string]uint64 {
-	if m != nil {
-		return m.OperatorRewards
-	}
-	return nil
-}
-
-func (m *StoredDailyEmission) GetValidatorRewards() map[string]uint64 {
-	if m != nil {
-		return m.ValidatorRewards
-	}
-	return nil
 }
 
 type StoredBootstrapCredit struct {
@@ -284,114 +259,6 @@ func (m *StoredBootstrapCredit) GetRedeemed() uint64 {
 	return 0
 }
 
-type StoredWorkScore struct {
-	OperatorId        string  `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
-	OrgId             string  `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
-	RarityMultiplier  float64 `protobuf:"fixed64,3,opt,name=rarity_multiplier,json=rarityMultiplier,proto3" json:"rarity_multiplier,omitempty"`
-	AvailabilityScore float64 `protobuf:"fixed64,4,opt,name=availability_score,json=availabilityScore,proto3" json:"availability_score,omitempty"`
-	RetrievalVolume   uint64  `protobuf:"varint,5,opt,name=retrieval_volume,json=retrievalVolume,proto3" json:"retrieval_volume,omitempty"`
-	StorageScore      float64 `protobuf:"fixed64,6,opt,name=storage_score,json=storageScore,proto3" json:"storage_score,omitempty"`
-	RetrievalScore    float64 `protobuf:"fixed64,7,opt,name=retrieval_score,json=retrievalScore,proto3" json:"retrieval_score,omitempty"`
-	TotalScore        float64 `protobuf:"fixed64,8,opt,name=total_score,json=totalScore,proto3" json:"total_score,omitempty"`
-	Epoch             uint64  `protobuf:"varint,9,opt,name=epoch,proto3" json:"epoch,omitempty"`
-}
-
-func (m *StoredWorkScore) Reset()         { *m = StoredWorkScore{} }
-func (m *StoredWorkScore) String() string { return proto.CompactTextString(m) }
-func (*StoredWorkScore) ProtoMessage()    {}
-func (*StoredWorkScore) Descriptor() ([]byte, []int) {
-	return fileDescriptor_73cac730550ffac4, []int{3}
-}
-func (m *StoredWorkScore) XXX_Unmarshal(b []byte) error {
-	return m.Unmarshal(b)
-}
-func (m *StoredWorkScore) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
-	if deterministic {
-		return xxx_messageInfo_StoredWorkScore.Marshal(b, m, deterministic)
-	} else {
-		b = b[:cap(b)]
-		n, err := m.MarshalToSizedBuffer(b)
-		if err != nil {
-			return nil, err
-		}
-		return b[:n], nil
-	}
-}
-func (m *StoredWorkScore) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StoredWorkScore.Merge(m, src)
-}
-func (m *StoredWorkScore) XXX_Size() int {
-	return m.Size()
-}
-func (m *StoredWorkScore) XXX_DiscardUnknown() {
-	xxx_messageInfo_StoredWorkScore.DiscardUnknown(m)
-}
-
-var xxx_messageInfo_StoredWorkScore proto.InternalMessageInfo
-
-func (m *StoredWorkScore) GetOperatorId() string {
-	if m != nil {
-		return m.OperatorId
-	}
-	return ""
-}
-
-func (m *StoredWorkScore) GetOrgId() string {
-	if m != nil {
-		return m.OrgId
-	}
-	return ""
-}
-
-func (m *StoredWorkScore) GetRarityMultiplier() float64 {
-	if m != nil {
-		return m.RarityMultiplier
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetAvailabilityScore() float64 {
-	if m != nil {
-		return m.AvailabilityScore
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetRetrievalVolume() uint64 {
-	if m != nil {
-		return m.RetrievalVolume
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetStorageScore() float64 {
-	if m != nil {
-		return m.StorageScore
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetRetrievalScore() float64 {
-	if m != nil {
-		return m.RetrievalScore
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetTotalScore() float64 {
-	if m != nil {
-		return m.TotalScore
-	}
-	return 0
-}
-
-func (m *StoredWorkScore) GetEpoch() uint64 {
-	if m != nil {
-		return m.Epoch
-	}
-	return 0
-}
-
 type StoredAsymmetricGate struct {
 	OperatorId       string `protobuf:"bytes,1,opt,name=operator_id,json=operatorId,proto3" json:"operator_id,omitempty"`
 	OrgId            string `protobuf:"bytes,2,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
@@ -404,7 +271,7 @@ func (m *StoredAsymmetricGate) Reset()         { *m = StoredAsymmetricGate{} }
 func (m *StoredAsymmetricGate) String() string { return proto.CompactTextString(m) }
 func (*StoredAsymmetricGate) ProtoMessage()    {}
 func (*StoredAsymmetricGate) Descriptor() ([]byte, []int) {
-	return fileDescriptor_73cac730550ffac4, []int{4}
+	return fileDescriptor_73cac730550ffac4, []int{3}
 }
 func (m *StoredAsymmetricGate) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -471,66 +338,49 @@ func (m *StoredAsymmetricGate) GetEpoch() uint64 {
 func init() {
 	proto.RegisterType((*StoredEmissionPool)(nil), "wevibe.emissions.v1.StoredEmissionPool")
 	proto.RegisterType((*StoredDailyEmission)(nil), "wevibe.emissions.v1.StoredDailyEmission")
-	proto.RegisterMapType((map[string]uint64)(nil), "wevibe.emissions.v1.StoredDailyEmission.OperatorRewardsEntry")
-	proto.RegisterMapType((map[string]uint64)(nil), "wevibe.emissions.v1.StoredDailyEmission.ValidatorRewardsEntry")
 	proto.RegisterType((*StoredBootstrapCredit)(nil), "wevibe.emissions.v1.StoredBootstrapCredit")
-	proto.RegisterType((*StoredWorkScore)(nil), "wevibe.emissions.v1.StoredWorkScore")
 	proto.RegisterType((*StoredAsymmetricGate)(nil), "wevibe.emissions.v1.StoredAsymmetricGate")
 }
 
 func init() { proto.RegisterFile("wevibe/emissions/v1/state.proto", fileDescriptor_73cac730550ffac4) }
 
 var fileDescriptor_73cac730550ffac4 = []byte{
-	// 781 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x95, 0xdf, 0x8a, 0x1b, 0x37,
-	0x14, 0xc6, 0x77, 0xec, 0xb5, 0xd7, 0x3e, 0x9b, 0xd8, 0x5e, 0xc5, 0x0b, 0x83, 0x4b, 0x9c, 0xad,
-	0x4b, 0x48, 0x4a, 0x89, 0xdd, 0xb4, 0x37, 0xa1, 0xb4, 0x85, 0xec, 0xd6, 0x84, 0x5c, 0x84, 0x86,
-	0x31, 0x4d, 0xa1, 0x37, 0x83, 0xec, 0x11, 0xb6, 0xb0, 0x66, 0x34, 0x48, 0xf2, 0xb8, 0xbe, 0xeb,
-	0x23, 0xf4, 0x71, 0xfa, 0x08, 0xbd, 0xdc, 0x9b, 0x42, 0xa1, 0x37, 0x65, 0xf7, 0x45, 0xca, 0x1c,
-	0x69, 0xc6, 0xb3, 0xc5, 0xa5, 0x7f, 0xe8, 0x9d, 0xf5, 0x9d, 0x9f, 0xbe, 0x33, 0xe7, 0x1c, 0x49,
-	0x86, 0x47, 0x5b, 0x96, 0xf1, 0x39, 0x9b, 0xb0, 0x98, 0x6b, 0xcd, 0x65, 0xa2, 0x27, 0xd9, 0xf3,
-	0x89, 0x36, 0xd4, 0xb0, 0x71, 0xaa, 0xa4, 0x91, 0xe4, 0x81, 0x05, 0xc6, 0x25, 0x30, 0xce, 0x9e,
-	0x8f, 0x7e, 0xab, 0x03, 0x99, 0x19, 0xa9, 0x58, 0x34, 0x75, 0xf2, 0x5b, 0x29, 0x05, 0x79, 0x1f,
-	0xee, 0x19, 0x69, 0xa8, 0x08, 0xf5, 0x26, 0x4d, 0xc5, 0xce, 0xf7, 0x2e, 0xbc, 0xa7, 0xc7, 0xc1,
-	0x29, 0x6a, 0x33, 0x94, 0xc8, 0x43, 0x80, 0x88, 0x72, 0xb1, 0x0b, 0x63, 0x9e, 0x18, 0xbf, 0x86,
-	0x40, 0x1b, 0x95, 0x37, 0x3c, 0x31, 0xe4, 0x31, 0x74, 0x64, 0xca, 0x14, 0x35, 0x52, 0x85, 0x7a,
-	0x45, 0x15, 0xf3, 0xeb, 0x88, 0xdc, 0x2f, 0xd4, 0x59, 0x2e, 0x92, 0x27, 0xd0, 0xcd, 0xa8, 0xe0,
-	0x51, 0x85, 0x3b, 0x46, 0xae, 0x53, 0xca, 0x16, 0xec, 0x43, 0x83, 0xa5, 0x72, 0xb1, 0xf2, 0x1b,
-	0x18, 0xb6, 0x0b, 0x72, 0x05, 0xc3, 0xfd, 0xf6, 0x54, 0x4a, 0x11, 0x2a, 0x16, 0x53, 0x9e, 0xf0,
-	0x64, 0x19, 0x6e, 0xf2, 0x6a, 0xfd, 0x26, 0xe2, 0xef, 0x95, 0x54, 0x5e, 0x5e, 0x50, 0x30, 0xdf,
-	0xe4, 0x08, 0x79, 0x05, 0x17, 0x0b, 0x99, 0x18, 0xc5, 0xe7, 0x9b, 0xbf, 0xb4, 0x39, 0x41, 0x9b,
-	0x87, 0x15, 0xee, 0x80, 0xd1, 0xe7, 0x30, 0xa8, 0x1a, 0x29, 0x29, 0x84, 0xcc, 0x98, 0x72, 0x16,
-	0x2d, 0xb4, 0xf0, 0x2b, 0x44, 0xe0, 0x00, 0xbb, 0xfb, 0x11, 0x9c, 0x6a, 0x43, 0x95, 0x09, 0x6d,
-	0x9d, 0x6d, 0xc4, 0x01, 0xa5, 0x29, 0x16, 0xfb, 0x31, 0xf4, 0xed, 0x50, 0x10, 0xd0, 0x21, 0x13,
-	0x34, 0xd5, 0x2c, 0xf2, 0x01, 0x49, 0x82, 0x31, 0x24, 0xf5, 0xd4, 0x46, 0x46, 0x3f, 0x1c, 0xc3,
-	0x03, 0x3b, 0xdd, 0xaf, 0xf2, 0xc1, 0x14, 0x23, 0xde, 0x37, 0xd3, 0xab, 0x36, 0xf3, 0x03, 0xb8,
-	0xef, 0xfc, 0x63, 0x6e, 0x0c, 0x8b, 0xdc, 0x50, 0xed, 0x49, 0x98, 0x5a, 0xed, 0x7f, 0x9f, 0xeb,
-	0x0a, 0x7a, 0xa5, 0x9f, 0x62, 0x5b, 0xaa, 0x22, 0xed, 0x37, 0x2e, 0xea, 0x4f, 0x4f, 0x3f, 0xf9,
-	0x62, 0x7c, 0xe0, 0xc0, 0x8e, 0x0f, 0x94, 0x33, 0xfe, 0xda, 0x19, 0x04, 0x76, 0xff, 0x34, 0x31,
-	0x6a, 0x17, 0x74, 0xe5, 0x5d, 0x95, 0xac, 0xe1, 0x6c, 0xff, 0x49, 0x45, 0xaa, 0x26, 0xa6, 0xfa,
-	0xf2, 0x1f, 0xa7, 0x7a, 0x57, 0x38, 0xdc, 0xc9, 0xd5, 0xcb, 0xfe, 0x24, 0x0f, 0x2e, 0xa1, 0x7f,
-	0xe8, 0xab, 0x48, 0x0f, 0xea, 0x6b, 0x66, 0xef, 0x53, 0x3b, 0xc8, 0x7f, 0xe6, 0xb3, 0xc8, 0xa8,
-	0xd8, 0x30, 0xd7, 0x6d, 0xbb, 0xf8, 0xac, 0xf6, 0xc2, 0x1b, 0x5c, 0xc1, 0xf9, 0xc1, 0x74, 0xff,
-	0xc6, 0x64, 0x94, 0xc0, 0xb9, 0xad, 0xe3, 0x52, 0x4a, 0xa3, 0x8d, 0xa2, 0xe9, 0x95, 0x62, 0x11,
-	0x37, 0xf9, 0x71, 0x2b, 0x1b, 0xcf, 0x23, 0x67, 0x06, 0x85, 0xf4, 0x3a, 0x22, 0x3e, 0x9c, 0x2c,
-	0x10, 0xd5, 0xce, 0xb5, 0x58, 0x92, 0x01, 0xb4, 0x14, 0x8b, 0x18, 0x8b, 0x59, 0xe4, 0xa6, 0x5f,
-	0xae, 0x47, 0xbf, 0xd4, 0xa0, 0x6b, 0x13, 0x7e, 0x2b, 0xd5, 0x7a, 0xb6, 0x90, 0x8a, 0xfd, 0x7d,
-	0xaa, 0x73, 0x68, 0x4a, 0xb5, 0xcc, 0x63, 0x35, 0x8c, 0x35, 0xa4, 0x5a, 0xbe, 0x8e, 0xc8, 0x47,
-	0x70, 0xa6, 0xa8, 0xe2, 0x66, 0x17, 0xc6, 0x1b, 0x61, 0x78, 0x2a, 0x38, 0x53, 0x98, 0xd0, 0x0b,
-	0x7a, 0x36, 0xf0, 0xa6, 0xd4, 0xc9, 0x33, 0x20, 0x34, 0xa3, 0x5c, 0xd0, 0x39, 0x17, 0xf9, 0x16,
-	0x9d, 0xa7, 0xc6, 0x43, 0xe7, 0x05, 0x67, 0xd5, 0x88, 0xfd, 0xa6, 0x0f, 0xa1, 0xa7, 0x98, 0x51,
-	0x9c, 0x65, 0x54, 0x84, 0x99, 0x14, 0x9b, 0x98, 0xb9, 0xa7, 0xa5, 0x5b, 0xea, 0xef, 0x50, 0xce,
-	0xef, 0x85, 0x36, 0x52, 0xd1, 0x25, 0x73, 0xa6, 0x4d, 0x34, 0xbd, 0xe7, 0x44, 0xeb, 0xf7, 0x04,
-	0xf6, 0xfb, 0x1c, 0x76, 0x82, 0x58, 0xa7, 0x94, 0xcb, 0x66, 0xb8, 0xa7, 0x15, 0xa1, 0x16, 0x42,
-	0x60, 0x5f, 0x56, 0x04, 0xca, 0xcb, 0xd9, 0xae, 0x5c, 0xce, 0xd1, 0x4f, 0x1e, 0xf4, 0x6d, 0x5f,
-	0x5f, 0xea, 0x5d, 0x1c, 0xe7, 0x9e, 0x8b, 0x57, 0xd4, 0xfc, 0xf7, 0xe6, 0x3e, 0x86, 0x4e, 0x51,
-	0x55, 0x4a, 0xb5, 0x76, 0xa3, 0x6c, 0x05, 0x45, 0xad, 0x6f, 0x51, 0xc4, 0x19, 0x94, 0x75, 0x51,
-	0x21, 0xe4, 0x96, 0x45, 0xd8, 0xd5, 0x56, 0xb0, 0x6f, 0xe0, 0x4b, 0xab, 0x1f, 0x7e, 0xa4, 0x2f,
-	0x83, 0x9f, 0x6f, 0x86, 0xde, 0xf5, 0xcd, 0xd0, 0xfb, 0xfd, 0x66, 0xe8, 0xfd, 0x78, 0x3b, 0x3c,
-	0xba, 0xbe, 0x1d, 0x1e, 0xfd, 0x7a, 0x3b, 0x3c, 0xfa, 0xee, 0xc5, 0x92, 0x9b, 0xd5, 0x66, 0x3e,
-	0x5e, 0xc8, 0x78, 0x62, 0x6f, 0xe0, 0xb3, 0x84, 0x99, 0xad, 0x54, 0xeb, 0x62, 0xb9, 0x58, 0x51,
-	0x9e, 0x4c, 0xbe, 0xaf, 0xfc, 0xab, 0x99, 0x5d, 0xca, 0xf4, 0xbc, 0x89, 0xff, 0x69, 0x9f, 0xfe,
-	0x11, 0x00, 0x00, 0xff, 0xff, 0x08, 0xaa, 0xa7, 0xec, 0xf6, 0x06, 0x00, 0x00,
+	// 553 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x93, 0xcf, 0x6e, 0xd3, 0x40,
+	0x10, 0xc6, 0xeb, 0xfe, 0x49, 0x93, 0x29, 0x29, 0xb0, 0x4d, 0x25, 0xab, 0xa8, 0x6e, 0x09, 0x42,
+	0x20, 0x21, 0x12, 0x2a, 0x2e, 0x1c, 0xb8, 0xb4, 0x25, 0xaa, 0x7a, 0x40, 0xaa, 0x1c, 0x71, 0xe1,
+	0x62, 0x6d, 0xbc, 0xa3, 0x64, 0xc5, 0xda, 0x6b, 0xed, 0x6e, 0x1c, 0xf2, 0x16, 0x3c, 0x0e, 0x8f,
+	0xc0, 0xb1, 0x47, 0x24, 0x2e, 0x28, 0x79, 0x11, 0xe4, 0x5d, 0xdb, 0xf5, 0xa1, 0x08, 0x8e, 0xf3,
+	0xcd, 0x6f, 0xbf, 0xd9, 0xd9, 0x99, 0x85, 0x93, 0x05, 0xe6, 0x7c, 0x82, 0x43, 0x4c, 0xb8, 0xd6,
+	0x5c, 0xa6, 0x7a, 0x98, 0x9f, 0x0d, 0xb5, 0xa1, 0x06, 0x07, 0x99, 0x92, 0x46, 0x92, 0x03, 0x07,
+	0x0c, 0x6a, 0x60, 0x90, 0x9f, 0xf5, 0x7f, 0x6d, 0x01, 0x19, 0x1b, 0xa9, 0x90, 0x8d, 0x4a, 0xf9,
+	0x46, 0x4a, 0x41, 0x9e, 0xc2, 0x03, 0x23, 0x0d, 0x15, 0x91, 0x9e, 0x67, 0x99, 0x58, 0xfa, 0xde,
+	0xa9, 0xf7, 0x72, 0x3b, 0xdc, 0xb3, 0xda, 0xd8, 0x4a, 0xe4, 0x18, 0x80, 0x51, 0x2e, 0x96, 0x51,
+	0xc2, 0x53, 0xe3, 0x6f, 0x5a, 0xa0, 0x63, 0x95, 0x8f, 0x3c, 0x35, 0xe4, 0x39, 0xec, 0xcb, 0x0c,
+	0x15, 0x35, 0x52, 0x45, 0x7a, 0x46, 0x15, 0xfa, 0x5b, 0x16, 0xe9, 0x56, 0xea, 0xb8, 0x10, 0xc9,
+	0x0b, 0x78, 0x98, 0x53, 0xc1, 0x59, 0x83, 0xdb, 0xb6, 0xdc, 0x7e, 0x2d, 0x3b, 0xb0, 0x07, 0x3b,
+	0x98, 0xc9, 0x78, 0xe6, 0xef, 0xd8, 0xb4, 0x0b, 0xc8, 0x25, 0x04, 0x77, 0xc7, 0x33, 0x29, 0x45,
+	0xa4, 0x30, 0xa1, 0x3c, 0xe5, 0xe9, 0x34, 0x9a, 0x17, 0xdd, 0xfa, 0x2d, 0x8b, 0x3f, 0xa9, 0xa9,
+	0xa2, 0xbd, 0xb0, 0x62, 0x3e, 0x15, 0x08, 0xb9, 0x82, 0xd3, 0x58, 0xa6, 0x46, 0xf1, 0xc9, 0xfc,
+	0xaf, 0x36, 0xbb, 0xd6, 0xe6, 0xb8, 0xc1, 0xdd, 0x63, 0xf4, 0x1e, 0x8e, 0x9a, 0x46, 0x4a, 0x0a,
+	0x21, 0x73, 0x54, 0xa5, 0x45, 0xdb, 0x5a, 0xf8, 0x0d, 0x22, 0x2c, 0x01, 0x77, 0xfa, 0x04, 0xf6,
+	0xb4, 0xa1, 0xca, 0x44, 0xae, 0xcf, 0x8e, 0xc5, 0xc1, 0x4a, 0x23, 0xdb, 0xec, 0x1b, 0xe8, 0xb9,
+	0xa1, 0x58, 0x40, 0x47, 0x28, 0x68, 0xa6, 0x91, 0xf9, 0x60, 0x49, 0x62, 0x73, 0x96, 0xd4, 0x23,
+	0x97, 0xe9, 0x2f, 0xe1, 0xc0, 0x0d, 0xf7, 0x43, 0x31, 0x97, 0x6a, 0xc2, 0x77, 0x6f, 0xe9, 0x35,
+	0xdf, 0xf2, 0x19, 0x74, 0x4b, 0xfb, 0x84, 0x1b, 0x83, 0xac, 0x9c, 0xa9, 0x5b, 0x84, 0x91, 0xd3,
+	0xfe, 0x7b, 0x5e, 0xfd, 0x14, 0x0e, 0x5d, 0xe9, 0x0b, 0x29, 0x8d, 0x36, 0x8a, 0x66, 0x97, 0x0a,
+	0x19, 0x37, 0x45, 0x9b, 0xf5, 0x62, 0x70, 0x66, 0xaf, 0xd0, 0x09, 0xa1, 0x92, 0xae, 0x19, 0xf1,
+	0x61, 0x37, 0xb6, 0xa8, 0x2e, 0x6f, 0x50, 0x85, 0xe4, 0x08, 0xda, 0x0a, 0x19, 0x62, 0x82, 0xac,
+	0xdc, 0xa6, 0x3a, 0xee, 0x7f, 0xf7, 0xa0, 0xe7, 0x0a, 0x9e, 0xeb, 0x65, 0x92, 0xa0, 0x51, 0x3c,
+	0xbe, 0xa2, 0x06, 0xff, 0x5d, 0xef, 0x10, 0x5a, 0x52, 0x4d, 0x8b, 0xdc, 0xa6, 0xcd, 0xed, 0x48,
+	0x35, 0xbd, 0x66, 0xc5, 0x02, 0x6b, 0x23, 0x15, 0x9d, 0x62, 0x94, 0x51, 0xad, 0xcb, 0x92, 0xed,
+	0xb0, 0x5b, 0xaa, 0x37, 0x56, 0x24, 0xaf, 0xe0, 0xb1, 0x2a, 0x8a, 0x61, 0x4e, 0x45, 0x44, 0x85,
+	0x90, 0x0b, 0x64, 0xf6, 0x49, 0xda, 0xe1, 0xa3, 0x3a, 0x71, 0xee, 0xf4, 0xfb, 0x97, 0xf8, 0x22,
+	0xfc, 0xb1, 0x0a, 0xbc, 0xdb, 0x55, 0xe0, 0xfd, 0x5e, 0x05, 0xde, 0xb7, 0x75, 0xb0, 0x71, 0xbb,
+	0x0e, 0x36, 0x7e, 0xae, 0x83, 0x8d, 0xcf, 0xef, 0xa6, 0xdc, 0xcc, 0xe6, 0x93, 0x41, 0x2c, 0x93,
+	0xa1, 0xfb, 0xbd, 0xaf, 0x53, 0x34, 0x0b, 0xa9, 0xbe, 0x54, 0x61, 0x3c, 0xa3, 0x3c, 0x1d, 0x7e,
+	0x6d, 0xfc, 0x7a, 0xb3, 0xcc, 0x50, 0x4f, 0x5a, 0xf6, 0xcf, 0xbf, 0xfd, 0x13, 0x00, 0x00, 0xff,
+	0xff, 0x24, 0xaf, 0xbe, 0x96, 0x16, 0x04, 0x00, 0x00,
 }
 
 func (m *StoredEmissionPool) Marshal() (dAtA []byte, err error) {
@@ -626,49 +476,10 @@ func (m *StoredDailyEmission) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	_ = i
 	var l int
 	_ = l
-	if len(m.ValidatorRewards) > 0 {
-		for k := range m.ValidatorRewards {
-			v := m.ValidatorRewards[k]
-			baseI := i
-			i = encodeVarintState(dAtA, i, uint64(v))
-			i--
-			dAtA[i] = 0x10
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintState(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintState(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x32
-		}
-	}
-	if len(m.OperatorRewards) > 0 {
-		for k := range m.OperatorRewards {
-			v := m.OperatorRewards[k]
-			baseI := i
-			i = encodeVarintState(dAtA, i, uint64(v))
-			i--
-			dAtA[i] = 0x10
-			i -= len(k)
-			copy(dAtA[i:], k)
-			i = encodeVarintState(dAtA, i, uint64(len(k)))
-			i--
-			dAtA[i] = 0xa
-			i = encodeVarintState(dAtA, i, uint64(baseI-i))
-			i--
-			dAtA[i] = 0x2a
-		}
-	}
 	if m.ValidatorShare != 0 {
 		i = encodeVarintState(dAtA, i, uint64(m.ValidatorShare))
 		i--
 		dAtA[i] = 0x20
-	}
-	if m.OperatorShare != 0 {
-		i = encodeVarintState(dAtA, i, uint64(m.OperatorShare))
-		i--
-		dAtA[i] = 0x18
 	}
 	if m.TotalEmitted != 0 {
 		i = encodeVarintState(dAtA, i, uint64(m.TotalEmitted))
@@ -712,83 +523,6 @@ func (m *StoredBootstrapCredit) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 		i = encodeVarintState(dAtA, i, uint64(m.Credits))
 		i--
 		dAtA[i] = 0x10
-	}
-	if len(m.OperatorId) > 0 {
-		i -= len(m.OperatorId)
-		copy(dAtA[i:], m.OperatorId)
-		i = encodeVarintState(dAtA, i, uint64(len(m.OperatorId)))
-		i--
-		dAtA[i] = 0xa
-	}
-	return len(dAtA) - i, nil
-}
-
-func (m *StoredWorkScore) Marshal() (dAtA []byte, err error) {
-	size := m.Size()
-	dAtA = make([]byte, size)
-	n, err := m.MarshalToSizedBuffer(dAtA[:size])
-	if err != nil {
-		return nil, err
-	}
-	return dAtA[:n], nil
-}
-
-func (m *StoredWorkScore) MarshalTo(dAtA []byte) (int, error) {
-	size := m.Size()
-	return m.MarshalToSizedBuffer(dAtA[:size])
-}
-
-func (m *StoredWorkScore) MarshalToSizedBuffer(dAtA []byte) (int, error) {
-	i := len(dAtA)
-	_ = i
-	var l int
-	_ = l
-	if m.Epoch != 0 {
-		i = encodeVarintState(dAtA, i, uint64(m.Epoch))
-		i--
-		dAtA[i] = 0x48
-	}
-	if m.TotalScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.TotalScore))))
-		i--
-		dAtA[i] = 0x41
-	}
-	if m.RetrievalScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.RetrievalScore))))
-		i--
-		dAtA[i] = 0x39
-	}
-	if m.StorageScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.StorageScore))))
-		i--
-		dAtA[i] = 0x31
-	}
-	if m.RetrievalVolume != 0 {
-		i = encodeVarintState(dAtA, i, uint64(m.RetrievalVolume))
-		i--
-		dAtA[i] = 0x28
-	}
-	if m.AvailabilityScore != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.AvailabilityScore))))
-		i--
-		dAtA[i] = 0x21
-	}
-	if m.RarityMultiplier != 0 {
-		i -= 8
-		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.RarityMultiplier))))
-		i--
-		dAtA[i] = 0x19
-	}
-	if len(m.OrgId) > 0 {
-		i -= len(m.OrgId)
-		copy(dAtA[i:], m.OrgId)
-		i = encodeVarintState(dAtA, i, uint64(len(m.OrgId)))
-		i--
-		dAtA[i] = 0x12
 	}
 	if len(m.OperatorId) > 0 {
 		i -= len(m.OperatorId)
@@ -924,27 +658,8 @@ func (m *StoredDailyEmission) Size() (n int) {
 	if m.TotalEmitted != 0 {
 		n += 1 + sovState(uint64(m.TotalEmitted))
 	}
-	if m.OperatorShare != 0 {
-		n += 1 + sovState(uint64(m.OperatorShare))
-	}
 	if m.ValidatorShare != 0 {
 		n += 1 + sovState(uint64(m.ValidatorShare))
-	}
-	if len(m.OperatorRewards) > 0 {
-		for k, v := range m.OperatorRewards {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovState(uint64(len(k))) + 1 + sovState(uint64(v))
-			n += mapEntrySize + 1 + sovState(uint64(mapEntrySize))
-		}
-	}
-	if len(m.ValidatorRewards) > 0 {
-		for k, v := range m.ValidatorRewards {
-			_ = k
-			_ = v
-			mapEntrySize := 1 + len(k) + sovState(uint64(len(k))) + 1 + sovState(uint64(v))
-			n += mapEntrySize + 1 + sovState(uint64(mapEntrySize))
-		}
 	}
 	return n
 }
@@ -964,44 +679,6 @@ func (m *StoredBootstrapCredit) Size() (n int) {
 	}
 	if m.Redeemed != 0 {
 		n += 1 + sovState(uint64(m.Redeemed))
-	}
-	return n
-}
-
-func (m *StoredWorkScore) Size() (n int) {
-	if m == nil {
-		return 0
-	}
-	var l int
-	_ = l
-	l = len(m.OperatorId)
-	if l > 0 {
-		n += 1 + l + sovState(uint64(l))
-	}
-	l = len(m.OrgId)
-	if l > 0 {
-		n += 1 + l + sovState(uint64(l))
-	}
-	if m.RarityMultiplier != 0 {
-		n += 9
-	}
-	if m.AvailabilityScore != 0 {
-		n += 9
-	}
-	if m.RetrievalVolume != 0 {
-		n += 1 + sovState(uint64(m.RetrievalVolume))
-	}
-	if m.StorageScore != 0 {
-		n += 9
-	}
-	if m.RetrievalScore != 0 {
-		n += 9
-	}
-	if m.TotalScore != 0 {
-		n += 9
-	}
-	if m.Epoch != 0 {
-		n += 1 + sovState(uint64(m.Epoch))
 	}
 	return n
 }
@@ -1345,25 +1022,6 @@ func (m *StoredDailyEmission) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 3:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorShare", wireType)
-			}
-			m.OperatorShare = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.OperatorShare |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
 		case 4:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorShare", wireType)
@@ -1383,232 +1041,6 @@ func (m *StoredDailyEmission) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
-		case 5:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorRewards", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthState
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthState
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.OperatorRewards == nil {
-				m.OperatorRewards = make(map[string]uint64)
-			}
-			var mapkey string
-			var mapvalue uint64
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowState
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowState
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthState
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthState
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowState
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipState(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLengthState
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.OperatorRewards[mapkey] = mapvalue
-			iNdEx = postIndex
-		case 6:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field ValidatorRewards", wireType)
-			}
-			var msglen int
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				msglen |= int(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			if msglen < 0 {
-				return ErrInvalidLengthState
-			}
-			postIndex := iNdEx + msglen
-			if postIndex < 0 {
-				return ErrInvalidLengthState
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			if m.ValidatorRewards == nil {
-				m.ValidatorRewards = make(map[string]uint64)
-			}
-			var mapkey string
-			var mapvalue uint64
-			for iNdEx < postIndex {
-				entryPreIndex := iNdEx
-				var wire uint64
-				for shift := uint(0); ; shift += 7 {
-					if shift >= 64 {
-						return ErrIntOverflowState
-					}
-					if iNdEx >= l {
-						return io.ErrUnexpectedEOF
-					}
-					b := dAtA[iNdEx]
-					iNdEx++
-					wire |= uint64(b&0x7F) << shift
-					if b < 0x80 {
-						break
-					}
-				}
-				fieldNum := int32(wire >> 3)
-				if fieldNum == 1 {
-					var stringLenmapkey uint64
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowState
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						stringLenmapkey |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-					intStringLenmapkey := int(stringLenmapkey)
-					if intStringLenmapkey < 0 {
-						return ErrInvalidLengthState
-					}
-					postStringIndexmapkey := iNdEx + intStringLenmapkey
-					if postStringIndexmapkey < 0 {
-						return ErrInvalidLengthState
-					}
-					if postStringIndexmapkey > l {
-						return io.ErrUnexpectedEOF
-					}
-					mapkey = string(dAtA[iNdEx:postStringIndexmapkey])
-					iNdEx = postStringIndexmapkey
-				} else if fieldNum == 2 {
-					for shift := uint(0); ; shift += 7 {
-						if shift >= 64 {
-							return ErrIntOverflowState
-						}
-						if iNdEx >= l {
-							return io.ErrUnexpectedEOF
-						}
-						b := dAtA[iNdEx]
-						iNdEx++
-						mapvalue |= uint64(b&0x7F) << shift
-						if b < 0x80 {
-							break
-						}
-					}
-				} else {
-					iNdEx = entryPreIndex
-					skippy, err := skipState(dAtA[iNdEx:])
-					if err != nil {
-						return err
-					}
-					if (skippy < 0) || (iNdEx+skippy) < 0 {
-						return ErrInvalidLengthState
-					}
-					if (iNdEx + skippy) > postIndex {
-						return io.ErrUnexpectedEOF
-					}
-					iNdEx += skippy
-				}
-			}
-			m.ValidatorRewards[mapkey] = mapvalue
-			iNdEx = postIndex
 		default:
 			iNdEx = preIndex
 			skippy, err := skipState(dAtA[iNdEx:])
@@ -1725,213 +1157,6 @@ func (m *StoredBootstrapCredit) Unmarshal(dAtA []byte) error {
 				b := dAtA[iNdEx]
 				iNdEx++
 				m.Redeemed |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		default:
-			iNdEx = preIndex
-			skippy, err := skipState(dAtA[iNdEx:])
-			if err != nil {
-				return err
-			}
-			if (skippy < 0) || (iNdEx+skippy) < 0 {
-				return ErrInvalidLengthState
-			}
-			if (iNdEx + skippy) > l {
-				return io.ErrUnexpectedEOF
-			}
-			iNdEx += skippy
-		}
-	}
-
-	if iNdEx > l {
-		return io.ErrUnexpectedEOF
-	}
-	return nil
-}
-func (m *StoredWorkScore) Unmarshal(dAtA []byte) error {
-	l := len(dAtA)
-	iNdEx := 0
-	for iNdEx < l {
-		preIndex := iNdEx
-		var wire uint64
-		for shift := uint(0); ; shift += 7 {
-			if shift >= 64 {
-				return ErrIntOverflowState
-			}
-			if iNdEx >= l {
-				return io.ErrUnexpectedEOF
-			}
-			b := dAtA[iNdEx]
-			iNdEx++
-			wire |= uint64(b&0x7F) << shift
-			if b < 0x80 {
-				break
-			}
-		}
-		fieldNum := int32(wire >> 3)
-		wireType := int(wire & 0x7)
-		if wireType == 4 {
-			return fmt.Errorf("proto: StoredWorkScore: wiretype end group for non-group")
-		}
-		if fieldNum <= 0 {
-			return fmt.Errorf("proto: StoredWorkScore: illegal tag %d (wire type %d)", fieldNum, wire)
-		}
-		switch fieldNum {
-		case 1:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OperatorId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthState
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthState
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OperatorId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 2:
-			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
-			}
-			var stringLen uint64
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
-				return ErrInvalidLengthState
-			}
-			postIndex := iNdEx + intStringLen
-			if postIndex < 0 {
-				return ErrInvalidLengthState
-			}
-			if postIndex > l {
-				return io.ErrUnexpectedEOF
-			}
-			m.OrgId = string(dAtA[iNdEx:postIndex])
-			iNdEx = postIndex
-		case 3:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RarityMultiplier", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.RarityMultiplier = float64(math.Float64frombits(v))
-		case 4:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field AvailabilityScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.AvailabilityScore = float64(math.Float64frombits(v))
-		case 5:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RetrievalVolume", wireType)
-			}
-			m.RetrievalVolume = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.RetrievalVolume |= uint64(b&0x7F) << shift
-				if b < 0x80 {
-					break
-				}
-			}
-		case 6:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field StorageScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.StorageScore = float64(math.Float64frombits(v))
-		case 7:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field RetrievalScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.RetrievalScore = float64(math.Float64frombits(v))
-		case 8:
-			if wireType != 1 {
-				return fmt.Errorf("proto: wrong wireType = %d for field TotalScore", wireType)
-			}
-			var v uint64
-			if (iNdEx + 8) > l {
-				return io.ErrUnexpectedEOF
-			}
-			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
-			iNdEx += 8
-			m.TotalScore = float64(math.Float64frombits(v))
-		case 9:
-			if wireType != 0 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
-			}
-			m.Epoch = 0
-			for shift := uint(0); ; shift += 7 {
-				if shift >= 64 {
-					return ErrIntOverflowState
-				}
-				if iNdEx >= l {
-					return io.ErrUnexpectedEOF
-				}
-				b := dAtA[iNdEx]
-				iNdEx++
-				m.Epoch |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
