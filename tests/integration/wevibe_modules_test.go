@@ -58,15 +58,15 @@ func TestAttestation_SubmitAndQuery_Integration(t *testing.T) {
 		ContributorId: "contrib-1",
 		Epoch:         1,
 	})
-	require.NoError(t, err)
+	require.ErrorIs(t, err, attestationtypes.ErrAttestationDisabled)
 
 	q := attestationkeeper.NewQueryServerImpl(suite.AttestationKeeper)
 	resp, err := q.GetSessionAttestation(suite.Ctx, &attestationtypes.QueryGetSessionAttestationRequest{
 		OrgId:       orgID,
 		SessionHash: sh,
 	})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
+	require.ErrorIs(t, err, attestationtypes.ErrAttestationNotFound)
+	require.Nil(t, resp)
 
 	list, err := q.ListSessionAttestations(suite.Ctx, &attestationtypes.QueryListSessionAttestationsRequest{
 		OrgId: orgID,
@@ -74,6 +74,7 @@ func TestAttestation_SubmitAndQuery_Integration(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, list)
+	require.Len(t, list.Attestations, 0)
 }
 
 func TestAttestation_DuplicateRejected_Integration(t *testing.T) {
@@ -92,10 +93,10 @@ func TestAttestation_DuplicateRejected_Integration(t *testing.T) {
 		Epoch:         1,
 	}
 	_, err := suite.DeliverMsg(msg)
-	require.NoError(t, err)
+	require.ErrorIs(t, err, attestationtypes.ErrAttestationDisabled)
 
 	_, err = suite.DeliverMsg(msg)
-	require.Error(t, err)
+	require.ErrorIs(t, err, attestationtypes.ErrAttestationDisabled)
 }
 
 func TestAttestation_OrgNotFound_Integration(t *testing.T) {
@@ -110,7 +111,7 @@ func TestAttestation_OrgNotFound_Integration(t *testing.T) {
 		ContributorId: "contrib-1",
 		Epoch:         1,
 	})
-	require.Error(t, err)
+	require.ErrorIs(t, err, attestationtypes.ErrAttestationDisabled)
 }
 
 // ---------------------------------------------------------------------------

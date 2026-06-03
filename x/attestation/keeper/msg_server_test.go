@@ -49,29 +49,26 @@ func baseAttestationMsg(seed byte) *types.MsgSubmitSessionAttestation {
 	}
 }
 
-func TestSubmitSessionAttestation_HappyPathLocal(t *testing.T) {
+func TestSubmitSessionAttestation_DisabledRejectsAndStoresNothing(t *testing.T) {
 	srv, k, ctx := setupMsgServer(t)
 	msg := baseAttestationMsg(0x01)
 	msg.CommitllmReceiptHash = make([]byte, 32)
 
 	resp, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.NoError(t, err)
-	require.True(t, resp.Accepted)
-	require.Contains(t, resp.VerificationStatus, "unverified") // verification is a stub
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
+	require.Nil(t, resp)
 
-	// Stored with the block height from the SDK context.
-	got, err := k.GetSessionAttestation(ctx, "org-1", msg.SessionHash)
-	require.NoError(t, err)
-	require.Equal(t, uint64(42), got.SubmittedAtHeight)
-	require.Equal(t, "qwen3:4b", got.ModelId)
+	_, err = k.GetSessionAttestation(ctx, "org-1", msg.SessionHash)
+	require.ErrorIs(t, err, types.ErrAttestationNotFound)
+	require.Len(t, ctx.EventManager().Events(), 0)
 }
 
 func TestSubmitSessionAttestation_LocalNoReceipt(t *testing.T) {
 	srv, _, ctx := setupMsgServer(t)
 	msg := baseAttestationMsg(0x02) // no receipt hash
 	resp, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.NoError(t, err)
-	require.Equal(t, "unverified: no receipt provided", resp.VerificationStatus)
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
+	require.Nil(t, resp)
 }
 
 func TestSubmitSessionAttestation_CloudNoSignature(t *testing.T) {
@@ -79,8 +76,8 @@ func TestSubmitSessionAttestation_CloudNoSignature(t *testing.T) {
 	msg := baseAttestationMsg(0x03)
 	msg.ProviderType = types.ProviderType_PROVIDER_TYPE_CLOUD
 	resp, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.NoError(t, err)
-	require.Equal(t, "unverified: no provider signature", resp.VerificationStatus)
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
+	require.Nil(t, resp)
 }
 
 func TestSubmitSessionAttestation_CloudWithSignature(t *testing.T) {
@@ -89,8 +86,8 @@ func TestSubmitSessionAttestation_CloudWithSignature(t *testing.T) {
 	msg.ProviderType = types.ProviderType_PROVIDER_TYPE_CLOUD
 	msg.ProviderSignatureHash = make([]byte, 32)
 	resp, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.NoError(t, err)
-	require.Contains(t, resp.VerificationStatus, "unverified")
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
+	require.Nil(t, resp)
 }
 
 func TestSubmitSessionAttestation_DuplicateRejected(t *testing.T) {
@@ -98,11 +95,11 @@ func TestSubmitSessionAttestation_DuplicateRejected(t *testing.T) {
 	msg := baseAttestationMsg(0x05)
 
 	_, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.NoError(t, err)
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
 
-	// Same org + session hash => duplicate.
+	// Disabled path rejects every submission, including retries.
 	_, err = srv.SubmitSessionAttestation(ctx, baseAttestationMsg(0x05))
-	require.ErrorIs(t, err, types.ErrDuplicateAttestation)
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
 }
 
 func TestSubmitSessionAttestation_OrgNotFound(t *testing.T) {
@@ -110,7 +107,7 @@ func TestSubmitSessionAttestation_OrgNotFound(t *testing.T) {
 	msg := baseAttestationMsg(0x06)
 	msg.OrgId = "ghost-org"
 	_, err := srv.SubmitSessionAttestation(ctx, msg)
-	require.ErrorIs(t, err, types.ErrOrgNotFound)
+	require.ErrorIs(t, err, types.ErrAttestationDisabled)
 }
 
 func TestSubmitSessionAttestation_ValidateBasic(t *testing.T) {

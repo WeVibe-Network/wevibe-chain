@@ -10,6 +10,7 @@ var (
 	ErrInvalidProviderType     = errors.New("invalid provider type")
 	ErrDuplicateAttestation    = errors.New("session attestation already exists")
 	ErrAttestationNotFound     = errors.New("session attestation not found")
+	ErrAttestationDisabled     = errors.New("session attestation is disabled pending verification infrastructure (D-ATTEST-ROADMAP)")
 	ErrOrgNotFound             = errors.New("org not found")
 	ErrMaxAttestationsExceeded = errors.New("max attestations per epoch exceeded")
 	ErrUnauthorized            = errors.New("unauthorized")
