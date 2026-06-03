@@ -34,6 +34,7 @@ type Org struct {
 	// key rotation).
 	HubServingAddress   string `json:"hub_serving_address"`
 	LeaderWalletAddress string `json:"leader_wallet_address"`
+	AccountAddress      string `json:"account_address"`
 }
 
 func NewOrg(orgID, leader, domain string, storageQuota, retrievalBudget uint64) *Org {
@@ -111,12 +112,6 @@ func NewMemberRecord(orgID, pubkey, role string) *MemberRecord {
 		Pubkey: pubkey,
 		Role:   role,
 	}
-}
-
-type DynamicPrice struct {
-	Price         uint64 `json:"price"`
-	LastCreation  uint64 `json:"last_creation"`
-	CreationCount uint64 `json:"creation_count"`
 }
 
 type OrgConfig struct {

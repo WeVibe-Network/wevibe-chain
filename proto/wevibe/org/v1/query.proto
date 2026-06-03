@@ -25,6 +25,9 @@ service Query {
   rpc GetOrgProfile(QueryGetOrgProfileRequest) returns (QueryGetOrgProfileResponse) {
     option (google.api.http).get = "/wevibe/org/v1/profile/{org_id}";
   }
+  rpc GetOrgAccount(QueryGetOrgAccountRequest) returns (QueryGetOrgAccountResponse) {
+    option (google.api.http).get = "/wevibe/org/v1/account/{org_id}";
+  }
 }
 
 message QueryGetOrgRequest {
@@ -81,6 +84,15 @@ message QueryGetOrgConfigResponse {
   uint64 contest_stake_vibe = 3;
 }
 
+message QueryGetOrgAccountRequest {
+  string org_id = 1;
+}
+
+message QueryGetOrgAccountResponse {
+  string account_address = 1;
+  string balance = 2;
+}
+
 message QueryGetOrgProfileRequest {
   string org_id = 1;
   uint64 epoch = 2;
@@ -89,6 +101,7 @@ message QueryGetOrgProfileRequest {
 message QueryGetOrgProfileResponse {
   string org_id = 1;
   string leader = 2;
+  string account_address = 20;
   string domain = 3;
   int32 status = 4;
   uint64 created_at = 5;

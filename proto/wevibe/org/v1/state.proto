@@ -26,6 +26,7 @@ message StoredOrg {
   // for org-decision messages; the signer that may rotate the serving key.
   string leader_wallet_address = 15;
   uint64 slot = 16;
+  string account_address = 17;
 }
 
 message StoredSlotRegistry {
@@ -36,12 +37,6 @@ message StoredMemberRecord {
   string org_id = 1;
   string pubkey = 2;
   string role = 3;
-}
-
-message StoredDynamicPrice {
-  uint64 price = 1;
-  uint64 last_creation = 2;
-  uint64 creation_count = 3;
 }
 
 message StoredOrgConfig {

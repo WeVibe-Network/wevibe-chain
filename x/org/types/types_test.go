@@ -369,23 +369,20 @@ func TestParamsValidate(t *testing.T) {
 func TestNewGenesisState(t *testing.T) {
 	orgs := []*types.Org{types.NewOrg("org1", "leader", "", 1, 1)}
 	members := []*types.MemberRecord{types.NewMemberRecord("org1", "pk", "member")}
-	dp := &types.DynamicPrice{Price: 1000}
 
-	gs := types.NewGenesisState(orgs, members, dp)
+	gs := types.NewGenesisState(orgs, members)
 	require.NotNil(t, gs)
 	require.Len(t, gs.Orgs, 1)
 	require.Len(t, gs.Members, 1)
-	require.Equal(t, dp, gs.DynamicPrice)
 	// fields not passed to the constructor stay empty.
 	require.Nil(t, gs.OrgConfigs)
 }
 
 func TestNewGenesisState_Empty(t *testing.T) {
-	gs := types.NewGenesisState(nil, nil, nil)
+	gs := types.NewGenesisState(nil, nil)
 	require.NotNil(t, gs)
 	require.Empty(t, gs.Orgs)
 	require.Empty(t, gs.Members)
-	require.Nil(t, gs.DynamicPrice)
 }
 
 // ---------------------------------------------------------------------------
@@ -401,6 +398,15 @@ func TestNewOrg(t *testing.T) {
 	require.Equal(t, uint64(512), o.RetrievalBudget)
 	require.Equal(t, types.OrgStatus_ACTIVE, o.Status)
 	require.True(t, o.IsActive())
+}
+
+func TestOrgAccountAddress_Deterministic(t *testing.T) {
+	orgID := types.FormatOrgID(7)
+	addr1 := types.OrgAccountAddress(orgID)
+	addr2 := types.OrgAccountAddress(orgID)
+
+	require.Equal(t, addr1.String(), addr2.String())
+	require.NotEmpty(t, addr1.String())
 }
 
 func TestOrgValidate(t *testing.T) {

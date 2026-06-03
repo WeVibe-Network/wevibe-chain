@@ -194,11 +194,42 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 	require.NotNil(t, resp)
 	require.Equal(t, org.OrgID, resp.OrgId)
 	require.Equal(t, queryLeader, resp.Leader)
+	require.Equal(t, org.AccountAddress, resp.AccountAddress)
 	require.Equal(t, "example.com", resp.Domain)
 	require.Equal(t, int32(types.OrgStatus_ACTIVE), resp.Status)
 	// leader + one moderator member.
 	require.Equal(t, uint64(2), resp.MemberCount)
 	require.Equal(t, uint64(1), resp.ModeratorCount)
+}
+
+// ---------------------------------------------------------------------------
+// GetOrgAccount
+// ---------------------------------------------------------------------------
+
+func TestQueryGetOrgAccount_Success(t *testing.T) {
+	k, ctx, _ := newTestKeeperWithStrictBank(t)
+	qs := keeper.NewQueryServerImpl(k)
+
+	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
+	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
+
+	resp, err := qs.GetOrgAccount(ctx, &types.QueryGetOrgAccountRequest{OrgId: org.OrgID})
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+	require.Equal(t, org.AccountAddress, resp.AccountAddress)
+
+	price := k.ComputeSlotPrice(ctx, org.Slot)
+	expectedAccountCredit := price.Sub(price.QuoRaw(2))
+	require.Equal(t, expectedAccountCredit.String(), resp.Balance)
+}
+
+func TestQueryGetOrgAccount_NotFound(t *testing.T) {
+	k, ctx, _ := newTestKeeper(t)
+	qs := keeper.NewQueryServerImpl(k)
+
+	resp, err := qs.GetOrgAccount(ctx, &types.QueryGetOrgAccountRequest{OrgId: "missing"})
+	require.ErrorIs(t, err, types.ErrOrgNotFound)
+	require.Nil(t, resp)
 }
 
 func TestQueryGetOrgProfile_EmptyOrgID(t *testing.T) {

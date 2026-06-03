@@ -53,10 +53,6 @@ func memberKey(orgID, memberPubkey string) []byte {
 	return []byte(fmt.Sprintf("member/%s/%s", orgID, memberPubkey))
 }
 
-func dynamicPriceKey() []byte {
-	return []byte("dynprice/")
-}
-
 func slotRegistryKey() []byte {
 	return []byte("slotreg/")
 }
@@ -80,6 +76,7 @@ func orgToStored(org *types.Org) *types.StoredOrg {
 		Status:              int32(org.Status),
 		HubServingAddress:   org.HubServingAddress,
 		LeaderWalletAddress: org.LeaderWalletAddress,
+		AccountAddress:      org.AccountAddress,
 	}
 }
 
@@ -96,6 +93,7 @@ func storedToOrg(stored types.StoredOrg) types.Org {
 		Status:              types.OrgStatus(stored.Status),
 		HubServingAddress:   stored.HubServingAddress,
 		LeaderWalletAddress: stored.LeaderWalletAddress,
+		AccountAddress:      stored.AccountAddress,
 	}
 }
 
@@ -112,22 +110,6 @@ func storedToMember(stored types.StoredMemberRecord) types.MemberRecord {
 		OrgID:  stored.OrgId,
 		Pubkey: stored.Pubkey,
 		Role:   stored.Role,
-	}
-}
-
-func dynamicPriceToStored(dp *types.DynamicPrice) *types.StoredDynamicPrice {
-	return &types.StoredDynamicPrice{
-		Price:         dp.Price,
-		LastCreation:  dp.LastCreation,
-		CreationCount: dp.CreationCount,
-	}
-}
-
-func storedToDynamicPrice(stored types.StoredDynamicPrice) types.DynamicPrice {
-	return types.DynamicPrice{
-		Price:         stored.Price,
-		LastCreation:  stored.LastCreation,
-		CreationCount: stored.CreationCount,
 	}
 }
 
@@ -200,6 +182,7 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 
 	org.Slot = nextSlot
 	org.OrgID = types.FormatOrgID(nextSlot)
+	org.AccountAddress = types.OrgAccountAddress(org.OrgID).String()
 
 	if err := org.Validate(); err != nil {
 		return err
@@ -226,14 +209,26 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 		}
 	}
 
-	burnPrice := k.ComputeBurnPrice(ctx)
-	if burnPrice.IsPositive() {
-		burnCoins := sdk.NewCoins(sdk.NewCoin("uvibe", burnPrice))
-		if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, creator, types.ModuleName, burnCoins); err != nil {
-			return types.ErrInsufficientFund
+	price := k.ComputeSlotPrice(ctx, org.Slot)
+	if price.IsPositive() {
+		burnHalf := price.QuoRaw(2)
+		acctHalf := price.Sub(burnHalf)
+
+		if burnHalf.IsPositive() {
+			burnCoins := sdk.NewCoins(sdk.NewCoin("uvibe", burnHalf))
+			if err := k.bankKeeper.SendCoinsFromAccountToModule(ctx, creator, types.ModuleName, burnCoins); err != nil {
+				return types.ErrInsufficientFund
+			}
+			if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, burnCoins); err != nil {
+				return fmt.Errorf("burn coins: %w", err)
+			}
 		}
-		if err := k.bankKeeper.BurnCoins(ctx, types.ModuleName, burnCoins); err != nil {
-			return fmt.Errorf("burn coins: %w", err)
+
+		if acctHalf.IsPositive() {
+			acctCoins := sdk.NewCoins(sdk.NewCoin("uvibe", acctHalf))
+			if err := k.bankKeeper.SendCoins(ctx, creator, types.OrgAccountAddress(org.OrgID), acctCoins); err != nil {
+				return types.ErrInsufficientFund
+			}
 		}
 	}
 
@@ -258,8 +253,6 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 	if err := k.SetNextSlot(ctx, nextSlot+1); err != nil {
 		return err
 	}
-
-	k.updateDynamicPriceOnCreation(ctx)
 
 	k.logger.Info("org registered",
 		"org_id", org.OrgID,
@@ -751,61 +744,7 @@ func (k *Keeper) UpdateStorageQuota(ctx context.Context, orgID string, quota uin
 	return nil
 }
 
-func (k *Keeper) GetDynamicPrice(ctx context.Context) (*types.DynamicPrice, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(dynamicPriceKey())
-	if err != nil {
-		return nil, err
-	}
-	if bz == nil {
-		return nil, errors.New("dynamic price not set")
-	}
-
-	var stored types.StoredDynamicPrice
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return nil, fmt.Errorf("unmarshal dynamic price: %w", err)
-	}
-	dp := storedToDynamicPrice(stored)
-	return &dp, nil
-}
-
-func (k *Keeper) SetDynamicPrice(ctx context.Context, dp *types.DynamicPrice) error {
-	store := k.getStore(ctx)
-	bz, err := proto.Marshal(dynamicPriceToStored(dp))
-	if err != nil {
-		return fmt.Errorf("marshal dynamic price: %w", err)
-	}
-	store.Set(dynamicPriceKey(), bz)
-	return nil
-}
-
-func (k *Keeper) updateDynamicPriceOnCreation(ctx context.Context) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(dynamicPriceKey())
-	if err != nil {
-		return
-	}
-
-	var dp types.DynamicPrice
-	if bz != nil {
-		var stored types.StoredDynamicPrice
-		if err := proto.Unmarshal(bz, &stored); err != nil {
-			return
-		}
-		dp = storedToDynamicPrice(stored)
-	}
-
-	dp.CreationCount++
-	dp.Price = k.ComputeDynamicPriceValue(ctx, dp.CreationCount)
-
-	bz, err = proto.Marshal(dynamicPriceToStored(&dp))
-	if err != nil {
-		return
-	}
-	store.Set(dynamicPriceKey(), bz)
-}
-
-func (k *Keeper) ComputeDynamicPriceValue(ctx context.Context, creationCount uint64) uint64 {
+func (k *Keeper) computeAscendingPrice(ctx context.Context, slot uint64) uint64 {
 	params, err := k.GetParams(ctx)
 	if err != nil {
 		return params.BaseBurnPrice
@@ -816,7 +755,7 @@ func (k *Keeper) ComputeDynamicPriceValue(ctx context.Context, creationCount uin
 
 	multiplier := big.NewRat(100, 100)
 	inc := big.NewRat(int64(increasePercent), 100)
-	for i := uint64(0); i < creationCount; i++ {
+	for i := uint64(0); i < slot; i++ {
 		multiplier = multiplier.Add(multiplier, inc)
 	}
 
@@ -833,35 +772,9 @@ func (k *Keeper) ComputeDynamicPriceValue(ctx context.Context, creationCount uin
 	return result.Uint64()
 }
 
-func (k *Keeper) ComputeBurnPrice(ctx context.Context) math.Int {
-	store := k.getStore(ctx)
-	bz, err := store.Get(dynamicPriceKey())
-	if err != nil {
-		return math.ZeroInt()
-	}
-
-	var dp types.DynamicPrice
-	if bz != nil {
-		var stored types.StoredDynamicPrice
-		if err := proto.Unmarshal(bz, &stored); err != nil {
-			return math.ZeroInt()
-		}
-		dp = storedToDynamicPrice(stored)
-	}
-
-	params, err := k.GetParams(ctx)
-	if err != nil {
-		return math.ZeroInt()
-	}
-
-	if dp.CreationCount > params.BurnPriceDecayEpochs {
-		dp.CreationCount = dp.CreationCount - params.BurnPriceDecayEpochs
-	} else {
-		dp.CreationCount = 0
-	}
-
-	price := k.ComputeDynamicPriceValue(ctx, dp.CreationCount)
-	return math.NewInt(int64(price))
+func (k *Keeper) ComputeSlotPrice(ctx context.Context, slot uint64) math.Int {
+	price := k.computeAscendingPrice(ctx, slot)
+	return math.NewIntFromUint64(price)
 }
 
 func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConfig, error) {
@@ -963,16 +876,6 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		}
 	}
 
-	if state.DynamicPrice != nil {
-		bz, err := proto.Marshal(dynamicPriceToStored(state.DynamicPrice))
-		if err != nil {
-			return err
-		}
-		if err := store.Set(dynamicPriceKey(), bz); err != nil {
-			return err
-		}
-	}
-
 	for _, orgConfig := range state.OrgConfigs {
 		bz, err := proto.Marshal(&types.StoredOrgConfig{
 			OrgId:                    orgConfig.OrgID,
@@ -1035,19 +938,6 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		members = append(members, &member)
 	}
 
-	var dynamicPrice *types.DynamicPrice
-	dpBz, err := store.Get(dynamicPriceKey())
-	if err != nil {
-		return nil, err
-	}
-	if dpBz != nil {
-		var stored types.StoredDynamicPrice
-		if err := proto.Unmarshal(dpBz, &stored); err == nil {
-			dp := storedToDynamicPrice(stored)
-			dynamicPrice = &dp
-		}
-	}
-
 	orgconfigPrefix := []byte("orgconfig/")
 	orgconfigIter, err := store.Iterator(orgconfigPrefix, storetypes.PrefixEndBytes(orgconfigPrefix))
 	if err != nil {
@@ -1070,12 +960,11 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 	}
 
 	return &types.GenesisState{
-		Orgs:         orgs,
-		Members:      members,
-		DynamicPrice: dynamicPrice,
-		OrgConfigs:   orgConfigs,
-		NextSlot:     nextSlot,
-		Params:       params,
+		Orgs:       orgs,
+		Members:    members,
+		OrgConfigs: orgConfigs,
+		NextSlot:   nextSlot,
+		Params:     params,
 	}, nil
 }
 

@@ -2,7 +2,9 @@ package keeper
 
 import (
 	"context"
+	"fmt"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
 )
 
@@ -77,6 +79,25 @@ func (q *queryServer) GetOrgConfig(ctx context.Context, req *types.QueryGetOrgCo
 	}, nil
 }
 
+func (q *queryServer) GetOrgAccount(ctx context.Context, req *types.QueryGetOrgAccountRequest) (*types.QueryGetOrgAccountResponse, error) {
+	org, err := q.keeper.GetOrg(ctx, req.OrgId)
+	if err != nil {
+		return nil, err
+	}
+
+	accountAddr, err := sdk.AccAddressFromBech32(org.AccountAddress)
+	if err != nil {
+		return nil, fmt.Errorf("invalid org account address: %w", err)
+	}
+
+	balance := q.keeper.bankKeeper.GetBalance(ctx, accountAddr, "uvibe")
+
+	return &types.QueryGetOrgAccountResponse{
+		AccountAddress: org.AccountAddress,
+		Balance:        balance.Amount.String(),
+	}, nil
+}
+
 func (q *queryServer) GetOrgProfile(ctx context.Context, req *types.QueryGetOrgProfileRequest) (*types.QueryGetOrgProfileResponse, error) {
 	if req.OrgId == "" {
 		return nil, types.ErrInvalidOrgID
@@ -103,6 +124,7 @@ func (q *queryServer) GetOrgProfile(ctx context.Context, req *types.QueryGetOrgP
 	resp := &types.QueryGetOrgProfileResponse{
 		OrgId:           org.OrgID,
 		Leader:          org.Leader,
+		AccountAddress:  org.AccountAddress,
 		Domain:          org.Domain,
 		Status:          int32(org.Status),
 		CreatedAt:       org.CreatedAt,

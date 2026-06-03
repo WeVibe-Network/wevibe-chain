@@ -118,6 +118,29 @@ func (m *mockBankKeeper) SendCoinsFromModuleToAccount(ctx context.Context, sende
 	return nil
 }
 
+func (m *mockBankKeeper) SendCoins(ctx context.Context, fromAddr sdk.AccAddress, toAddr sdk.AccAddress, amt sdk.Coins) error {
+	if m.alwaysReturnNilForSend {
+		return nil
+	}
+
+	fromBalance, ok := m.balances[fromAddr.String()]
+	if !ok {
+		fromBalance = math.ZeroInt()
+	}
+	amtToSub := amt.AmountOf("uvibe")
+	if fromBalance.LT(amtToSub) {
+		return errors.New("insufficient funds")
+	}
+	m.balances[fromAddr.String()] = fromBalance.Sub(amtToSub)
+
+	toBalance, ok := m.balances[toAddr.String()]
+	if !ok {
+		toBalance = math.ZeroInt()
+	}
+	m.balances[toAddr.String()] = toBalance.Add(amtToSub)
+	return nil
+}
+
 func (m *mockBankKeeper) MintCoins(ctx context.Context, moduleName string, amt sdk.Coins) error {
 	moduleBal, ok := m.moduleBalances[moduleName]
 	if !ok {
@@ -213,6 +236,12 @@ func TestRegisterOrg(t *testing.T) {
 		t.Fatal("expected org to exist")
 	}
 	require.Equal(t, types.FormatOrgID(0), org.OrgID)
+	require.Equal(t, uint64(0), org.Slot)
+	require.Equal(t, types.OrgAccountAddress(org.OrgID).String(), org.AccountAddress)
+
+	retrieved, err := k.GetOrg(ctx, org.OrgID)
+	require.NoError(t, err)
+	require.Equal(t, org.AccountAddress, retrieved.AccountAddress)
 }
 
 func TestRegisterOrg_DuplicateLeader(t *testing.T) {
@@ -249,6 +278,37 @@ func TestRegisterOrg_SlotCapReached(t *testing.T) {
 
 	err = k.RegisterOrg(ctx, types.NewOrg("", "leader-over-cap", "", 1000000, 5000), testCreatorAddr)
 	require.ErrorIs(t, err, types.ErrSlotCapReached)
+}
+
+func TestRegisterOrg_SplitsBurnAndOrgAccount(t *testing.T) {
+	k, ctx, bank := newTestKeeperWithStrictBank(t)
+
+	price := k.ComputeSlotPrice(ctx, 0)
+	acctHalf := price.Sub(price.QuoRaw(2))
+
+	creatorStart := bank.GetBalance(ctx, testCreatorAddr, "uvibe").Amount
+	moduleStart := bank.moduleBalances[types.ModuleName]
+
+	org := types.NewOrg("", "leader_pubkey_split_123456789012345678901234", "", 1000000, 5000)
+	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
+
+	require.Equal(t, creatorStart.Sub(price), bank.GetBalance(ctx, testCreatorAddr, "uvibe").Amount)
+	require.Equal(t, moduleStart, bank.moduleBalances[types.ModuleName])
+
+	orgAccountAddr := types.OrgAccountAddress(org.OrgID)
+	require.Equal(t, orgAccountAddr.String(), org.AccountAddress)
+	require.Equal(t, acctHalf, bank.GetBalance(ctx, orgAccountAddr, "uvibe").Amount)
+}
+
+func TestRegisterOrg_InsufficientFunds(t *testing.T) {
+	k, ctx, bank := newTestKeeperWithStrictBank(t)
+
+	price := k.ComputeSlotPrice(ctx, 0)
+	bank.SetBalance(testCreatorAddr.String(), price.Sub(math.NewInt(1)))
+
+	org := types.NewOrg("", "leader_pubkey_insufficient_1234567890123456", "", 1000000, 5000)
+	err := k.RegisterOrg(ctx, org, testCreatorAddr)
+	require.ErrorIs(t, err, types.ErrInsufficientFund)
 }
 
 func TestGetOrg(t *testing.T) {
@@ -437,29 +497,6 @@ func TestUpdateStorageQuota(t *testing.T) {
 	}
 }
 
-func TestDynamicPrice(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-
-	dp := &types.DynamicPrice{
-		Price:         1000,
-		LastCreation:  100,
-		CreationCount: 5,
-	}
-
-	err := k.SetDynamicPrice(ctx, dp)
-	if err != nil {
-		t.Fatalf("SetDynamicPrice failed: %v", err)
-	}
-
-	retrieved, err := k.GetDynamicPrice(ctx)
-	if err != nil {
-		t.Fatalf("GetDynamicPrice failed: %v", err)
-	}
-	if retrieved.Price != 1000 {
-		t.Fatalf("expected price 1000, got: %d", retrieved.Price)
-	}
-}
-
 func TestGetAllOrgs(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
@@ -524,11 +561,6 @@ func TestInitGenesisAndExportGenesis(t *testing.T) {
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member"),
 		},
-		DynamicPrice: &types.DynamicPrice{
-			Price:         1000,
-			LastCreation:  100,
-			CreationCount: 5,
-		},
 	}
 
 	err := k.InitGenesis(ctx, state)
@@ -546,9 +578,6 @@ func TestInitGenesisAndExportGenesis(t *testing.T) {
 	}
 	if len(exported.Members) != len(state.Members) {
 		t.Fatalf("expected %d members, got: %d", len(state.Members), len(exported.Members))
-	}
-	if exported.DynamicPrice.Price != state.DynamicPrice.Price {
-		t.Fatalf("expected price %d, got: %d", state.DynamicPrice.Price, exported.DynamicPrice.Price)
 	}
 }
 
@@ -643,11 +672,6 @@ func TestSDKGenesisRoundTrip(t *testing.T) {
 		},
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
-		},
-		DynamicPrice: &types.DynamicPrice{
-			Price:         1000,
-			LastCreation:  100,
-			CreationCount: 5,
 		},
 	}
 
@@ -773,7 +797,7 @@ func TestSetOrgConfig(t *testing.T) {
 	require.True(t, retrieved.ServeAttestationRequired)
 }
 
-func TestComputeBurnPrice_Base(t *testing.T) {
+func TestComputeSlotPrice_Base(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
 	params, _ := k.GetParams(ctx)
@@ -782,11 +806,11 @@ func TestComputeBurnPrice_Base(t *testing.T) {
 	params.BurnPriceDecayEpochs = 10
 	k.SetParams(ctx, params)
 
-	price := k.ComputeBurnPrice(ctx)
+	price := k.ComputeSlotPrice(ctx, 0)
 	require.Equal(t, math.NewInt(10000000), price)
 }
 
-func TestComputeBurnPrice_Increase(t *testing.T) {
+func TestComputeSlotPrice_IncreaseWithSlot(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
 	params, _ := k.GetParams(ctx)
@@ -795,14 +819,7 @@ func TestComputeBurnPrice_Increase(t *testing.T) {
 	params.BurnPriceDecayEpochs = 10
 	k.SetParams(ctx, params)
 
-	dp := &types.DynamicPrice{
-		Price:         10000000,
-		LastCreation:  0,
-		CreationCount: 15,
-	}
-	k.SetDynamicPrice(ctx, dp)
-
-	price := k.ComputeBurnPrice(ctx)
+	price := k.ComputeSlotPrice(ctx, 15)
 	require.True(t, price.GT(math.NewInt(10000000)))
 }
 
@@ -819,11 +836,6 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 		},
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
-		},
-		DynamicPrice: &types.DynamicPrice{
-			Price:         1000,
-			LastCreation:  100,
-			CreationCount: 5,
 		},
 		OrgConfigs: []*types.OrgConfig{
 			{
