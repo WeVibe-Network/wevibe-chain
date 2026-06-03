@@ -1,14 +1,18 @@
 package org
 
 import (
-	"context"
+	"encoding/json"
+	"fmt"
 
 	"cosmossdk.io/core/appmodule"
 	"cosmossdk.io/depinject"
 
+	"github.com/cosmos/cosmos-sdk/client"
+	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
+	"github.com/cosmos/cosmos-sdk/types/module"
 	"github.com/wevibe-network/wevibe-chain/x/org/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
-	"github.com/cosmos/cosmos-sdk/types/module"
 )
 
 type Module struct {
@@ -17,8 +21,9 @@ type Module struct {
 
 var (
 	_ depinject.OnePerModuleType = (*Module)(nil)
-	_ appmodule.AppModule       = (*Module)(nil)
-	_ module.HasServices        = (*Module)(nil)
+	_ appmodule.AppModule        = (*Module)(nil)
+	_ module.HasServices         = (*Module)(nil)
+	_ module.HasGenesis          = (*Module)(nil)
 )
 
 func NewModule(k *keeper.Keeper) *Module {
@@ -26,31 +31,51 @@ func NewModule(k *keeper.Keeper) *Module {
 }
 
 func (m *Module) IsOnePerModuleType() {}
-func (m *Module) IsAppModule()       {}
+func (m *Module) IsAppModule()        {}
 
-func (m *Module) DefaultGenesis() []byte {
-	state := &types.GenesisState{}
-	bz, _ := state.MarshalJSON()
+func (m *Module) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
+	state := &types.GenesisState{Params: types.DefaultParams()}
+	bz, err := state.MarshalJSON()
+	if err != nil {
+		panic(fmt.Errorf("org: marshal default genesis: %w", err))
+	}
 	return bz
 }
 
-func (m *Module) InitGenesis(ctx context.Context, bz []byte) error {
+func (m *Module) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig, bz json.RawMessage) error {
 	if len(bz) == 0 {
 		return nil
 	}
 	var state types.GenesisState
 	if err := state.UnmarshalJSON(bz); err != nil {
-		return err
+		return fmt.Errorf("org: unmarshal genesis: %w", err)
 	}
-	return m.keeper.InitGenesis(ctx, &state)
+	return state.Params.Validate()
 }
 
-func (m *Module) ExportGenesis(ctx context.Context) ([]byte, error) {
+func (m *Module) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) {
+	state := &types.GenesisState{Params: types.DefaultParams()}
+	if len(bz) > 0 {
+		if err := state.UnmarshalJSON(bz); err != nil {
+			panic(fmt.Errorf("org: unmarshal genesis: %w", err))
+		}
+	}
+
+	if err := m.keeper.InitGenesis(ctx, state); err != nil {
+		panic(fmt.Errorf("org: init genesis: %w", err))
+	}
+}
+
+func (m *Module) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMessage {
 	state, err := m.keeper.ExportGenesis(ctx)
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("org: export genesis: %w", err))
 	}
-	return state.MarshalJSON()
+	bz, err := state.MarshalJSON()
+	if err != nil {
+		panic(fmt.Errorf("org: marshal genesis: %w", err))
+	}
+	return bz
 }
 
 func (m *Module) RegisterServices(cfg module.Configurator) {

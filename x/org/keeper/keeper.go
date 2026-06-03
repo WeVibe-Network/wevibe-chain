@@ -1046,6 +1046,13 @@ func (k *Keeper) GetAllOrgs(ctx context.Context) ([]*types.Org, error) {
 
 func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) error {
 	store := k.getStore(ctx)
+	params := state.Params
+	if params == (types.Params{}) {
+		params = types.DefaultParams()
+	}
+	if err := k.SetParams(ctx, params); err != nil {
+		return err
+	}
 
 	for _, org := range state.Orgs {
 		if err := org.Validate(); err != nil {
@@ -1127,6 +1134,10 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 
 func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) {
 	store := k.getStore(ctx)
+	params, err := k.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
 
 	orgPrefix := []byte("org/")
 	orgIter, err := store.Iterator(orgPrefix, storetypes.PrefixEndBytes(orgPrefix))
@@ -1245,6 +1256,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		Treasuries:   treasuries,
 		RepTiers:     repTiers,
 		OrgConfigs:   orgConfigs,
+		Params:       params,
 	}, nil
 }
 

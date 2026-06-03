@@ -7,6 +7,7 @@ type GenesisState struct {
 	Treasuries   []*Treasury      `json:"treasuries"`
 	RepTiers     []*RepTierConfig `json:"rep_tiers"`
 	OrgConfigs   []*OrgConfig     `json:"org_configs"`
+	Params       Params           `json:"params"`
 }
 
 func NewGenesisState(orgs []*Org, members []*MemberRecord, dynamicPrice *DynamicPrice) *GenesisState {
@@ -14,5 +15,6 @@ func NewGenesisState(orgs []*Org, members []*MemberRecord, dynamicPrice *Dynamic
 		Orgs:         orgs,
 		Members:      members,
 		DynamicPrice: dynamicPrice,
+		Params:       DefaultParams(),
 	}
 }
