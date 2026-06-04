@@ -23,8 +23,10 @@ echo "Denom:     $DENOM"
 
 if [ "$(uname)" = "Darwin" ]; then
     sed -i '' 's|laddr = "tcp://127.0.0.1:26657"|laddr = "tcp://0.0.0.0:26657"|' "$HOME_DIR/config/config.toml"
+    sed -i '' 's|cors_allowed_origins = \[\]|cors_allowed_origins = ["*"]|' "$HOME_DIR/config/config.toml"
 else
     sed -i 's|laddr = "tcp://127.0.0.1:26657"|laddr = "tcp://0.0.0.0:26657"|' "$HOME_DIR/config/config.toml"
+    sed -i 's|cors_allowed_origins = \[\]|cors_allowed_origins = ["*"]|' "$HOME_DIR/config/config.toml"
 fi
 
 # Ensure gRPC is enabled (required for hub chain client).
