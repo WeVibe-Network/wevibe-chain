@@ -21,6 +21,7 @@ func TestQueryGetOrg_Success(t *testing.T) {
 	qs := keeper.NewQueryServerImpl(k)
 
 	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
+	org.HubResponsePubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: org.OrgID})
@@ -32,6 +33,7 @@ func TestQueryGetOrg_Success(t *testing.T) {
 	require.Equal(t, uint64(1000000), resp.StorageQuota)
 	require.Equal(t, uint64(5000), resp.RetrievalBudget)
 	require.Equal(t, int32(types.OrgStatus_ACTIVE), resp.Status)
+	require.Equal(t, org.HubResponsePubkey, resp.HubResponsePubkey)
 }
 
 func TestQueryGetOrg_NotFound(t *testing.T) {

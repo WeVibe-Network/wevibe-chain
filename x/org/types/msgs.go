@@ -1,6 +1,7 @@
 package types
 
 import (
+	"encoding/hex"
 	"fmt"
 	"net/url"
 	"strings"
@@ -39,6 +40,9 @@ func (m *MsgSetServingInfo) ValidateBasic() error {
 	if err := ValidateHubEndpoints(m.HubEndpoints); err != nil {
 		return err
 	}
+	if err := ValidateHubResponsePubkey(m.HubResponsePubkey); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -55,6 +59,23 @@ func ValidateHubEndpoints(endpoints []string) error {
 		if (scheme != "http" && scheme != "https") || u.Host == "" {
 			return fmt.Errorf("%w: hub_endpoints[%d] must be an http(s) URL with host", ErrInvalidHubEndpoints, i)
 		}
+	}
+	return nil
+}
+
+func ValidateHubResponsePubkey(pubkey string) error {
+	if pubkey == "" {
+		return nil
+	}
+	if pubkey != strings.ToLower(pubkey) {
+		return fmt.Errorf("%w: hub_response_pubkey must be lowercase hex", ErrInvalidHubResponsePubkey)
+	}
+	bz, err := hex.DecodeString(pubkey)
+	if err != nil {
+		return fmt.Errorf("%w: hub_response_pubkey must be valid hex: %v", ErrInvalidHubResponsePubkey, err)
+	}
+	if len(bz) != 32 {
+		return fmt.Errorf("%w: hub_response_pubkey must decode to exactly 32 bytes", ErrInvalidHubResponsePubkey)
 	}
 	return nil
 }

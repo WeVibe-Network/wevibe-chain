@@ -115,7 +115,7 @@ func (m *msgServer) SetServingInfo(ctx context.Context, msg *types.MsgSetServing
 		return nil, types.ErrOrgNotFound
 	}
 
-	if err := m.keeper.SetHubEndpoints(ctx, msg.OrgId, msg.HubEndpoints, msg.Signer); err != nil {
+	if err := m.keeper.SetServingInfo(ctx, msg.OrgId, msg.HubEndpoints, msg.HubResponsePubkey, msg.Signer); err != nil {
 		return nil, err
 	}
 

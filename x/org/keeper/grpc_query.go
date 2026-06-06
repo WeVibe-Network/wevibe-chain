@@ -34,6 +34,7 @@ func (q *queryServer) GetOrg(ctx context.Context, req *types.QueryGetOrgRequest)
 		Domain:            org.Domain,
 		HubServingAddress: org.HubServingAddress,
 		HubEndpoints:      org.HubEndpoints,
+		HubResponsePubkey: org.HubResponsePubkey,
 	}, nil
 }
 

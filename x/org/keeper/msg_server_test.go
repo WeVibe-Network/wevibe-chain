@@ -18,10 +18,11 @@ import (
 )
 
 var (
-	validSigner    = "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx"
-	validLeader    = "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6"
-	validMember    = "cosmos1gsank9k6ygfnx376cuhw8zp9p8ssnyez44dtmh"
-	validAuthority = "cosmos14taukd54w5eak58yjv4lpzz3a0vr0petthfpc5"
+	validSigner            = "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx"
+	validLeader            = "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6"
+	validMember            = "cosmos1gsank9k6ygfnx376cuhw8zp9p8ssnyez44dtmh"
+	validAuthority         = "cosmos14taukd54w5eak58yjv4lpzz3a0vr0petthfpc5"
+	validHubResponsePubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 )
 
 type mockFeegrantKeeper struct {
@@ -122,9 +123,10 @@ func TestMsgSetServingInfo_ValidateBasic(t *testing.T) {
 		{
 			name: "valid single endpoint",
 			msg: types.MsgSetServingInfo{
-				Signer:       validLeader,
-				OrgId:        "org1",
-				HubEndpoints: []string{"https://hub-1.example.com"},
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: validHubResponsePubkey,
 			},
 		},
 		{
@@ -137,6 +139,15 @@ func TestMsgSetServingInfo_ValidateBasic(t *testing.T) {
 					"https://hub-2.example.com",
 					"http://hub-3.example.com:8080",
 				},
+			},
+		},
+		{
+			name: "valid with empty response pubkey",
+			msg: types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: "",
 			},
 		},
 		{
@@ -208,6 +219,50 @@ func TestMsgSetServingInfo_ValidateBasic(t *testing.T) {
 				HubEndpoints: []string{"https://"},
 			},
 			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+		{
+			name: "response pubkey odd-length hex",
+			msg: types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: "abc",
+			},
+			errIs:   types.ErrInvalidHubResponsePubkey,
+			wantErr: true,
+		},
+		{
+			name: "response pubkey non-hex",
+			msg: types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: "gg112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+			},
+			errIs:   types.ErrInvalidHubResponsePubkey,
+			wantErr: true,
+		},
+		{
+			name: "response pubkey decodes to 31 bytes",
+			msg: types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddee",
+			},
+			errIs:   types.ErrInvalidHubResponsePubkey,
+			wantErr: true,
+		},
+		{
+			name: "response pubkey decodes to 33 bytes",
+			msg: types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             "org1",
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: validHubResponsePubkey + "00",
+			},
+			errIs:   types.ErrInvalidHubResponsePubkey,
 			wantErr: true,
 		},
 	}
@@ -838,6 +893,48 @@ func TestMsgSetServingInfo_SetsHubEndpointsInOrder(t *testing.T) {
 	}
 }
 
+func TestMsgSetServingInfo_SetsHubEndpointsAndResponsePubkey(t *testing.T) {
+	srv, qs, ctx, _, _ := setupMsgAndQueryServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+	endpoints := []string{
+		"https://hub-1.example.com",
+		"https://hub-2.example.com",
+	}
+
+	_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+		Signer:            validLeader,
+		OrgId:             orgID,
+		HubEndpoints:      endpoints,
+		HubResponsePubkey: validHubResponsePubkey,
+	})
+	require.NoError(t, err)
+
+	resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: orgID})
+	require.NoError(t, err)
+	require.Equal(t, endpoints, resp.HubEndpoints)
+	require.Equal(t, validHubResponsePubkey, resp.HubResponsePubkey)
+}
+
+func TestMsgSetServingInfo_AllowsEmptyResponsePubkey(t *testing.T) {
+	srv, qs, ctx, _, _ := setupMsgAndQueryServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+
+	_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+		Signer:            validLeader,
+		OrgId:             orgID,
+		HubEndpoints:      []string{"https://hub-1.example.com"},
+		HubResponsePubkey: "",
+	})
+	require.NoError(t, err)
+
+	resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: orgID})
+	require.NoError(t, err)
+	require.Equal(t, []string{"https://hub-1.example.com"}, resp.HubEndpoints)
+	require.Empty(t, resp.HubResponsePubkey)
+}
+
 func TestMsgSetServingInfo_RejectsNonLeaderWallet(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
@@ -895,6 +992,46 @@ func TestMsgSetServingInfo_RejectsInvalidEndpoints(t *testing.T) {
 				HubEndpoints: tc.endpoints,
 			})
 			require.ErrorIs(t, err, types.ErrInvalidHubEndpoints)
+		})
+	}
+}
+
+func TestMsgSetServingInfo_RejectsInvalidResponsePubkey(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+
+	tests := []struct {
+		name   string
+		pubkey string
+	}{
+		{
+			name:   "odd-length hex",
+			pubkey: "abc",
+		},
+		{
+			name:   "non-hex characters",
+			pubkey: "zz112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		},
+		{
+			name:   "31-byte key",
+			pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddee",
+		},
+		{
+			name:   "33-byte key",
+			pubkey: validHubResponsePubkey + "00",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+				Signer:            validLeader,
+				OrgId:             orgID,
+				HubEndpoints:      []string{"https://hub-1.example.com"},
+				HubResponsePubkey: tc.pubkey,
+			})
+			require.ErrorIs(t, err, types.ErrInvalidHubResponsePubkey)
 		})
 	}
 }

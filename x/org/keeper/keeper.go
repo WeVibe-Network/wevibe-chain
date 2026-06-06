@@ -76,6 +76,7 @@ func orgToStored(org *types.Org) *types.StoredOrg {
 		Status:              int32(org.Status),
 		HubServingAddress:   org.HubServingAddress,
 		HubEndpoints:        org.HubEndpoints,
+		HubResponsePubkey:   org.HubResponsePubkey,
 		LeaderWalletAddress: org.LeaderWalletAddress,
 		AccountAddress:      org.AccountAddress,
 	}
@@ -94,6 +95,7 @@ func storedToOrg(stored types.StoredOrg) types.Org {
 		Status:              types.OrgStatus(stored.Status),
 		HubServingAddress:   stored.HubServingAddress,
 		HubEndpoints:        stored.HubEndpoints,
+		HubResponsePubkey:   stored.HubResponsePubkey,
 		LeaderWalletAddress: stored.LeaderWalletAddress,
 		AccountAddress:      stored.AccountAddress,
 	}
@@ -493,10 +495,11 @@ func (k *Keeper) SetServingKey(ctx context.Context, orgID, newServingKey, signer
 	return nil
 }
 
-// SetHubEndpoints updates the ordered hub transport endpoint list for an org.
-// Authorized ONLY by the org's registered leader chain wallet (signer must
-// equal leader_wallet_address). Endpoints are transport URLs only.
-func (k *Keeper) SetHubEndpoints(ctx context.Context, orgID string, endpoints []string, signer string) error {
+// SetServingInfo updates the ordered hub transport endpoint list and the
+// optional hub response signing pubkey for an org. Authorized ONLY by the
+// org's registered leader chain wallet (signer must equal
+// leader_wallet_address).
+func (k *Keeper) SetServingInfo(ctx context.Context, orgID string, endpoints []string, responsePubkey string, signer string) error {
 	org, err := k.GetOrg(ctx, orgID)
 	if err != nil {
 		return err
@@ -521,6 +524,7 @@ func (k *Keeper) SetHubEndpoints(ctx context.Context, orgID string, endpoints []
 		return fmt.Errorf("unmarshal org: %w", err)
 	}
 	stored.HubEndpoints = append([]string(nil), endpoints...)
+	stored.HubResponsePubkey = responsePubkey
 	bz, err = proto.Marshal(&stored)
 	if err != nil {
 		return fmt.Errorf("marshal org: %w", err)

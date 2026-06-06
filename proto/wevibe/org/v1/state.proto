@@ -31,6 +31,10 @@ message StoredOrg {
   // fronting hub_serving_address); leader-set; resolved by clients as the
   // org directory.
   repeated string hub_endpoints = 18;
+  // D-HUB-RESPONSE-SIGNED: hex ed25519 pubkey of the hub's dedicated
+  // response-signing key (INTEGRITY); distinct from hub_serving_address
+  // (secp256k1 AUTH).
+  string hub_response_pubkey = 19;
 }
 
 message StoredSlotRegistry {

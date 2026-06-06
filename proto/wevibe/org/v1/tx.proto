@@ -58,6 +58,7 @@ message MsgSetServingInfo {
   string signer = 1; // leader's secp256k1 chain wallet (Bech32)
   string org_id = 2;
   repeated string hub_endpoints = 3; // ordered 1-3 transport URLs (D-CHAIN-RESOLVED-HUB-ENDPOINT)
+  string hub_response_pubkey = 4; // optional lowercase hex ed25519 pubkey (32 bytes)
 }
 
 message MsgSetServingInfoResponse {}

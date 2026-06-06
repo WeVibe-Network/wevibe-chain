@@ -34,6 +34,7 @@ type Org struct {
 	// key rotation).
 	HubServingAddress   string   `json:"hub_serving_address"`
 	HubEndpoints        []string `json:"hub_endpoints"`
+	HubResponsePubkey   string   `json:"hub_response_pubkey"`
 	LeaderWalletAddress string   `json:"leader_wallet_address"`
 	AccountAddress      string   `json:"account_address"`
 }

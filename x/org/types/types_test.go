@@ -32,6 +32,29 @@ func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
 	})
 }
 
+func TestValidateHubResponsePubkey(t *testing.T) {
+	valid := "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+	require.NoError(t, types.ValidateHubResponsePubkey(""))
+	require.NoError(t, types.ValidateHubResponsePubkey(valid))
+
+	tests := []struct {
+		name   string
+		pubkey string
+	}{
+		{name: "odd length", pubkey: "abc"},
+		{name: "non-hex", pubkey: "zz112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"},
+		{name: "31 bytes", pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddee"},
+		{name: "33 bytes", pubkey: valid + "00"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := types.ValidateHubResponsePubkey(tc.pubkey)
+			require.ErrorIs(t, err, types.ErrInvalidHubResponsePubkey)
+		})
+	}
+}
+
 // ---------------------------------------------------------------------------
 // MsgAddMember.ValidateBasic
 // ---------------------------------------------------------------------------

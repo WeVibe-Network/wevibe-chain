@@ -45,6 +45,7 @@ message QueryGetOrgResponse {
   string domain = 8;
   string hub_serving_address = 9;
   repeated string hub_endpoints = 10;
+  string hub_response_pubkey = 11;
 }
 
 message QueryGetMembersRequest {
