@@ -1,6 +1,7 @@
 package org
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/types/module"
+	"github.com/grpc-ecosystem/grpc-gateway/runtime"
 	"github.com/wevibe-network/wevibe-chain/x/org/keeper"
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
 )
@@ -24,6 +26,9 @@ var (
 	_ appmodule.AppModule        = (*Module)(nil)
 	_ module.HasServices         = (*Module)(nil)
 	_ module.HasGenesis          = (*Module)(nil)
+	_ interface {
+		RegisterGRPCGatewayRoutes(client.Context, *runtime.ServeMux)
+	} = (*Module)(nil)
 )
 
 func NewModule(k *keeper.Keeper) *Module {
@@ -81,4 +86,12 @@ func (m *Module) ExportGenesis(ctx sdk.Context, cdc codec.JSONCodec) json.RawMes
 func (m *Module) RegisterServices(cfg module.Configurator) {
 	types.RegisterMsgServer(cfg.MsgServer(), keeper.NewMsgServerImpl(m.keeper))
 	types.RegisterQueryServer(cfg.QueryServer(), keeper.NewQueryServerImpl(m.keeper))
+}
+
+// RegisterGRPCGatewayRoutes registers the module's REST query routes on the
+// gRPC-gateway mux so the chain serves them over the REST API (port 1317).
+func (m *Module) RegisterGRPCGatewayRoutes(clientCtx client.Context, mux *runtime.ServeMux) {
+	if err := types.RegisterQueryHandlerClient(context.Background(), mux, types.NewQueryClient(clientCtx)); err != nil {
+		panic(err)
+	}
 }
