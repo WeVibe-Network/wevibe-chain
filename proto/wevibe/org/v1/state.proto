@@ -27,6 +27,10 @@ message StoredOrg {
   string leader_wallet_address = 15;
   uint64 slot = 16;
   string account_address = 17;
+  // D-CHAIN-RESOLVED-HUB-ENDPOINT: ordered 1-3 transport URLs (replicas
+  // fronting hub_serving_address); leader-set; resolved by clients as the
+  // org directory.
+  repeated string hub_endpoints = 18;
 }
 
 message StoredSlotRegistry {

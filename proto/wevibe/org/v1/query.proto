@@ -43,6 +43,8 @@ message QueryGetOrgResponse {
   uint64 retrieval_budget = 6;
   int32 status = 7;
   string domain = 8;
+  string hub_serving_address = 9;
+  repeated string hub_endpoints = 10;
 }
 
 message QueryGetMembersRequest {

@@ -32,9 +32,10 @@ type Org struct {
 	// (the only signer allowed to submit serve/denial batches) and the leader's
 	// chain wallet address (the on-chain authority for org decisions and serving
 	// key rotation).
-	HubServingAddress   string `json:"hub_serving_address"`
-	LeaderWalletAddress string `json:"leader_wallet_address"`
-	AccountAddress      string `json:"account_address"`
+	HubServingAddress   string   `json:"hub_serving_address"`
+	HubEndpoints        []string `json:"hub_endpoints"`
+	LeaderWalletAddress string   `json:"leader_wallet_address"`
+	AccountAddress      string   `json:"account_address"`
 }
 
 func NewOrg(orgID, leader, domain string, storageQuota, retrievalBudget uint64) *Org {

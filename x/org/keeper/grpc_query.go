@@ -24,14 +24,16 @@ func (q *queryServer) GetOrg(ctx context.Context, req *types.QueryGetOrgRequest)
 		return nil, err
 	}
 	return &types.QueryGetOrgResponse{
-		OrgId:           org.OrgID,
-		Leader:          org.Leader,
-		CreatedAt:       org.CreatedAt,
-		RenewalHeight:   org.RenewalHeight,
-		StorageQuota:    org.StorageQuota,
-		RetrievalBudget: org.RetrievalBudget,
-		Status:          int32(org.Status),
-		Domain:          org.Domain,
+		OrgId:             org.OrgID,
+		Leader:            org.Leader,
+		CreatedAt:         org.CreatedAt,
+		RenewalHeight:     org.RenewalHeight,
+		StorageQuota:      org.StorageQuota,
+		RetrievalBudget:   org.RetrievalBudget,
+		Status:            int32(org.Status),
+		Domain:            org.Domain,
+		HubServingAddress: org.HubServingAddress,
+		HubEndpoints:      org.HubEndpoints,
 	}, nil
 }
 

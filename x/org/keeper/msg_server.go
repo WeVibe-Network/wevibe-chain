@@ -102,6 +102,26 @@ func (m *msgServer) SetServingKey(ctx context.Context, msg *types.MsgSetServingK
 	return &types.MsgSetServingKeyResponse{}, nil
 }
 
+func (m *msgServer) SetServingInfo(ctx context.Context, msg *types.MsgSetServingInfo) (*types.MsgSetServingInfoResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !has {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := m.keeper.SetHubEndpoints(ctx, msg.OrgId, msg.HubEndpoints, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	return &types.MsgSetServingInfoResponse{}, nil
+}
+
 func (m *msgServer) RemoveMember(ctx context.Context, msg *types.MsgRemoveMember) (*types.MsgRemoveMemberResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err

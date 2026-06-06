@@ -13,6 +13,7 @@ var (
 	ErrMemberExists         = errors.New("member already exists")
 	ErrNotLeader            = errors.New("caller is not the org leader")
 	ErrInvalidRole          = errors.New("invalid role")
+	ErrInvalidHubEndpoints  = errors.New("invalid hub endpoints")
 	ErrInvalidQuota         = errors.New("invalid quota value")
 	ErrOrgNotActive         = errors.New("org is not active")
 	ErrInsufficientFund     = errors.New("insufficient funds for registration")

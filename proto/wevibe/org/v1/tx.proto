@@ -19,6 +19,7 @@ service Msg {
   rpc TransferLeadership(MsgTransferLeadership) returns (MsgTransferLeadershipResponse);
   rpc CloseOrg(MsgCloseOrg) returns (MsgCloseOrgResponse);
   rpc SetServingKey(MsgSetServingKey) returns (MsgSetServingKeyResponse);
+  rpc SetServingInfo(MsgSetServingInfo) returns (MsgSetServingInfoResponse);
 }
 
 message MsgRegisterOrg {
@@ -51,6 +52,15 @@ message MsgSetServingKey {
 }
 
 message MsgSetServingKeyResponse {}
+
+message MsgSetServingInfo {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1; // leader's secp256k1 chain wallet (Bech32)
+  string org_id = 2;
+  repeated string hub_endpoints = 3; // ordered 1-3 transport URLs (D-CHAIN-RESOLVED-HUB-ENDPOINT)
+}
+
+message MsgSetServingInfoResponse {}
 
 message MsgAddMember {
   option (cosmos.msg.v1.signer) = "signer";

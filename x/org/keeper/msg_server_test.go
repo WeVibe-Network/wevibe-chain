@@ -61,6 +61,18 @@ func setupMsgServer(t *testing.T) (types.MsgServer, context.Context, *mockBankKe
 	return keeper.NewMsgServerImpl(k), sdk.WrapSDKContext(sdkCtx), bank, feegrantKeeper
 }
 
+func setupMsgAndQueryServer(t *testing.T) (types.MsgServer, types.QueryServer, context.Context, *mockBankKeeper, *mockFeegrantKeeper) {
+	storeKey := storetypes.NewKVStoreKey("org")
+	storeService, cms := testkeeper.NewTestStoreService(t, storeKey)
+	logger := testkeeper.NewTestLogger()
+	bank := newMockBankKeeper()
+	feegrantKeeper := newMockFeegrantKeeper()
+	k := keeper.NewKeeper(storeService, logger, validAuthority, bank, feegrantKeeper)
+	sdkCtx := sdk.NewContext(cms, tmproto.Header{Height: 1, Time: time.Now().UTC()}, false, logger)
+	ctx := sdk.WrapSDKContext(sdkCtx)
+	return keeper.NewMsgServerImpl(k), keeper.NewQueryServerImpl(k), ctx, bank, feegrantKeeper
+}
+
 func assertServingFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowanceI) {
 	t.Helper()
 
@@ -98,6 +110,121 @@ func TestMsgGrantTrialAllowance_ValidateBasic(t *testing.T) {
 	msg.DailySubmissions = 1
 	msg.TrialDays = 1
 	require.NoError(t, msg.ValidateBasic())
+}
+
+func TestMsgSetServingInfo_ValidateBasic(t *testing.T) {
+	tests := []struct {
+		name    string
+		msg     types.MsgSetServingInfo
+		errIs   error
+		wantErr bool
+	}{
+		{
+			name: "valid single endpoint",
+			msg: types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        "org1",
+				HubEndpoints: []string{"https://hub-1.example.com"},
+			},
+		},
+		{
+			name: "valid three endpoints",
+			msg: types.MsgSetServingInfo{
+				Signer: validLeader,
+				OrgId:  "org1",
+				HubEndpoints: []string{
+					"https://hub-1.example.com",
+					"https://hub-2.example.com",
+					"http://hub-3.example.com:8080",
+				},
+			},
+		},
+		{
+			name: "missing signer",
+			msg: types.MsgSetServingInfo{
+				OrgId:        "org1",
+				HubEndpoints: []string{"https://hub-1.example.com"},
+			},
+			wantErr: true,
+		},
+		{
+			name: "missing org id",
+			msg: types.MsgSetServingInfo{
+				Signer:       validLeader,
+				HubEndpoints: []string{"https://hub-1.example.com"},
+			},
+			errIs:   types.ErrInvalidOrgID,
+			wantErr: true,
+		},
+		{
+			name: "zero endpoints",
+			msg: types.MsgSetServingInfo{
+				Signer: validLeader,
+				OrgId:  "org1",
+			},
+			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+		{
+			name: "four endpoints",
+			msg: types.MsgSetServingInfo{
+				Signer: validLeader,
+				OrgId:  "org1",
+				HubEndpoints: []string{
+					"https://hub-1.example.com",
+					"https://hub-2.example.com",
+					"https://hub-3.example.com",
+					"https://hub-4.example.com",
+				},
+			},
+			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+		{
+			name: "malformed plain text",
+			msg: types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        "org1",
+				HubEndpoints: []string{"not a url"},
+			},
+			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+		{
+			name: "invalid scheme",
+			msg: types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        "org1",
+				HubEndpoints: []string{"ftp://x"},
+			},
+			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+		{
+			name: "missing host",
+			msg: types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        "org1",
+				HubEndpoints: []string{"https://"},
+			},
+			errIs:   types.ErrInvalidHubEndpoints,
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			err := tc.msg.ValidateBasic()
+			if !tc.wantErr {
+				require.NoError(t, err)
+				return
+			}
+			require.Error(t, err)
+			if tc.errIs != nil {
+				require.ErrorIs(t, err, tc.errIs)
+			}
+		})
+	}
 }
 
 func TestMsgRegisterOrg_Success(t *testing.T) {
@@ -663,4 +790,111 @@ func TestMsgSetServingKey_RejectsNonLeaderWallet(t *testing.T) {
 		NewServingKey: validAuthority,
 	})
 	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgSetServingInfo_SetsHubEndpointsInOrder(t *testing.T) {
+	srv, qs, ctx, _, _ := setupMsgAndQueryServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+
+	tests := []struct {
+		name      string
+		endpoints []string
+	}{
+		{
+			name:      "single endpoint",
+			endpoints: []string{"https://hub-1.example.com"},
+		},
+		{
+			name: "two endpoints",
+			endpoints: []string{
+				"https://hub-1.example.com",
+				"http://hub-2.example.com:8080",
+			},
+		},
+		{
+			name: "three endpoints",
+			endpoints: []string{
+				"https://hub-1.example.com",
+				"https://hub-2.example.com",
+				"https://hub-3.example.com/rpc",
+			},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        orgID,
+				HubEndpoints: tc.endpoints,
+			})
+			require.NoError(t, err)
+
+			resp, err := qs.GetOrg(ctx, &types.QueryGetOrgRequest{OrgId: orgID})
+			require.NoError(t, err)
+			require.Equal(t, tc.endpoints, resp.HubEndpoints)
+		})
+	}
+}
+
+func TestMsgSetServingInfo_RejectsNonLeaderWallet(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+
+	_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+		Signer:       validSigner,
+		OrgId:        orgID,
+		HubEndpoints: []string{"https://hub-1.example.com"},
+	})
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgSetServingInfo_RejectsInvalidEndpoints(t *testing.T) {
+	srv, ctx, _, _ := setupMsgServer(t)
+
+	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validLeader, validLeader, validLeader)
+
+	tests := []struct {
+		name      string
+		endpoints []string
+	}{
+		{
+			name:      "zero endpoints",
+			endpoints: []string{},
+		},
+		{
+			name: "four endpoints",
+			endpoints: []string{
+				"https://hub-1.example.com",
+				"https://hub-2.example.com",
+				"https://hub-3.example.com",
+				"https://hub-4.example.com",
+			},
+		},
+		{
+			name:      "malformed url",
+			endpoints: []string{"not a url"},
+		},
+		{
+			name:      "invalid scheme",
+			endpoints: []string{"ftp://x"},
+		},
+		{
+			name:      "missing host",
+			endpoints: []string{"https://"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := srv.SetServingInfo(ctx, &types.MsgSetServingInfo{
+				Signer:       validLeader,
+				OrgId:        orgID,
+				HubEndpoints: tc.endpoints,
+			})
+			require.ErrorIs(t, err, types.ErrInvalidHubEndpoints)
+		})
+	}
 }

@@ -2,6 +2,8 @@ package types
 
 import (
 	"fmt"
+	"net/url"
+	"strings"
 )
 
 func (m *MsgRegisterOrg) ValidateBasic() error {
@@ -23,6 +25,36 @@ func (m *MsgSetServingKey) ValidateBasic() error {
 	}
 	if m.NewServingKey == "" {
 		return fmt.Errorf("new_serving_key cannot be empty")
+	}
+	return nil
+}
+
+func (m *MsgSetServingInfo) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.OrgId == "" {
+		return ErrInvalidOrgID
+	}
+	if err := ValidateHubEndpoints(m.HubEndpoints); err != nil {
+		return err
+	}
+	return nil
+}
+
+func ValidateHubEndpoints(endpoints []string) error {
+	if len(endpoints) < 1 || len(endpoints) > 3 {
+		return fmt.Errorf("%w: hub_endpoints must contain between 1 and 3 endpoints", ErrInvalidHubEndpoints)
+	}
+	for i, endpoint := range endpoints {
+		u, err := url.Parse(endpoint)
+		if err != nil {
+			return fmt.Errorf("%w: hub_endpoints[%d] parse error: %v", ErrInvalidHubEndpoints, i, err)
+		}
+		scheme := strings.ToLower(u.Scheme)
+		if (scheme != "http" && scheme != "https") || u.Host == "" {
+			return fmt.Errorf("%w: hub_endpoints[%d] must be an http(s) URL with host", ErrInvalidHubEndpoints, i)
+		}
 	}
 	return nil
 }

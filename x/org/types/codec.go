@@ -22,6 +22,7 @@ func (gs *GenesisState) UnmarshalJSON(b []byte) error {
 func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations((*sdk.Msg)(nil),
 		&MsgRegisterOrg{},
+		&MsgSetServingInfo{},
 		&MsgAddMember{},
 		&MsgRemoveMember{},
 		&MsgUpdateParams{},
