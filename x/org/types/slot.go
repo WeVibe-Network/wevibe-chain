@@ -8,7 +8,7 @@ import (
 )
 
 func FormatOrgID(slot uint64) string {
-	return fmt.Sprintf("weorg-%d", slot)
+	return fmt.Sprintf("wevibe-org-%d", slot)
 }
 
 func OrgAccountAddress(orgID string) sdk.AccAddress {
