@@ -92,6 +92,38 @@ func assertServingFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowanc
 	require.Nil(t, basic.Expiration)
 }
 
+func assertLeaderFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowanceI) {
+	t.Helper()
+
+	allowed, ok := allowance.(*feegrant.AllowedMsgAllowance)
+	require.True(t, ok)
+	require.ElementsMatch(t,
+		[]string{
+			"/wevibe.org.v1.MsgAddMember",
+			"/wevibe.org.v1.MsgRemoveMember",
+			"/wevibe.org.v1.MsgUpdateMemberRole",
+			"/wevibe.org.v1.MsgSetOrgConfig",
+			"/wevibe.org.v1.MsgSetServingKey",
+			"/wevibe.org.v1.MsgSetServingInfo",
+			"/wevibe.org.v1.MsgRotateEpoch",
+			"/wevibe.org.v1.MsgTransferLeadership",
+			"/wevibe.org.v1.MsgCloseOrg",
+			"/wevibe.org.v1.MsgGrantTrialAllowance",
+			"/wevibe.memory.v1.MsgSubmitCommitment",
+			"/wevibe.memory.v1.MsgApproveMemory",
+			"/wevibe.memory.v1.MsgReportMemory",
+		},
+		allowed.AllowedMessages,
+	)
+
+	innerAllowance, err := allowed.GetAllowance()
+	require.NoError(t, err)
+	basic, ok := innerAllowance.(*feegrant.BasicAllowance)
+	require.True(t, ok)
+	require.Empty(t, basic.SpendLimit)
+	require.Nil(t, basic.Expiration)
+}
+
 func TestMsgRegisterOrg_ValidateBasic(t *testing.T) {
 	msg := &types.MsgRegisterOrg{}
 	require.Error(t, msg.ValidateBasic())
@@ -788,12 +820,17 @@ func TestMsgRegisterOrg_WithServingKeyAndLeaderWallet(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, resp)
 	require.Equal(t, types.FormatOrgID(0), resp.OrgId)
-	require.Len(t, feegrantKeeper.grantCalls, 1)
+	require.Len(t, feegrantKeeper.grantCalls, 2)
 
-	grantCall := feegrantKeeper.grantCalls[0]
-	require.Equal(t, types.OrgAccountAddress(resp.OrgId).String(), grantCall.granter.String())
-	require.Equal(t, validMember, grantCall.grantee.String())
-	assertServingFeegrantAllowance(t, grantCall.allowance)
+	servingGrantCall := feegrantKeeper.grantCalls[0]
+	require.Equal(t, types.OrgAccountAddress(resp.OrgId).String(), servingGrantCall.granter.String())
+	require.Equal(t, validMember, servingGrantCall.grantee.String())
+	assertServingFeegrantAllowance(t, servingGrantCall.allowance)
+
+	leaderGrantCall := feegrantKeeper.grantCalls[1]
+	require.Equal(t, types.OrgAccountAddress(resp.OrgId).String(), leaderGrantCall.granter.String())
+	require.Equal(t, validLeader, leaderGrantCall.grantee.String())
+	assertLeaderFeegrantAllowance(t, leaderGrantCall.allowance)
 }
 
 func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
@@ -816,9 +853,9 @@ func TestMsgSetServingKey_RotatesWhenLeaderWalletSigns(t *testing.T) {
 		NewServingKey: validSigner,
 	})
 	require.NoError(t, err)
-	require.Len(t, feegrantKeeper.grantCalls, 2)
+	require.Len(t, feegrantKeeper.grantCalls, 3)
 
-	reGrantCall := feegrantKeeper.grantCalls[1]
+	reGrantCall := feegrantKeeper.grantCalls[2]
 	require.Equal(t, types.OrgAccountAddress(orgID).String(), reGrantCall.granter.String())
 	require.Equal(t, validSigner, reGrantCall.grantee.String())
 	assertServingFeegrantAllowance(t, reGrantCall.allowance)

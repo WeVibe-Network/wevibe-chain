@@ -246,6 +246,11 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 	if err := k.grantServingFeegrant(ctx, types.OrgAccountAddress(org.OrgID), org.HubServingAddress); err != nil {
 		return err
 	}
+	if org.LeaderWalletAddress != "" {
+		if err := k.grantLeaderFeegrant(ctx, types.OrgAccountAddress(org.OrgID), org.LeaderWalletAddress); err != nil {
+			return err
+		}
+	}
 
 	leaderKey := memberKey(org.OrgID, org.Leader)
 	leaderBz, err := proto.Marshal(&types.StoredMemberRecord{
@@ -688,6 +693,17 @@ func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signe
 		return fmt.Errorf("marshal org: %w", err)
 	}
 	if err := store.Set(orgKey, orgBz); err != nil {
+		return err
+	}
+
+	orgAccountAddr := types.OrgAccountAddress(orgID)
+	// This SDK feegrant keeper does not expose a public keeper-level revoke
+	// method, so old leader grants cannot be proactively removed here. The old
+	// leader allowance is inert: org-purpose messages gate on
+	// signer == current LeaderWalletAddress, and this feegrant is scoped only to
+	// org-purpose message type URLs.
+
+	if err := k.grantLeaderFeegrant(ctx, orgAccountAddr, newLeader); err != nil {
 		return err
 	}
 
