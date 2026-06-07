@@ -1,0 +1,22 @@
+syntax = "proto3";
+package wevibe.identity.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/identity/types";
+
+import "google/api/annotations.proto";
+
+service Query {
+  rpc ResolveIdentity(QueryResolveIdentityRequest) returns (QueryResolveIdentityResponse) {
+    option (google.api.http).get = "/wevibe/identity/v1/resolve/{passkey_pubkey}";
+  }
+}
+
+message QueryResolveIdentityRequest {
+  string passkey_pubkey = 1;
+}
+
+message QueryResolveIdentityResponse {
+  string wallet_address = 1;
+  bool is_migrated = 2;
+  bool found = 3;
+}

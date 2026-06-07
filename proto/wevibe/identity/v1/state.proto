@@ -1,0 +1,19 @@
+syntax = "proto3";
+package wevibe.identity.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/identity/types";
+
+import "gogoproto/gogo.proto";
+import "wevibe/identity/v1/params.proto";
+
+message StoredIdentityAlias {
+  string passkey_pubkey = 1;   // ed25519 hex — the canonical identity key (map key)
+  string wallet_address = 2;   // bech32 secp256k1 wallet
+  bool is_migrated = 3;
+  uint64 migrated_at_epoch = 4;
+}
+
+message GenesisState {
+  repeated StoredIdentityAlias aliases = 1;
+  Params params = 2 [(gogoproto.nullable) = false];
+}

@@ -87,6 +87,9 @@ import (
 	emissionskeeper "github.com/wevibe-network/wevibe-chain/x/emissions/keeper"
 	emissionsmodule "github.com/wevibe-network/wevibe-chain/x/emissions/module"
 	emissionsTypes "github.com/wevibe-network/wevibe-chain/x/emissions/types"
+	identitykeeper "github.com/wevibe-network/wevibe-chain/x/identity/keeper"
+	identitymodule "github.com/wevibe-network/wevibe-chain/x/identity/module"
+	identityTypes "github.com/wevibe-network/wevibe-chain/x/identity/types"
 	memorykeeper "github.com/wevibe-network/wevibe-chain/x/memory/keeper"
 	memorymodule "github.com/wevibe-network/wevibe-chain/x/memory/module"
 	memoryTypes "github.com/wevibe-network/wevibe-chain/x/memory/types"
@@ -193,6 +196,7 @@ type WeVibeApp struct {
 	EmissionsKeeper   *emissionskeeper.Keeper
 	MemoryKeeper      *memorykeeper.Keeper
 	OrgKeeper         *orgkeeper.Keeper
+	IdentityKeeper    *identitykeeper.Keeper
 	ReputationKeeper  *reputationkeeper.Keeper
 	ServeKeeper       *servekeeper.Keeper
 	AttestationKeeper *attestationkeeper.Keeper
@@ -240,6 +244,7 @@ func NewWeVibeApp(
 		"emissions",
 		"memory",
 		"org",
+		"identity",
 		"reputation",
 		"serve",
 		"attestation",
@@ -254,6 +259,7 @@ func NewWeVibeApp(
 		"emissions":   keys["emissions"],
 		"memory":      keys["memory"],
 		"org":         keys["org"],
+		"identity":    keys["identity"],
 		"reputation":  keys["reputation"],
 		"serve":       keys["serve"],
 		"attestation": keys["attestation"],
@@ -394,6 +400,7 @@ func NewWeVibeApp(
 
 	app.OrgKeeper = orgkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["org"]), logger, govAuthority, app.BankKeeper, app.FeegrantKeeper)
 	app.BandwidthKeeper = bandwidthkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["bandwidth"]), logger, govAuthority, app.OrgKeeper)
+	app.IdentityKeeper = identitykeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["identity"]), logger, govAuthority)
 	app.ReputationKeeper = reputationkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["reputation"]), logger, govAuthority)
 	app.MemoryKeeper = memorykeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["memory"]), logger, govAuthority, app.OrgKeeper, app.ReputationKeeper)
 	app.ServeKeeper = servekeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["serve"]), logger, govAuthority, app.OrgKeeper, app.MemoryKeeper, app.BandwidthKeeper, app.ReputationKeeper)
@@ -430,6 +437,7 @@ func NewWeVibeApp(
 	bandwidthMod := bandwidthmodule.NewModule(app.BandwidthKeeper)
 	memoryMod := memorymodule.NewModule(app.MemoryKeeper)
 	orgMod := orgmodule.NewModule(app.OrgKeeper)
+	identityMod := identitymodule.NewModule(app.IdentityKeeper)
 	reputationMod := reputationmodule.NewModule(app.ReputationKeeper)
 	serveMod := servemodule.NewModule(app.ServeKeeper)
 	attestationMod := attestationmodule.NewModule(app.AttestationKeeper)
@@ -453,6 +461,7 @@ func NewWeVibeApp(
 		"emissions":   emissionsMod,
 		"memory":      memoryMod,
 		"org":         orgMod,
+		"identity":    identityMod,
 		"reputation":  reputationMod,
 		"serve":       serveMod,
 		"attestation": attestationMod,
@@ -489,6 +498,7 @@ func NewWeVibeApp(
 		"serve",
 		"attestation",
 		"emissions",
+		"identity",
 		"reputation",
 	)
 
@@ -735,6 +745,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	bandwidthTypes.RegisterInterfaces(registry)
 	memoryTypes.RegisterInterfaces(registry)
 	orgTypes.RegisterInterfaces(registry)
+	identityTypes.RegisterInterfaces(registry)
 	reputationTypes.RegisterInterfaces(registry)
 	serveTypes.RegisterInterfaces(registry)
 	attestationTypes.RegisterInterfaces(registry)
