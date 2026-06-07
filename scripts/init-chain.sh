@@ -37,6 +37,8 @@ if [ "$(uname)" = "Darwin" ]; then
     sed -i '' 's|^enable = false.*# grpc|enable = true|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^address = "localhost:9090"|address = "0.0.0.0:9090"|' "$HOME_DIR/config/app.toml"
     sed -i '' '/^\[api\]/,/^\[grpc\]/ s/^enable = false/enable = true/' "$HOME_DIR/config/app.toml"
+    # Enable CORS on the REST API so the browser dashboard (origin :3000) can read chain state directly (LOCAL DEV).
+    sed -i '' 's|^enabled-unsafe-cors = false|enabled-unsafe-cors = true|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^address = "tcp://localhost:1317"|address = "tcp://0.0.0.0:1317"|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^pruning = "default"|pruning = "custom"|' "$HOME_DIR/config/app.toml"
     sed -i '' 's|^pruning-keep-recent = ".*"|pruning-keep-recent = "100"|' "$HOME_DIR/config/app.toml"
@@ -46,6 +48,8 @@ else
     sed -i 's|^enable = false.*# grpc|enable = true|' "$HOME_DIR/config/app.toml"
     sed -i 's|^address = "localhost:9090"|address = "0.0.0.0:9090"|' "$HOME_DIR/config/app.toml"
     sed -i '/^\[api\]/,/^\[grpc\]/ s/^enable = false/enable = true/' "$HOME_DIR/config/app.toml"
+    # Enable CORS on the REST API so the browser dashboard (origin :3000) can read chain state directly (LOCAL DEV).
+    sed -i 's|^enabled-unsafe-cors = false|enabled-unsafe-cors = true|' "$HOME_DIR/config/app.toml"
     sed -i 's|^address = "tcp://localhost:1317"|address = "tcp://0.0.0.0:1317"|' "$HOME_DIR/config/app.toml"
     sed -i 's|^pruning = "default"|pruning = "custom"|' "$HOME_DIR/config/app.toml"
     sed -i 's|^pruning-keep-recent = ".*"|pruning-keep-recent = "100"|' "$HOME_DIR/config/app.toml"
