@@ -1,17 +1,23 @@
 # WeVibe Chain
 
-WeVibe Chain is a Cosmos SDK application that serves as the anchor for WeVibe Network's encrypted organizational memory system. It provides organizations with on-chain capabilities for registering identities, curating encrypted knowledge, attesting to content retrieval, tracking contributor reputation, and distributing incentive payouts.
+WeVibe Chain is WeVibe Network's sovereign Cosmos SDK + CometBFT appchain. It is the source of truth for encrypted organizational memory, membership and role state, serve attestations, contributor reputation aggregates, and VIBE economic state.
 
 ## Overview
 
 WeVibe Chain couples the staking, governance, bank, epochs, and distribution foundations of Cosmos SDK with purpose-built modules that orchestrate:
 
-- **Organization Management** — Registration, membership, and treasuries
-- **Memory Curation** — Encrypted knowledge commitments with lifecycle states
-- **Serve Attestations** — Proof of content delivery by serving agents
-- **Bandwidth Throttling** — Per-org rate limiting for spam prevention
-- **Reputation Tracking** — Contributor XP, stats, and cross-org profiles
-- **Emission Incentives** — Epoch-based payouts funded by org treasuries
+- **Organization Slots & Membership** — Registration, role management, and treasuries
+- **Memory Curation** — Encrypted commitments with lifecycle and epoch hooks
+- **Serve & Denial Attestations** — Delivery/denial evidence, deduplication, and per-epoch stats
+- **Bandwidth Throttling** — Per-org rate limiting for submission and serve traffic
+- **Reputation Tracking** — Contributor XP, serve stats, and cross-org profiles
+- **Emission Accounting** — Fixed-schedule pool math and contributor reward accrual
+- **Session Attestation Surface** — Session attestation schema and APIs (currently disabled)
+- **Identity Linking** — Passkey-to-wallet aliasing used for migration and reward claims
+
+### Status
+
+WeVibe Chain is in active alpha/testnet development. Core modules are wired and running, while selected economic and attestation paths remain under active rollout (see [ROADMAP.md](ROADMAP.md)).
 
 ## Architecture
 
@@ -43,12 +49,14 @@ WeVibe Chain couples the staking, governance, bank, epochs, and distribution fou
 
 | Module | Purpose |
 |--------|---------|
-| `x/org` | Organization registry, membership, and treasury management |
-| `x/memory` | Memory commitment lifecycle, relationships, and contests |
-| `x/serve` | Serve attestation ingestion and deduplication |
-| `x/bandwidth` | Per-org rate limiting for submissions and serves |
-| `x/reputation` | Contributor reputation tracking and XP |
-| `x/emissions` | Daily minting, epoch payouts, and work scores |
+| `x/org` | Slot-based organization registry, membership roles, treasury balances, and serving configuration |
+| `x/memory` | Encrypted memory commitments, lifecycle transitions, Earned Trust decay, and epoch Merkle roots |
+| `x/serve` | Serve and denial attestation ingestion, nullifier deduplication, matched-keyword indexing, and epoch stats |
+| `x/emissions` | Emission-pool schedule accounting, per-epoch attribution, and contributor reward ledgers |
+| `x/bandwidth` | Per-org, per-epoch submission/serve rate limits and overrides |
+| `x/reputation` | Contributor XP, serve metrics, and cross-org profile aggregates |
+| `x/attestation` | Session-attestation storage/query surface (message path currently disabled) |
+| `x/identity` | Passkey-to-wallet identity aliasing and migration records |
 
 ## Key Concepts
 
@@ -78,12 +86,12 @@ Serving agents batch proofs of content delivery. Attestations are:
 - Rate-limited per org per epoch
 - Tracked per contributor for reputation and payouts
 
-### Epoch Payouts
+### Epoch Processing
 
 At the end of each `wevibe_epoch`:
-1. Daily emission is minted to the pool
-2. Orgs with `serve_attestation_required=true` have their treasuries debited
-3. Contributors receive payouts based on serve counts and org-configured tiers
+1. `x/emissions` advances fixed-schedule emission accounting and contributor attribution.
+2. `x/memory` runs lifecycle maintenance (including decay/expiry handling) and stores epoch Merkle roots.
+3. Ongoing economic rollout details are tracked in [ROADMAP.md](ROADMAP.md).
 
 ## Getting Started
 
@@ -208,6 +216,16 @@ Dashboard provides an interactive interface for:
 - [Deployment](docs/DEPLOYMENT.md) — Production deployment guide
 - [Contributing](CONTRIBUTING.md) — Development guidelines
 
+## Roadmap
+
+For rollout status and planned milestones, see [ROADMAP.md](ROADMAP.md).
+
 ## License
 
 Apache 2.0 - see LICENSE file for details.
+
+## Links
+
+- Canonical docs: https://github.com/WeVibe-Network/wevibe-docs
+- WeVibe Network org: https://github.com/WeVibe-Network
+- X/Twitter: https://x.com/WeVibe_Network
