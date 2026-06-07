@@ -205,15 +205,16 @@ func TestCacheKVEpochDecayZeroSignalGuardSkipsIdle(t *testing.T) {
 }
 
 // seedApprovedForContributor submits + approves one memory for the given
-// contributor wallet at the current epoch (ApprovedAtEpoch is taken from the
-// keeper's current_epoch). Each call needs a unique 32-byte content hash.
-func seedApprovedForContributor(t *testing.T, k *Keeper, ctx context.Context, contentHash []byte, wallet string) {
+// contributor pubkey (and stored wallet metadata) at the current epoch
+// (ApprovedAtEpoch is taken from the keeper's current_epoch). Each call needs
+// a unique 32-byte content hash.
+func seedApprovedForContributor(t *testing.T, k *Keeper, ctx context.Context, contentHash []byte, contributorPubkey, wallet string) {
 	t.Helper()
 	commitment := newPendingCommitment(
 		"test-org",
 		contentHash,
 		[]string{"keyword1"},
-		"contributor-pubkey",
+		contributorPubkey,
 		1,
 		100,
 	)
@@ -228,7 +229,7 @@ func seedApprovedForContributor(t *testing.T, k *Keeper, ctx context.Context, co
 
 // TestCacheKVGetContributorsWithApprovalsInEpoch exercises the CO-041 Task E
 // network-wide contributor-by-epoch query over a cache-wrapped store
-// (R-CACHEKV-ITER). It asserts per-address counts for the target epoch,
+// (R-CACHEKV-ITER). It asserts per-pubkey counts for the target epoch,
 // exclusion of other epochs, and an empty (error-free) result for an epoch with
 // no approvals.
 func TestCacheKVGetContributorsWithApprovalsInEpoch(t *testing.T) {
@@ -239,25 +240,25 @@ func TestCacheKVGetContributorsWithApprovalsInEpoch(t *testing.T) {
 	if err := k.setCurrentEpoch(ctx, 5); err != nil {
 		t.Fatalf("setCurrentEpoch failed: %v", err)
 	}
-	seedApprovedForContributor(t, k, ctx, []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"), "wallet-A")
-	seedApprovedForContributor(t, k, ctx, []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"), "wallet-A")
-	seedApprovedForContributor(t, k, ctx, []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1"), "wallet-B")
+	seedApprovedForContributor(t, k, ctx, []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1"), "pubkey-A", "wallet-A")
+	seedApprovedForContributor(t, k, ctx, []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa2"), "pubkey-A", "wallet-B")
+	seedApprovedForContributor(t, k, ctx, []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb1"), "pubkey-B", "wallet-A")
 
 	// One approval committed during a different epoch (6) — must be excluded.
 	if err := k.setCurrentEpoch(ctx, 6); err != nil {
 		t.Fatalf("setCurrentEpoch failed: %v", err)
 	}
-	seedApprovedForContributor(t, k, ctx, []byte("ccccccccccccccccccccccccccccccc1"), "wallet-A")
+	seedApprovedForContributor(t, k, ctx, []byte("ccccccccccccccccccccccccccccccc1"), "pubkey-A", "wallet-C")
 
 	counts, err := k.GetContributorsWithApprovalsInEpoch(ctx, 5)
 	if err != nil {
 		t.Fatalf("GetContributorsWithApprovalsInEpoch(5) error: %v", err)
 	}
-	if counts["wallet-A"] != 2 {
-		t.Fatalf("wallet-A count: got %d want 2", counts["wallet-A"])
+	if counts["pubkey-A"] != 2 {
+		t.Fatalf("pubkey-A count: got %d want 2", counts["pubkey-A"])
 	}
-	if counts["wallet-B"] != 1 {
-		t.Fatalf("wallet-B count: got %d want 1", counts["wallet-B"])
+	if counts["pubkey-B"] != 1 {
+		t.Fatalf("pubkey-B count: got %d want 1", counts["pubkey-B"])
 	}
 	if len(counts) != 2 {
 		t.Fatalf("distinct contributors in epoch 5: got %d want 2", len(counts))
@@ -281,9 +282,9 @@ func TestCacheKVGetActiveMemoryCountByOrg(t *testing.T) {
 		t.Fatalf("setCurrentEpoch failed: %v", err)
 	}
 
-	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd1"), "wallet-A")
-	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd2"), "wallet-A")
-	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd3"), "wallet-A")
+	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd1"), "pubkey-A", "wallet-A")
+	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd2"), "pubkey-A", "wallet-A")
+	seedApprovedForContributor(t, k, ctx, []byte("ddddddddddddddddddddddddddddddd3"), "pubkey-A", "wallet-A")
 
 	archivedHash := []byte("ddddddddddddddddddddddddddddddd2")
 	deniedHash := []byte("ddddddddddddddddddddddddddddddd3")

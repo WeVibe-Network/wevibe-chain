@@ -363,7 +363,7 @@ func (k *Keeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash
 
 // GetContributorsWithApprovalsInEpoch returns, network-wide, the number of
 // committed (non-archived, non-denied) approved memories per contributor
-// address that were approved in the given epoch. It is consumed by the
+// pubkey that were approved in the given epoch. It is consumed by the
 // emissions keeper to determine the qualifying contributor set for per-epoch
 // contributor emissions.
 //
@@ -392,10 +392,10 @@ func (k *Keeper) GetContributorsWithApprovalsInEpoch(ctx context.Context, epoch 
 		if stored.State != types.MemoryState_MEMORY_STATE_COMMITTED {
 			continue
 		}
-		if stored.ContributorAddress == "" {
+		if stored.ContributorPubkey == "" {
 			continue
 		}
-		counts[stored.ContributorAddress]++
+		counts[stored.ContributorPubkey]++
 	}
 
 	return counts, nil

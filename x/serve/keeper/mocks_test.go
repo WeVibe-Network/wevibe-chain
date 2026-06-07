@@ -66,14 +66,14 @@ func newMockMemoryKeeper() *mockMemoryKeeper {
 func memKey(orgID, hexHash string) string { return orgID + "|" + hexHash }
 
 func (m *mockMemoryKeeper) approve(orgID string, hash []byte) {
-	m.approveWithContributor(orgID, hash, "mem-contributor")
+	m.approveWithContributor(orgID, hash, "mem-contributor-pubkey")
 }
 
-func (m *mockMemoryKeeper) approveWithContributor(orgID string, hash []byte, contributorAddr string) {
+func (m *mockMemoryKeeper) approveWithContributor(orgID string, hash []byte, contributorPubkey string) {
 	m.approved[memKey(orgID, hexEncode(hash))] = &memorytypes.MemoryCommitment{
-		OrgID:              orgID,
-		ContentHash:        hash,
-		ContributorAddress: contributorAddr,
+		OrgID:       orgID,
+		ContentHash: hash,
+		Contributor: contributorPubkey,
 	}
 }
 
@@ -128,18 +128,18 @@ func (m *mockBandwidthKeeper) ConsumeServeBandwidth(ctx context.Context, orgID s
 
 // mockReputationKeeper implements types.ReputationKeeper.
 type mockReputationKeeper struct {
-	serveCalls      int
-	serveErr        error
-	lastServeWallet string
+	serveCalls           int
+	serveErr             error
+	lastServeContributor string
 }
 
 func newMockReputationKeeper() *mockReputationKeeper {
 	return &mockReputationKeeper{}
 }
 
-func (m *mockReputationKeeper) RecordServe(ctx context.Context, contributorWallet []byte, orgID string, epoch uint64, isSelfServe bool) error {
+func (m *mockReputationKeeper) RecordServe(ctx context.Context, contributorPubkey []byte, orgID string, epoch uint64, isSelfServe bool) error {
 	m.serveCalls++
-	m.lastServeWallet = string(contributorWallet)
+	m.lastServeContributor = string(contributorPubkey)
 	return m.serveErr
 }
 

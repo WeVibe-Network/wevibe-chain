@@ -274,19 +274,19 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 			)
 		}
 
-		if mem, memErr := k.memoryKeeper.GetApprovedMemory(ctx, orgID, serve.MemoryContentHash); memErr != nil || mem == nil || mem.ContributorAddress == "" {
+		if mem, memErr := k.memoryKeeper.GetApprovedMemory(ctx, orgID, serve.MemoryContentHash); memErr != nil || mem == nil || mem.Contributor == "" {
 			// Attribution is derived solely from the authoritative committed
-			// memory record (CO-041 Task F). If the stored contributor address
+			// memory record (CO-041 Task F). If the stored contributor pubkey
 			// is unavailable, skip the reputation record — never fall back to
 			// the untrusted serve payload wallet (R-ONE-PATH).
-			k.logger.Info("serve attribution skipped: stored contributor address unavailable",
+			k.logger.Info("serve attribution skipped: stored contributor pubkey unavailable",
 				"org", orgID,
 				"hash", types.ContentHashToHex(serve.MemoryContentHash),
 				"error", memErr,
 			)
-		} else if err := k.reputationKeeper.RecordServe(ctx, []byte(mem.ContributorAddress), orgID, epoch, isSelfServe); err != nil {
+		} else if err := k.reputationKeeper.RecordServe(ctx, []byte(mem.Contributor), orgID, epoch, isSelfServe); err != nil {
 			k.logger.Info("failed to record serve reputation",
-				"contributor", mem.ContributorAddress,
+				"contributor", mem.Contributor,
 				"org", orgID,
 				"error", err,
 			)

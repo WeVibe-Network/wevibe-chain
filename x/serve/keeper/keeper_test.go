@@ -143,12 +143,12 @@ func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	require.Equal(t, uint64(1), stats.ModelBreakdown["qwen3:4b"])
 }
 
-// CO-041 Task F: serve attribution is derived from the authoritative committed
-// memory record, NOT the serve payload wallet.
+// Serve attribution is derived from the authoritative committed memory record,
+// NOT the untrusted serve payload wallet.
 func TestProcessServeBatch_AttributionFromStoredMemory(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x33)
-	env.mem.approveWithContributor("org-1", h, "mem-author-wallet")
+	env.mem.approveWithContributor("org-1", h, "mem-author-pubkey")
 
 	// Serve payload carries a DIFFERENT (untrusted) wallet ("wallet-1").
 	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
@@ -157,14 +157,14 @@ func TestProcessServeBatch_AttributionFromStoredMemory(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
 	require.Equal(t, 1, env.rep.serveCalls)
-	// Reputation is credited to the stored memory's contributor, not "wallet-1".
-	require.Equal(t, "mem-author-wallet", env.rep.lastServeWallet)
+	// Reputation is credited to the stored memory's contributor pubkey, not "wallet-1".
+	require.Equal(t, "mem-author-pubkey", env.rep.lastServeContributor)
 }
 
-// CO-041 Task F: when the stored memory has no contributor address, the serve
+// When the stored memory has no contributor pubkey, the serve
 // is still accepted but the reputation record is skipped (no fallback to the
 // payload wallet; the serve path does not crash).
-func TestProcessServeBatch_SkipsAttributionWhenNoStoredAddress(t *testing.T) {
+func TestProcessServeBatch_SkipsAttributionWhenNoStoredContributor(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x44)
 	env.mem.approveWithContributor("org-1", h, "")
