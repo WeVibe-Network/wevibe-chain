@@ -22,6 +22,7 @@ import (
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"github.com/wevibe-network/wevibe-chain/app"
+	emissionstypes "github.com/wevibe-network/wevibe-chain/x/emissions/types"
 )
 
 func TestNewWeVibeApp(t *testing.T) {
@@ -94,6 +95,7 @@ func TestWeVibeAppInitChainAndExport(t *testing.T) {
 	notBondedPoolAccount := authtypes.NewEmptyModuleAccount(stakingtypes.NotBondedPoolName, authtypes.Burner, authtypes.Staking)
 	feeCollectorAccount := authtypes.NewEmptyModuleAccount(authtypes.FeeCollectorName)
 	mintModuleAccount := authtypes.NewEmptyModuleAccount(minttypes.ModuleName, authtypes.Minter)
+	emissionsModuleAccount := authtypes.NewEmptyModuleAccount(emissionstypes.EmissionsModuleName, authtypes.Minter)
 	distributionModuleAccount := authtypes.NewEmptyModuleAccount(distrtypes.ModuleName)
 
 	bankGenesis.Balances = []banktypes.Balance{
@@ -107,6 +109,10 @@ func TestWeVibeAppInitChainAndExport(t *testing.T) {
 		},
 		{
 			Address: mintModuleAccount.GetAddress().String(),
+			Coins:   sdk.NewCoins(),
+		},
+		{
+			Address: emissionsModuleAccount.GetAddress().String(),
 			Coins:   sdk.NewCoins(),
 		},
 		{
@@ -131,6 +137,7 @@ func TestWeVibeAppInitChainAndExport(t *testing.T) {
 		notBondedPoolAccount,
 		feeCollectorAccount,
 		mintModuleAccount,
+		emissionsModuleAccount,
 		distributionModuleAccount,
 	})
 	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccounts)
