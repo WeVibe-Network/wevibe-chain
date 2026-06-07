@@ -186,11 +186,11 @@ func (m *msgServer) SetOrgConfig(ctx context.Context, msg *types.MsgSetOrgConfig
 		return nil, types.ErrOrgNotFound
 	}
 
-	isLeader, err := m.keeper.IsLeader(ctx, msg.OrgId, msg.Signer)
+	org, err := m.keeper.GetOrg(ctx, msg.OrgId)
 	if err != nil {
 		return nil, err
 	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || msg.Signer != org.LeaderWalletAddress {
 		return nil, types.ErrNotLeader
 	}
 	if msg.MinContributionsPerEpoch > 100 {
@@ -228,11 +228,11 @@ func (m *msgServer) GrantTrialAllowance(ctx context.Context, msg *types.MsgGrant
 		return nil, types.ErrOrgNotFound
 	}
 
-	isLeader, err := m.keeper.IsLeader(ctx, msg.OrgId, msg.Signer)
+	org, err := m.keeper.GetOrg(ctx, msg.OrgId)
 	if err != nil {
 		return nil, err
 	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || msg.Signer != org.LeaderWalletAddress {
 		return nil, types.ErrNotLeader
 	}
 

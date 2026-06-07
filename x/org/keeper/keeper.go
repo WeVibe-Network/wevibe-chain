@@ -542,11 +542,11 @@ func (k *Keeper) SetServingInfo(ctx context.Context, orgID string, endpoints []s
 }
 
 func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, signer string) error {
-	isLeader, err := k.IsLeader(ctx, orgID, signer)
+	org, err := k.GetOrg(ctx, orgID)
 	if err != nil {
 		return err
 	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
 		return types.ErrNotLeader
 	}
 
@@ -627,11 +627,7 @@ func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signe
 		return err
 	}
 
-	isLeader, err := k.IsLeader(ctx, orgID, signer)
-	if err != nil {
-		return err
-	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
 		return types.ErrNotLeader
 	}
 
@@ -721,11 +717,7 @@ func (k *Keeper) CloseOrg(ctx context.Context, orgID, signer string) error {
 		return err
 	}
 
-	isLeader, err := k.IsLeader(ctx, orgID, signer)
-	if err != nil {
-		return err
-	}
-	if !isLeader {
+	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
 		return types.ErrNotLeader
 	}
 
