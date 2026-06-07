@@ -8,7 +8,9 @@ import (
 
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
+	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/emissions/types"
@@ -22,6 +24,8 @@ type Keeper struct {
 	memoryKeeper     types.MemoryKeeper
 	orgKeeper        types.OrgKeeper
 	reputationKeeper types.ReputationKeeper
+	bankKeeper       types.BankKeeper
+	identityKeeper   types.IdentityKeeper
 }
 
 func NewKeeper(
@@ -43,6 +47,10 @@ func NewKeeper(
 		reputationKeeper: reputationKeeper,
 	}
 }
+
+func (k *Keeper) SetBankKeeper(bk types.BankKeeper) { k.bankKeeper = bk }
+
+func (k *Keeper) SetIdentityKeeper(ik types.IdentityKeeper) { k.identityKeeper = ik }
 
 func (k *Keeper) getStore(ctx context.Context) store.KVStore {
 	return k.storeService.OpenKVStore(ctx)
@@ -249,6 +257,16 @@ func (k *Keeper) MintDailyEmission(ctx context.Context, epoch uint64) (*types.Da
 		pool.ContributorRolloverUvibe = remainder // carry integer remainder forward to avoid token loss
 	}
 
+	if distributedToContributors > 0 {
+		if err := k.bankKeeper.MintCoins(
+			ctx,
+			types.EmissionsModuleName,
+			sdk.NewCoins(sdk.NewCoin("uvibe", math.NewIntFromUint64(distributedToContributors))), // uvibe is chain bond denom
+		); err != nil {
+			return nil, err
+		}
+	}
+
 	totalEmitted := validatorEmission + distributedToContributors
 
 	emission := types.NewDailyEmission(epoch, totalEmitted, validatorEmission)
@@ -302,6 +320,11 @@ func (k *Keeper) AddContributorReward(ctx context.Context, addr string, amount u
 	}
 	current += amount
 	return store.Set(contribRewardKey(addr), []byte(strconv.FormatUint(current, 10)))
+}
+
+func (k *Keeper) SetContributorReward(ctx context.Context, addr string, amount uint64) error {
+	store := k.getStore(ctx)
+	return store.Set(contribRewardKey(addr), []byte(strconv.FormatUint(amount, 10)))
 }
 
 func (k *Keeper) GetContributorReward(ctx context.Context, addr string) (uint64, error) {

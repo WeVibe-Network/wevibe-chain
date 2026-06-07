@@ -3,6 +3,7 @@ package types
 import (
 	"context"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	orgTypes "github.com/wevibe-network/wevibe-chain/x/org/types"
 	reputationtypes "github.com/wevibe-network/wevibe-chain/x/reputation/types"
 	serveTypes "github.com/wevibe-network/wevibe-chain/x/serve/types"
@@ -25,4 +26,13 @@ type ReputationKeeper interface {
 type OrgKeeper interface {
 	GetAllOrgs(ctx context.Context) ([]*orgTypes.Org, error)
 	GetOrgConfig(ctx context.Context, orgID string) (*orgTypes.OrgConfig, error)
+}
+
+type BankKeeper interface {
+	MintCoins(ctx context.Context, moduleName string, amt sdk.Coins) error
+	SendCoinsFromModuleToAccount(ctx context.Context, senderModule string, recipientAddr sdk.AccAddress, amt sdk.Coins) error
+}
+
+type IdentityKeeper interface {
+	ResolveIdentity(ctx context.Context, passkeyPubkey string) (walletAddress string, isMigrated bool, found bool, err error)
 }

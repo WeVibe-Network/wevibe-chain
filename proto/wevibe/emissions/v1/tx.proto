@@ -10,6 +10,7 @@ service Msg {
   option (cosmos.msg.v1.service) = true;
   rpc MintDailyEmission(MsgMintDailyEmission) returns (MsgMintDailyEmissionResponse);
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
+  rpc ClaimContributorReward(MsgClaimContributorReward) returns (MsgClaimContributorRewardResponse);
 }
 
 message MsgMintDailyEmission {
@@ -31,3 +32,13 @@ message MsgUpdateParams {
 }
 
 message MsgUpdateParamsResponse {}
+
+message MsgClaimContributorReward {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;         // wallet bech32 — the cosmos tx signer; must equal the migrated wallet for passkey_pubkey
+  string passkey_pubkey = 2; // the ed25519 identity whose accrued reward is being claimed
+}
+
+message MsgClaimContributorRewardResponse {
+  uint64 amount_claimed = 1;
+}

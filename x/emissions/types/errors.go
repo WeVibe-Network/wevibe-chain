@@ -15,4 +15,8 @@ var (
 	ErrInvalidBootstrapCredit = errors.New("invalid bootstrap credit")
 	ErrNoBootstrapPool        = errors.New("no bootstrap pool found")
 	ErrUnauthorized           = errors.New("unauthorized")
+	ErrNotMigrated            = errors.New("identity not migrated")
+	ErrUnauthorizedClaim      = errors.New("unauthorized claim")
+	ErrNothingToClaim         = errors.New("nothing to claim")
+	ErrInvalidWalletAddress   = errors.New("invalid wallet address")
 )

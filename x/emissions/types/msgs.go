@@ -18,3 +18,13 @@ func (m *MsgUpdateParams) ValidateBasic() error {
 	}
 	return m.Params.Validate()
 }
+
+func (m *MsgClaimContributorReward) ValidateBasic() error {
+	if m.Signer == "" {
+		return fmt.Errorf("signer cannot be empty")
+	}
+	if m.PasskeyPubkey == "" {
+		return fmt.Errorf("passkey_pubkey cannot be empty")
+	}
+	return nil
+}

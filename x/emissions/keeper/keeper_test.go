@@ -25,11 +25,13 @@ const contributorPool32yr = uint64(320_000_000_000_000)
 func newTestKeeper(t *testing.T) (*keeper.Keeper, context.Context) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
+	bankKeeper := newMockBankKeeper()
 	memoryKeeper := &mockMemoryKeeper{
 		approvedByContributor: make(map[string]map[string]uint64),
 		contributorsByEpoch:   make(map[uint64]map[string]uint64),
 	}
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, memoryKeeper, nil, newMockReputationKeeper())
+	k.SetBankKeeper(bankKeeper)
 	ctx := context.Background()
 	return k, ctx
 }
@@ -125,6 +127,7 @@ func TestMintDailyEmission_InvalidEpoch(t *testing.T) {
 func newScheduleKeeper(t *testing.T, contributorsByEpoch map[uint64]map[string]uint64) (*keeper.Keeper, context.Context, *mockMemoryKeeper) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
+	bankKeeper := newMockBankKeeper()
 	if contributorsByEpoch == nil {
 		contributorsByEpoch = make(map[uint64]map[string]uint64)
 	}
@@ -133,6 +136,7 @@ func newScheduleKeeper(t *testing.T, contributorsByEpoch map[uint64]map[string]u
 		contributorsByEpoch:   contributorsByEpoch,
 	}
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, memoryKeeper, nil, newMockReputationKeeper())
+	k.SetBankKeeper(bankKeeper)
 	ctx := context.Background()
 	if err := k.SetParams(ctx, types.DefaultParams()); err != nil {
 		t.Fatalf("SetParams failed: %v", err)
@@ -284,6 +288,61 @@ func TestMintDailyEmission_EvenSplitWithRemainder(t *testing.T) {
 	pool, _ := k.GetEmissionPool(ctx)
 	if pool.ContributorRolloverUvibe != expectedRemainder {
 		t.Errorf("expected rollover remainder %d, got %d", expectedRemainder, pool.ContributorRolloverUvibe)
+	}
+}
+
+func TestMintDailyEmission_MintsDistributedContributorOnly(t *testing.T) {
+	k, ctx, _ := newScheduleKeeper(t, map[uint64]map[string]uint64{
+		1: {
+			"a": 1,
+			"b": 1,
+			"c": 1,
+		},
+	})
+
+	bankKeeper := newMockBankKeeper()
+	k.SetBankKeeper(bankKeeper)
+
+	p := types.DefaultParams()
+	p.ScheduleDurationDays = 10
+	p.ContributorAnnualCapUvibe = 1_000_000_000_000 // keep cap above epoch budget for this test case
+	if err := k.SetParams(ctx, p); err != nil {
+		t.Fatalf("SetParams failed: %v", err)
+	}
+
+	// epoch budget = 100/10 = 10, split across 3 contributors => 3 each, 1 rollover
+	// validator emission = 1000/10 = 100
+	seedSchedulePool(t, k, ctx, 1000, 100)
+
+	emission, err := k.MintDailyEmission(ctx, 1)
+	if err != nil {
+		t.Fatalf("MintDailyEmission failed: %v", err)
+	}
+
+	if len(bankKeeper.mintCalls) != 1 {
+		t.Fatalf("expected 1 MintCoins call, got %d", len(bankKeeper.mintCalls))
+	}
+
+	mintCall := bankKeeper.mintCalls[0]
+	if mintCall.moduleName != types.EmissionsModuleName {
+		t.Errorf("expected module %q, got %q", types.EmissionsModuleName, mintCall.moduleName)
+	}
+
+	minted := mintCall.amt.AmountOf("uvibe").Uint64()
+	if minted != 9 {
+		t.Errorf("expected minted contributor amount 9 (excludes validator/remainder), got %d", minted)
+	}
+
+	if emission.ValidatorShare != 100 {
+		t.Errorf("expected validator emission 100, got %d", emission.ValidatorShare)
+	}
+	if emission.TotalEmitted != 109 {
+		t.Errorf("expected total emitted 109, got %d", emission.TotalEmitted)
+	}
+
+	pool, _ := k.GetEmissionPool(ctx)
+	if pool.ContributorRolloverUvibe != 1 {
+		t.Errorf("expected rollover 1, got %d", pool.ContributorRolloverUvibe)
 	}
 }
 
@@ -510,6 +569,7 @@ func TestInitGenesisAndExportGenesis(t *testing.T) {
 	storeService2, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger2 := testkeeper.NewTestLogger()
 	k2 := keeper.NewKeeper(storeService2, logger2, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k2.SetBankKeeper(newMockBankKeeper())
 	ctx2 := context.Background()
 
 	err = k2.InitGenesis(ctx2, state)
@@ -538,6 +598,7 @@ func TestInitGenesisExportGenesis_RoundTrips32YearPool(t *testing.T) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k.SetBankKeeper(newMockBankKeeper())
 	ctx := context.Background()
 
 	state := types.DefaultGenesis()
@@ -603,6 +664,7 @@ func TestSDKTransactionIsolation(t *testing.T) {
 	storeService1, cms1 := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger1 := testkeeper.NewTestLogger()
 	k1 := keeper.NewKeeper(storeService1, logger1, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k1.SetBankKeeper(newMockBankKeeper())
 	ctx1 := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)
@@ -624,6 +686,7 @@ func TestSDKTransactionIsolation(t *testing.T) {
 	storeService2 := testkeeper.NewTestStoreServiceWithCMS(t, emissionsStoreKey, cms1)
 	logger2 := testkeeper.NewTestLogger()
 	k2 := keeper.NewKeeper(storeService2, logger2, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k2.SetBankKeeper(newMockBankKeeper())
 	ctx2 := context.Background()
 
 	retrieved2, err := k2.GetEmissionPool(ctx2)
@@ -639,6 +702,7 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 	storeService1, cms1 := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger1 := testkeeper.NewTestLogger()
 	k1 := keeper.NewKeeper(storeService1, logger1, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k1.SetBankKeeper(newMockBankKeeper())
 	ctx1 := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)
@@ -652,6 +716,7 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 	storeService2 := testkeeper.NewTestStoreServiceWithCMS(t, emissionsStoreKey, cms1)
 	logger2 := testkeeper.NewTestLogger()
 	k2 := keeper.NewKeeper(storeService2, logger2, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", nil, nil, nil, newMockReputationKeeper())
+	k2.SetBankKeeper(newMockBankKeeper())
 	ctx2 := context.Background()
 
 	retrieved, err := k2.GetEmissionPool(ctx2)
@@ -733,6 +798,7 @@ func TestDistributePayout_NoOrgs(t *testing.T) {
 	orgKeeper := newMockOrgKeeper()
 	reputationKeeper := newMockReputationKeeper()
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, reputationKeeper)
+	k.SetBankKeeper(newMockBankKeeper())
 	ctx := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)
@@ -762,6 +828,7 @@ func TestDistributePayout_OneContributor(t *testing.T) {
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
+	k.SetBankKeeper(newMockBankKeeper())
 	ctx := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)
@@ -805,6 +872,7 @@ func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 	orgKeeper.treasuryBal["org1"] = math.NewInt(150)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
+	k.SetBankKeeper(newMockBankKeeper())
 	ctx := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)
@@ -844,6 +912,7 @@ func TestDistributePayout_ServeAttestationNotRequired(t *testing.T) {
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
+	k.SetBankKeeper(newMockBankKeeper())
 	ctx := context.Background()
 
 	pool := types.NewEmissionPool(1000000, 10000, 80, 20, 0)

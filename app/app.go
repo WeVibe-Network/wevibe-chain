@@ -116,13 +116,14 @@ var (
 	DefaultNodeHome string
 
 	maccPerms = map[string][]string{
-		authTypes.FeeCollectorName:     nil,
-		distrTypes.ModuleName:          nil,
-		mintTypes.ModuleName:           {authTypes.Minter},
-		stakingTypes.BondedPoolName:    {authTypes.Burner, authTypes.Staking},
-		stakingTypes.NotBondedPoolName: {authTypes.Burner, authTypes.Staking},
-		govtypes.ModuleName:            {authTypes.Burner},
-		"org":                          {authTypes.Burner},
+		authTypes.FeeCollectorName:         nil,
+		distrTypes.ModuleName:              nil,
+		mintTypes.ModuleName:               {authTypes.Minter},
+		emissionsTypes.EmissionsModuleName: {authTypes.Minter},
+		stakingTypes.BondedPoolName:        {authTypes.Burner, authTypes.Staking},
+		stakingTypes.NotBondedPoolName:     {authTypes.Burner, authTypes.Staking},
+		govtypes.ModuleName:                {authTypes.Burner},
+		"org":                              {authTypes.Burner},
 	}
 )
 
@@ -412,6 +413,8 @@ func NewWeVibeApp(
 	app.OrgKeeper.SetBandwidthKeeper(app.BandwidthKeeper)
 	app.ReputationKeeper.SetServeKeeper(app.ServeKeeper)
 	app.ReputationKeeper.SetMemoryKeeper(app.MemoryKeeper)
+	app.EmissionsKeeper.SetBankKeeper(app.BankKeeper)
+	app.EmissionsKeeper.SetIdentityKeeper(app.IdentityKeeper)
 
 	app.EpochsKeeper.SetHooks(
 		epochstypes.NewMultiEpochHooks(

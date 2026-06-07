@@ -228,43 +228,148 @@ func (m *MsgUpdateParamsResponse) XXX_DiscardUnknown() {
 
 var xxx_messageInfo_MsgUpdateParamsResponse proto.InternalMessageInfo
 
+type MsgClaimContributorReward struct {
+	Signer        string `protobuf:"bytes,1,opt,name=signer,proto3" json:"signer,omitempty"`
+	PasskeyPubkey string `protobuf:"bytes,2,opt,name=passkey_pubkey,json=passkeyPubkey,proto3" json:"passkey_pubkey,omitempty"`
+}
+
+func (m *MsgClaimContributorReward) Reset()         { *m = MsgClaimContributorReward{} }
+func (m *MsgClaimContributorReward) String() string { return proto.CompactTextString(m) }
+func (*MsgClaimContributorReward) ProtoMessage()    {}
+func (*MsgClaimContributorReward) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cfd6b74432a46c3b, []int{4}
+}
+func (m *MsgClaimContributorReward) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgClaimContributorReward) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgClaimContributorReward.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgClaimContributorReward) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgClaimContributorReward.Merge(m, src)
+}
+func (m *MsgClaimContributorReward) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgClaimContributorReward) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgClaimContributorReward.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgClaimContributorReward proto.InternalMessageInfo
+
+func (m *MsgClaimContributorReward) GetSigner() string {
+	if m != nil {
+		return m.Signer
+	}
+	return ""
+}
+
+func (m *MsgClaimContributorReward) GetPasskeyPubkey() string {
+	if m != nil {
+		return m.PasskeyPubkey
+	}
+	return ""
+}
+
+type MsgClaimContributorRewardResponse struct {
+	AmountClaimed uint64 `protobuf:"varint,1,opt,name=amount_claimed,json=amountClaimed,proto3" json:"amount_claimed,omitempty"`
+}
+
+func (m *MsgClaimContributorRewardResponse) Reset()         { *m = MsgClaimContributorRewardResponse{} }
+func (m *MsgClaimContributorRewardResponse) String() string { return proto.CompactTextString(m) }
+func (*MsgClaimContributorRewardResponse) ProtoMessage()    {}
+func (*MsgClaimContributorRewardResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_cfd6b74432a46c3b, []int{5}
+}
+func (m *MsgClaimContributorRewardResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *MsgClaimContributorRewardResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_MsgClaimContributorRewardResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *MsgClaimContributorRewardResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_MsgClaimContributorRewardResponse.Merge(m, src)
+}
+func (m *MsgClaimContributorRewardResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *MsgClaimContributorRewardResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_MsgClaimContributorRewardResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_MsgClaimContributorRewardResponse proto.InternalMessageInfo
+
+func (m *MsgClaimContributorRewardResponse) GetAmountClaimed() uint64 {
+	if m != nil {
+		return m.AmountClaimed
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*MsgMintDailyEmission)(nil), "wevibe.emissions.v1.MsgMintDailyEmission")
 	proto.RegisterType((*MsgMintDailyEmissionResponse)(nil), "wevibe.emissions.v1.MsgMintDailyEmissionResponse")
 	proto.RegisterType((*MsgUpdateParams)(nil), "wevibe.emissions.v1.MsgUpdateParams")
 	proto.RegisterType((*MsgUpdateParamsResponse)(nil), "wevibe.emissions.v1.MsgUpdateParamsResponse")
+	proto.RegisterType((*MsgClaimContributorReward)(nil), "wevibe.emissions.v1.MsgClaimContributorReward")
+	proto.RegisterType((*MsgClaimContributorRewardResponse)(nil), "wevibe.emissions.v1.MsgClaimContributorRewardResponse")
 }
 
 func init() { proto.RegisterFile("wevibe/emissions/v1/tx.proto", fileDescriptor_cfd6b74432a46c3b) }
 
 var fileDescriptor_cfd6b74432a46c3b = []byte{
-	// 414 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x92, 0x4f, 0x8b, 0xda, 0x40,
-	0x18, 0xc6, 0x9d, 0xfa, 0x07, 0x9c, 0xfa, 0x87, 0xa6, 0x82, 0x36, 0x95, 0x20, 0xb6, 0xa5, 0x56,
-	0xda, 0x04, 0xf5, 0x52, 0x7a, 0x2c, 0xf5, 0x18, 0x28, 0x29, 0xbd, 0x78, 0x91, 0x49, 0x1c, 0x92,
-	0xa1, 0x26, 0x93, 0x66, 0xc6, 0xa8, 0xb7, 0xd2, 0x4f, 0xb0, 0xb0, 0x5f, 0xc4, 0x8f, 0xb1, 0x47,
-	0x8f, 0x7b, 0x5c, 0xcc, 0xc1, 0xaf, 0xb1, 0x98, 0x31, 0xea, 0xae, 0x59, 0xd6, 0xe3, 0x3c, 0xef,
-	0x8f, 0xe7, 0x61, 0x9e, 0xf7, 0x85, 0xcd, 0x39, 0x0e, 0x89, 0x89, 0x35, 0xec, 0x12, 0xc6, 0x08,
-	0xf5, 0x98, 0x16, 0xf6, 0x34, 0xbe, 0x50, 0xfd, 0x80, 0x72, 0x2a, 0xbd, 0x16, 0x53, 0xf5, 0x30,
-	0x55, 0xc3, 0x9e, 0x5c, 0xb7, 0x28, 0x73, 0x29, 0xd3, 0x5c, 0x66, 0xef, 0x60, 0x97, 0xd9, 0x82,
-	0x96, 0x5b, 0x69, 0x5e, 0x3e, 0x0a, 0x90, 0xcb, 0x04, 0xd1, 0x1e, 0xc1, 0x9a, 0xce, 0x6c, 0x9d,
-	0x78, 0xfc, 0x07, 0x22, 0xd3, 0xe5, 0x70, 0x0f, 0x4a, 0x4d, 0x58, 0x44, 0x33, 0xee, 0xd0, 0x80,
-	0xf0, 0x65, 0x03, 0xb4, 0x40, 0xa7, 0x68, 0x1c, 0x05, 0xa9, 0x06, 0xf3, 0xd8, 0xa7, 0x96, 0xd3,
-	0x78, 0xd1, 0x02, 0x9d, 0x9c, 0x21, 0x1e, 0xdf, 0x2a, 0xff, 0xb7, 0xab, 0xee, 0x91, 0x6a, 0x5f,
-	0x03, 0xd8, 0x4c, 0x33, 0x37, 0x30, 0xf3, 0xa9, 0xc7, 0xb0, 0xf4, 0x0e, 0x96, 0x39, 0xe5, 0x68,
-	0x3a, 0xc6, 0x2e, 0xe1, 0x1c, 0x4f, 0xe2, 0xa0, 0x9c, 0x51, 0x8a, 0xc5, 0xa1, 0xd0, 0xa4, 0x0f,
-	0xb0, 0x42, 0x7d, 0x1c, 0x20, 0x4e, 0x83, 0x31, 0x73, 0x50, 0x80, 0xf7, 0xa1, 0xe5, 0x44, 0xfd,
-	0xb5, 0x13, 0xa5, 0x8f, 0xb0, 0x1a, 0xa2, 0x29, 0x99, 0x9c, 0x70, 0xd9, 0x98, 0xab, 0x1c, 0xe4,
-	0x18, 0x6c, 0x73, 0x58, 0xd5, 0x99, 0xfd, 0xdb, 0x9f, 0x20, 0x8e, 0x7f, 0xc6, 0x55, 0x3c, 0xf3,
-	0xd9, 0x01, 0x2c, 0x88, 0xca, 0xe2, 0xe0, 0x97, 0xfd, 0xb7, 0x6a, 0xca, 0x0e, 0x54, 0x61, 0x65,
-	0xec, 0xd1, 0xb3, 0x2e, 0xde, 0xc0, 0xfa, 0xa3, 0xd4, 0xa4, 0x85, 0x7e, 0x04, 0x60, 0x56, 0x67,
-	0xb6, 0xf4, 0x17, 0xbe, 0x3a, 0xdf, 0xc3, 0xa7, 0xd4, 0xb0, 0xb4, 0x56, 0xe5, 0xde, 0xc5, 0xe8,
-	0x61, 0x01, 0x26, 0x2c, 0x3d, 0x28, 0xe2, 0xfd, 0x53, 0x16, 0xa7, 0x94, 0xfc, 0xf9, 0x12, 0x2a,
-	0xc9, 0x90, 0xf3, 0xff, 0xb6, 0xab, 0x2e, 0xf8, 0x6e, 0xdc, 0x6c, 0x14, 0xb0, 0xde, 0x28, 0xe0,
-	0x6e, 0xa3, 0x80, 0xab, 0x48, 0xc9, 0xac, 0x23, 0x25, 0x73, 0x1b, 0x29, 0x99, 0xd1, 0x57, 0x9b,
-	0x70, 0x67, 0x66, 0xaa, 0x16, 0x75, 0x35, 0x61, 0xfc, 0xc5, 0xc3, 0x7c, 0x4e, 0x83, 0x3f, 0xc9,
-	0xd3, 0x72, 0x10, 0xf1, 0xb4, 0xc5, 0xc9, 0x19, 0xf3, 0xa5, 0x8f, 0x99, 0x59, 0x88, 0x6f, 0x78,
-	0x70, 0x1f, 0x00, 0x00, 0xff, 0xff, 0x39, 0xb5, 0xb5, 0x11, 0x33, 0x03, 0x00, 0x00,
+	// 523 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x93, 0xcd, 0x6e, 0xd3, 0x40,
+	0x14, 0x85, 0xe3, 0xfe, 0x44, 0xca, 0xb4, 0x49, 0x85, 0xa9, 0xfa, 0x63, 0x22, 0x2b, 0x18, 0x2a,
+	0x4a, 0x05, 0xb6, 0xd2, 0x4a, 0x08, 0x75, 0x49, 0xe8, 0x06, 0xc9, 0x52, 0x65, 0xc4, 0xa6, 0x9b,
+	0x68, 0xec, 0x8c, 0xec, 0x51, 0x62, 0x8f, 0x99, 0x3b, 0x4e, 0xea, 0x5d, 0xc5, 0x13, 0x20, 0xf1,
+	0x22, 0x7d, 0x0c, 0x96, 0x5d, 0xb2, 0x44, 0x89, 0x44, 0x5f, 0x03, 0xd9, 0xe3, 0xb8, 0x81, 0x3a,
+	0xa2, 0x2c, 0xef, 0x99, 0xcf, 0xf7, 0x5c, 0x9f, 0x3b, 0x83, 0xda, 0x13, 0x32, 0xa6, 0x2e, 0xb1,
+	0x48, 0x48, 0x01, 0x28, 0x8b, 0xc0, 0x1a, 0x77, 0x2d, 0x71, 0x69, 0xc6, 0x9c, 0x09, 0xa6, 0x3e,
+	0x96, 0xa7, 0x66, 0x79, 0x6a, 0x8e, 0xbb, 0xda, 0xae, 0xc7, 0x20, 0x64, 0x60, 0x85, 0xe0, 0x67,
+	0x70, 0x08, 0xbe, 0xa4, 0xb5, 0x4e, 0x55, 0xaf, 0x18, 0x73, 0x1c, 0x82, 0x24, 0x8c, 0x0b, 0xb4,
+	0x6d, 0x83, 0x6f, 0xd3, 0x48, 0xbc, 0xc7, 0x74, 0x94, 0x9e, 0x15, 0xa0, 0xda, 0x46, 0x0d, 0x9c,
+	0x88, 0x80, 0x71, 0x2a, 0xd2, 0x3d, 0xa5, 0xa3, 0x1c, 0x36, 0x9c, 0x3b, 0x41, 0xdd, 0x46, 0xeb,
+	0x24, 0x66, 0x5e, 0xb0, 0xb7, 0xd2, 0x51, 0x0e, 0xd7, 0x1c, 0x59, 0x9c, 0xb6, 0xbe, 0xdc, 0x5e,
+	0x1f, 0xdd, 0x51, 0xc6, 0x37, 0x05, 0xb5, 0xab, 0x9a, 0x3b, 0x04, 0x62, 0x16, 0x01, 0x51, 0x9f,
+	0xa1, 0xa6, 0x60, 0x02, 0x8f, 0xfa, 0x24, 0xa4, 0x42, 0x90, 0x41, 0x6e, 0xb4, 0xe6, 0x6c, 0xe6,
+	0xe2, 0x99, 0xd4, 0xd4, 0x03, 0xd4, 0x62, 0x31, 0xe1, 0x58, 0x30, 0xde, 0x87, 0x00, 0x73, 0x52,
+	0x98, 0x36, 0xe7, 0xea, 0xc7, 0x4c, 0x54, 0x5f, 0xa0, 0xad, 0x31, 0x1e, 0xd1, 0xc1, 0x02, 0xb7,
+	0x9a, 0x73, 0xad, 0x52, 0xce, 0x41, 0x43, 0xa0, 0x2d, 0x1b, 0xfc, 0x4f, 0xf1, 0x00, 0x0b, 0x72,
+	0x9e, 0x47, 0xf1, 0x8f, 0x9f, 0x3d, 0x41, 0x75, 0x19, 0x59, 0x6e, 0xbc, 0x71, 0xfc, 0xc4, 0xac,
+	0xd8, 0x81, 0x29, 0x5b, 0x39, 0x05, 0x7a, 0x2f, 0x8b, 0x7d, 0xb4, 0xfb, 0x97, 0xeb, 0x3c, 0x05,
+	0xc3, 0x47, 0xfb, 0x36, 0xf8, 0xbd, 0x11, 0xa6, 0x61, 0x8f, 0x45, 0x82, 0x53, 0x37, 0x11, 0x8c,
+	0x3b, 0x64, 0x82, 0xf9, 0x40, 0xdd, 0x41, 0x75, 0xa0, 0x7e, 0x44, 0x78, 0x31, 0x57, 0x51, 0x65,
+	0xa9, 0xc4, 0x18, 0x60, 0x48, 0xd2, 0x7e, 0x9c, 0xb8, 0x43, 0x92, 0xe6, 0xc3, 0x35, 0x9c, 0x66,
+	0xa1, 0x9e, 0xe7, 0xe2, 0xe9, 0x46, 0x36, 0x46, 0xf1, 0x8d, 0xf1, 0x01, 0x3d, 0x5d, 0x6a, 0x54,
+	0xee, 0xe4, 0x00, 0xb5, 0x70, 0xc8, 0x92, 0x48, 0xf4, 0xbd, 0x0c, 0x2c, 0x97, 0xd2, 0x94, 0x6a,
+	0x4f, 0x8a, 0xc7, 0xbf, 0x56, 0xd0, 0xaa, 0x0d, 0xbe, 0xfa, 0x19, 0x3d, 0xba, 0x7f, 0x79, 0x5e,
+	0x56, 0x26, 0x54, 0x75, 0x15, 0xb4, 0xee, 0x83, 0xd1, 0x72, 0x42, 0x17, 0x6d, 0xfe, 0xb1, 0xbd,
+	0xe7, 0xcb, 0x5a, 0x2c, 0x52, 0xda, 0xab, 0x87, 0x50, 0xa5, 0xc7, 0x95, 0x82, 0x76, 0x96, 0x6c,
+	0xc4, 0x5c, 0xd6, 0xa8, 0x9a, 0xd7, 0xde, 0xfc, 0x1f, 0x3f, 0x1f, 0x41, 0x5b, 0xbf, 0xba, 0xbd,
+	0x3e, 0x52, 0xde, 0x39, 0xdf, 0xa7, 0xba, 0x72, 0x33, 0xd5, 0x95, 0x9f, 0x53, 0x5d, 0xf9, 0x3a,
+	0xd3, 0x6b, 0x37, 0x33, 0xbd, 0xf6, 0x63, 0xa6, 0xd7, 0x2e, 0xde, 0xfa, 0x54, 0x04, 0x89, 0x6b,
+	0x7a, 0x2c, 0xb4, 0xa4, 0xc5, 0xeb, 0x88, 0x88, 0x09, 0xe3, 0xc3, 0x79, 0xe9, 0x05, 0x98, 0x46,
+	0xd6, 0xe5, 0xc2, 0xf3, 0x17, 0x69, 0x4c, 0xc0, 0xad, 0xe7, 0x6f, 0xff, 0xe4, 0x77, 0x00, 0x00,
+	0x00, 0xff, 0xff, 0x5d, 0x5b, 0xd4, 0x2a, 0x6b, 0x04, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -281,6 +386,7 @@ const _ = grpc.SupportPackageIsVersion4
 type MsgClient interface {
 	MintDailyEmission(ctx context.Context, in *MsgMintDailyEmission, opts ...grpc.CallOption) (*MsgMintDailyEmissionResponse, error)
 	UpdateParams(ctx context.Context, in *MsgUpdateParams, opts ...grpc.CallOption) (*MsgUpdateParamsResponse, error)
+	ClaimContributorReward(ctx context.Context, in *MsgClaimContributorReward, opts ...grpc.CallOption) (*MsgClaimContributorRewardResponse, error)
 }
 
 type msgClient struct {
@@ -309,10 +415,20 @@ func (c *msgClient) UpdateParams(ctx context.Context, in *MsgUpdateParams, opts 
 	return out, nil
 }
 
+func (c *msgClient) ClaimContributorReward(ctx context.Context, in *MsgClaimContributorReward, opts ...grpc.CallOption) (*MsgClaimContributorRewardResponse, error) {
+	out := new(MsgClaimContributorRewardResponse)
+	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Msg/ClaimContributorReward", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // MsgServer is the server API for Msg service.
 type MsgServer interface {
 	MintDailyEmission(context.Context, *MsgMintDailyEmission) (*MsgMintDailyEmissionResponse, error)
 	UpdateParams(context.Context, *MsgUpdateParams) (*MsgUpdateParamsResponse, error)
+	ClaimContributorReward(context.Context, *MsgClaimContributorReward) (*MsgClaimContributorRewardResponse, error)
 }
 
 // UnimplementedMsgServer can be embedded to have forward compatible implementations.
@@ -324,6 +440,9 @@ func (*UnimplementedMsgServer) MintDailyEmission(ctx context.Context, req *MsgMi
 }
 func (*UnimplementedMsgServer) UpdateParams(ctx context.Context, req *MsgUpdateParams) (*MsgUpdateParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateParams not implemented")
+}
+func (*UnimplementedMsgServer) ClaimContributorReward(ctx context.Context, req *MsgClaimContributorReward) (*MsgClaimContributorRewardResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ClaimContributorReward not implemented")
 }
 
 func RegisterMsgServer(s grpc1.Server, srv MsgServer) {
@@ -366,6 +485,24 @@ func _Msg_UpdateParams_Handler(srv interface{}, ctx context.Context, dec func(in
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Msg_ClaimContributorReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(MsgClaimContributorReward)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MsgServer).ClaimContributorReward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wevibe.emissions.v1.Msg/ClaimContributorReward",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MsgServer).ClaimContributorReward(ctx, req.(*MsgClaimContributorReward))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var Msg_serviceDesc = _Msg_serviceDesc
 var _Msg_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "wevibe.emissions.v1.Msg",
@@ -378,6 +515,10 @@ var _Msg_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "UpdateParams",
 			Handler:    _Msg_UpdateParams_Handler,
+		},
+		{
+			MethodName: "ClaimContributorReward",
+			Handler:    _Msg_ClaimContributorReward_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -522,6 +663,71 @@ func (m *MsgUpdateParamsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	return len(dAtA) - i, nil
 }
 
+func (m *MsgClaimContributorReward) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgClaimContributorReward) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgClaimContributorReward) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.PasskeyPubkey) > 0 {
+		i -= len(m.PasskeyPubkey)
+		copy(dAtA[i:], m.PasskeyPubkey)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.PasskeyPubkey)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Signer) > 0 {
+		i -= len(m.Signer)
+		copy(dAtA[i:], m.Signer)
+		i = encodeVarintTx(dAtA, i, uint64(len(m.Signer)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *MsgClaimContributorRewardResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *MsgClaimContributorRewardResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *MsgClaimContributorRewardResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.AmountClaimed != 0 {
+		i = encodeVarintTx(dAtA, i, uint64(m.AmountClaimed))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintTx(dAtA []byte, offset int, v uint64) int {
 	offset -= sovTx(v)
 	base := offset
@@ -590,6 +796,35 @@ func (m *MsgUpdateParamsResponse) Size() (n int) {
 	}
 	var l int
 	_ = l
+	return n
+}
+
+func (m *MsgClaimContributorReward) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Signer)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	l = len(m.PasskeyPubkey)
+	if l > 0 {
+		n += 1 + l + sovTx(uint64(l))
+	}
+	return n
+}
+
+func (m *MsgClaimContributorRewardResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.AmountClaimed != 0 {
+		n += 1 + sovTx(uint64(m.AmountClaimed))
+	}
 	return n
 }
 
@@ -954,6 +1189,189 @@ func (m *MsgUpdateParamsResponse) Unmarshal(dAtA []byte) error {
 			return fmt.Errorf("proto: MsgUpdateParamsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
 		}
 		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgClaimContributorReward) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgClaimContributorReward: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgClaimContributorReward: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Signer", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Signer = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PasskeyPubkey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthTx
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthTx
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PasskeyPubkey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipTx(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthTx
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *MsgClaimContributorRewardResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowTx
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: MsgClaimContributorRewardResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: MsgClaimContributorRewardResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AmountClaimed", wireType)
+			}
+			m.AmountClaimed = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowTx
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.AmountClaimed |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipTx(dAtA[iNdEx:])
