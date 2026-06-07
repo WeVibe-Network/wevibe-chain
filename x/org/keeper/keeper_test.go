@@ -4,10 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	"cosmossdk.io/math"
 	storetypes "cosmossdk.io/store/types"
+	tmproto "github.com/cometbft/cometbft/proto/tendermint/types"
 	"github.com/stretchr/testify/require"
 
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
@@ -797,6 +800,118 @@ func TestSetOrgConfig(t *testing.T) {
 	require.True(t, retrieved.ServeAttestationRequired)
 }
 
+func TestSetExtractionProfile(t *testing.T) {
+	storeKey := storetypes.NewKVStoreKey("org")
+	storeService, cms := testkeeper.NewTestStoreService(t, storeKey)
+	logger := testkeeper.NewTestLogger()
+	bank := newMockBankKeeper()
+	feegrantKeeper := newMockFeegrantKeeper()
+	k := keeper.NewKeeper(storeService, logger, validAuthority, bank, feegrantKeeper)
+
+	sdkCtx := sdk.NewContext(cms, tmproto.Header{Height: 50, Time: time.Now().UTC()}, false, logger)
+	ctx := sdk.WrapSDKContext(sdkCtx)
+
+	org := types.NewOrg("org1", validLeaderPubkey, "", 1000000, 5000)
+	org.LeaderWalletAddress = validLeader
+	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
+
+	initialExemplars := []string{
+		`{"input":"meeting notes","output":"memory one"}`,
+		`{"input":"incident postmortem","output":"memory two"}`,
+	}
+
+	version, err := k.SetExtractionProfile(
+		ctx,
+		validLeader,
+		org.OrgID,
+		"nutboy02/Qwen3.6-Example",
+		8192,
+		"Extract durable organizational memories.",
+		`{"type":"object","required":["fact"]}`,
+		"distributed systems",
+		initialExemplars,
+		`{"min_specificity":"high"}`,
+	)
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), version)
+
+	stored, found, err := k.GetExtractionProfile(ctx, org.OrgID)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, org.OrgID, stored.OrgId)
+	require.Equal(t, uint64(1), stored.ProfileVersion)
+	require.Equal(t, "nutboy02/Qwen3.6-Example", stored.ExtractionModel)
+	require.Equal(t, uint64(8192), stored.NumCtx)
+	require.Equal(t, "Extract durable organizational memories.", stored.SystemPrompt)
+	require.Equal(t, `{"type":"object","required":["fact"]}`, stored.OutputSchema)
+	require.Equal(t, "distributed systems", stored.DomainFraming)
+	require.Equal(t, initialExemplars, stored.Exemplars)
+	require.Equal(t, `{"min_specificity":"high"}`, stored.Constraints)
+	require.Equal(t, uint64(50), stored.UpdatedAtHeight)
+
+	sdkCtx = sdkCtx.WithBlockHeight(51)
+	ctx = sdk.WrapSDKContext(sdkCtx)
+
+	version, err = k.SetExtractionProfile(
+		ctx,
+		validLeader,
+		org.OrgID,
+		"nutboy02/Qwen3.6-Example-v2",
+		16384,
+		"Extract durable organizational memories with stricter attribution.",
+		`{"type":"object","required":["fact","source"]}`,
+		"distributed systems",
+		[]string{`{"input":"runbook","output":"memory three"}`},
+		`{"min_specificity":"very_high"}`,
+	)
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), version)
+
+	stored, found, err = k.GetExtractionProfile(ctx, org.OrgID)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, uint64(2), stored.ProfileVersion)
+	require.Equal(t, "nutboy02/Qwen3.6-Example-v2", stored.ExtractionModel)
+	require.Equal(t, uint64(16384), stored.NumCtx)
+	require.Equal(t, uint64(51), stored.UpdatedAtHeight)
+
+	_, err = k.SetExtractionProfile(
+		ctx,
+		validSigner,
+		org.OrgID,
+		"nutboy02/Qwen3.6-Example-v3",
+		4096,
+		"should fail",
+		`{"type":"object"}`,
+		"distributed systems",
+		nil,
+		`{}`,
+	)
+	require.ErrorIs(t, err, types.ErrNotLeader)
+}
+
+func TestMsgSetExtractionProfile_ValidateBasicSizeCaps(t *testing.T) {
+	msg := &types.MsgSetExtractionProfile{
+		Signer:       validLeader,
+		OrgId:        "org1",
+		SystemPrompt: strings.Repeat("a", 8193),
+	}
+	require.Error(t, msg.ValidateBasic())
+
+	msg = &types.MsgSetExtractionProfile{
+		Signer:          validLeader,
+		OrgId:           "org1",
+		ExtractionModel: strings.Repeat("m", 256),
+		NumCtx:          1024,
+		SystemPrompt:    strings.Repeat("a", 8192),
+		OutputSchema:    strings.Repeat("b", 4096),
+		DomainFraming:   "d",
+		Constraints:     strings.Repeat("c", 4096),
+	}
+	err := msg.ValidateBasic()
+	require.ErrorIs(t, err, types.ErrExtractionProfileTooLarge)
+}
+
 func TestComputeSlotPrice_Base(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
@@ -843,6 +958,20 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 				ServeAttestationRequired: true,
 			},
 		},
+		ExtractionProfiles: []*types.StoredExtractionProfile{
+			{
+				OrgId:           "org1",
+				ProfileVersion:  1,
+				ExtractionModel: "nutboy02/Qwen3.6-Example",
+				NumCtx:          8192,
+				SystemPrompt:    "extract memories",
+				OutputSchema:    `{"type":"object"}`,
+				DomainFraming:   "example",
+				Exemplars:       []string{`{"memory":"example"}`},
+				Constraints:     `{"min_specificity":"high"}`,
+				UpdatedAtHeight: 10,
+			},
+		},
 	}
 
 	err := k1.InitGenesis(ctx1, genesisState)
@@ -856,6 +985,9 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 	}
 	if len(exportedState.OrgConfigs) != 1 {
 		t.Fatalf("expected 1 org config, got: %d", len(exportedState.OrgConfigs))
+	}
+	if len(exportedState.ExtractionProfiles) != 1 {
+		t.Fatalf("expected 1 extraction profile, got: %d", len(exportedState.ExtractionProfiles))
 	}
 }
 

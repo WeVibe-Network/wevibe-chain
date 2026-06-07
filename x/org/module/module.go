@@ -39,7 +39,7 @@ func (m *Module) IsOnePerModuleType() {}
 func (m *Module) IsAppModule()        {}
 
 func (m *Module) DefaultGenesis(cdc codec.JSONCodec) json.RawMessage {
-	state := &types.GenesisState{Params: types.DefaultParams()}
+	state := types.DefaultGenesis()
 	bz, err := state.MarshalJSON()
 	if err != nil {
 		panic(fmt.Errorf("org: marshal default genesis: %w", err))
@@ -55,15 +55,19 @@ func (m *Module) ValidateGenesis(cdc codec.JSONCodec, _ client.TxEncodingConfig,
 	if err := state.UnmarshalJSON(bz); err != nil {
 		return fmt.Errorf("org: unmarshal genesis: %w", err)
 	}
-	return state.Params.Validate()
+	return state.Validate()
 }
 
 func (m *Module) InitGenesis(ctx sdk.Context, cdc codec.JSONCodec, bz json.RawMessage) {
-	state := &types.GenesisState{Params: types.DefaultParams()}
+	state := types.DefaultGenesis()
 	if len(bz) > 0 {
 		if err := state.UnmarshalJSON(bz); err != nil {
 			panic(fmt.Errorf("org: unmarshal genesis: %w", err))
 		}
+	}
+
+	if err := state.Validate(); err != nil {
+		panic(fmt.Errorf("org: validate genesis: %w", err))
 	}
 
 	if err := m.keeper.InitGenesis(ctx, state); err != nil {

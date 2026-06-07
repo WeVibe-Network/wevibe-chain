@@ -20,6 +20,7 @@ service Msg {
   rpc CloseOrg(MsgCloseOrg) returns (MsgCloseOrgResponse);
   rpc SetServingKey(MsgSetServingKey) returns (MsgSetServingKeyResponse);
   rpc SetServingInfo(MsgSetServingInfo) returns (MsgSetServingInfoResponse);
+  rpc SetExtractionProfile(MsgSetExtractionProfile) returns (MsgSetExtractionProfileResponse);
 }
 
 message MsgRegisterOrg {
@@ -62,6 +63,23 @@ message MsgSetServingInfo {
 }
 
 message MsgSetServingInfoResponse {}
+
+message MsgSetExtractionProfile {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  string extraction_model = 3;
+  uint64 num_ctx = 4;
+  string system_prompt = 5;
+  string output_schema = 6;
+  string domain_framing = 7;
+  repeated string exemplars = 8;
+  string constraints = 9;
+}
+
+message MsgSetExtractionProfileResponse {
+  uint64 profile_version = 1;
+}
 
 message MsgAddMember {
   option (cosmos.msg.v1.signer) = "signer";

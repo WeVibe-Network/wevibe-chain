@@ -4,6 +4,8 @@ import "cosmossdk.io/collections"
 
 const ModuleName = "org"
 
+const ExtractionProfilePrefix = "extractionprofile/"
+
 var (
 	OrgKeyPrefix    = collections.NewPrefixedPairRange[string, *Org]("")
 	MemberKeyPrefix = collections.NewPrefixedPairRange[MemberKey, []byte](MemberKey{})

@@ -54,3 +54,16 @@ message StoredOrgConfig {
   uint64 contest_stake_vibe = 4;
   uint64 min_contributions_per_epoch = 10;
 }
+
+message StoredExtractionProfile {
+  string org_id = 1;
+  uint64 profile_version = 2;
+  string extraction_model = 3;
+  uint64 num_ctx = 4;
+  string system_prompt = 5;
+  string output_schema = 6;
+  string domain_framing = 7;
+  repeated string exemplars = 8;
+  string constraints = 9;
+  uint64 updated_at_height = 10;
+}

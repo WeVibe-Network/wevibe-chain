@@ -502,3 +502,23 @@ func TestMemberRecordMemberKey_Empty(t *testing.T) {
 	key := m.MemberKey()
 	require.Equal(t, types.MemberKey{}, key)
 }
+
+func TestGenesisStateValidate_DuplicateExtractionProfileOrgID(t *testing.T) {
+	gs := types.DefaultGenesis()
+	gs.ExtractionProfiles = []*types.StoredExtractionProfile{
+		{OrgId: "org1"},
+		{OrgId: "org1"},
+	}
+
+	err := gs.Validate()
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "duplicate extraction profile org_id")
+}
+
+func TestGenesisStateValidate_ExtractionProfileMissingOrgID(t *testing.T) {
+	gs := types.DefaultGenesis()
+	gs.ExtractionProfiles = []*types.StoredExtractionProfile{{OrgId: ""}}
+
+	err := gs.Validate()
+	require.ErrorIs(t, err, types.ErrInvalidOrgID)
+}
