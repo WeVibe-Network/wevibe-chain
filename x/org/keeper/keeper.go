@@ -61,10 +61,6 @@ func orgConfigKey(orgID string) []byte {
 	return []byte(fmt.Sprintf("orgconfig/%s", orgID))
 }
 
-func extractionProfileKey(orgID string) []byte {
-	return []byte(fmt.Sprintf("%s%s", types.ExtractionProfilePrefix, orgID))
-}
-
 const ParamsKey = "params"
 
 func orgToStored(org *types.Org) *types.StoredOrg {
@@ -545,107 +541,6 @@ func (k *Keeper) SetServingInfo(ctx context.Context, orgID string, endpoints []s
 	return nil
 }
 
-func (k *Keeper) SetExtractionProfile(
-	ctx context.Context,
-	signer string,
-	orgID string,
-	extractionModel string,
-	numCtx uint64,
-	systemPrompt string,
-	outputSchema string,
-	domainFraming string,
-	exemplars []string,
-	constraints string,
-) (uint64, error) {
-	org, err := k.GetOrg(ctx, orgID)
-	if err != nil {
-		return 0, err
-	}
-	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
-		return 0, types.ErrNotLeader
-	}
-
-	store := k.getStore(ctx)
-	key := extractionProfileKey(orgID)
-
-	profileVersion := uint64(1)
-	currentBz, err := store.Get(key)
-	if err != nil {
-		return 0, err
-	}
-	if currentBz != nil {
-		var current types.StoredExtractionProfile
-		if err := proto.Unmarshal(currentBz, &current); err != nil {
-			return 0, fmt.Errorf("unmarshal extraction profile: %w", err)
-		}
-		profileVersion = current.ProfileVersion + 1
-	}
-
-	sdkCtx := sdk.UnwrapSDKContext(ctx)
-	stored := &types.StoredExtractionProfile{
-		OrgId:           orgID,
-		ProfileVersion:  profileVersion,
-		ExtractionModel: extractionModel,
-		NumCtx:          numCtx,
-		SystemPrompt:    systemPrompt,
-		OutputSchema:    outputSchema,
-		DomainFraming:   domainFraming,
-		Exemplars:       append([]string(nil), exemplars...),
-		Constraints:     constraints,
-		UpdatedAtHeight: uint64(sdkCtx.BlockHeight()),
-	}
-
-	bz, err := proto.Marshal(stored)
-	if err != nil {
-		return 0, fmt.Errorf("marshal extraction profile: %w", err)
-	}
-	if err := store.Set(key, bz); err != nil {
-		return 0, err
-	}
-
-	return profileVersion, nil
-}
-
-func (k *Keeper) GetExtractionProfile(ctx context.Context, orgID string) (types.StoredExtractionProfile, bool, error) {
-	store := k.getStore(ctx)
-	bz, err := store.Get(extractionProfileKey(orgID))
-	if err != nil {
-		return types.StoredExtractionProfile{}, false, err
-	}
-	if bz == nil {
-		return types.StoredExtractionProfile{}, false, nil
-	}
-
-	var stored types.StoredExtractionProfile
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return types.StoredExtractionProfile{}, false, fmt.Errorf("unmarshal extraction profile: %w", err)
-	}
-
-	return stored, true, nil
-}
-
-func (k *Keeper) GetAllExtractionProfiles(ctx context.Context) ([]*types.StoredExtractionProfile, error) {
-	store := k.getStore(ctx)
-	prefix := []byte(types.ExtractionProfilePrefix)
-	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
-	if err != nil {
-		return nil, err
-	}
-	defer iter.Close()
-
-	profiles := make([]*types.StoredExtractionProfile, 0)
-	for ; iter.Valid(); iter.Next() {
-		var stored types.StoredExtractionProfile
-		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
-			continue
-		}
-		profile := stored
-		profiles = append(profiles, &profile)
-	}
-
-	return profiles, nil
-}
-
 func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, signer string) error {
 	org, err := k.GetOrg(ctx, orgID)
 	if err != nil {
@@ -1059,16 +954,6 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		}
 	}
 
-	for _, profile := range state.ExtractionProfiles {
-		bz, err := proto.Marshal(profile)
-		if err != nil {
-			return err
-		}
-		if err := store.Set(extractionProfileKey(profile.OrgId), bz); err != nil {
-			return err
-		}
-	}
-
 	return nil
 }
 
@@ -1139,18 +1024,12 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		})
 	}
 
-	extractionProfiles, err := k.GetAllExtractionProfiles(ctx)
-	if err != nil {
-		return nil, err
-	}
-
 	return &types.GenesisState{
-		Orgs:               orgs,
-		Members:            members,
-		OrgConfigs:         orgConfigs,
-		ExtractionProfiles: extractionProfiles,
-		NextSlot:           nextSlot,
-		Params:             params,
+		Orgs:       orgs,
+		Members:    members,
+		OrgConfigs: orgConfigs,
+		NextSlot:   nextSlot,
+		Params:     params,
 	}, nil
 }
 

@@ -23,7 +23,6 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 	registry.RegisterImplementations((*sdk.Msg)(nil),
 		&MsgRegisterOrg{},
 		&MsgSetServingInfo{},
-		&MsgSetExtractionProfile{},
 		&MsgAddMember{},
 		&MsgRemoveMember{},
 		&MsgUpdateParams{},

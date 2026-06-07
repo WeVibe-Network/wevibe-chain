@@ -23,9 +23,6 @@ service Query {
   rpc GetOrgConfig(QueryGetOrgConfigRequest) returns (QueryGetOrgConfigResponse) {
     option (google.api.http).get = "/wevibe/org/v1/config/{org_id}";
   }
-  rpc GetExtractionProfile(QueryGetExtractionProfileRequest) returns (QueryGetExtractionProfileResponse) {
-    option (google.api.http).get = "/wevibe/org/v1/extraction-profile/{org_id}";
-  }
   rpc GetOrgProfile(QueryGetOrgProfileRequest) returns (QueryGetOrgProfileResponse) {
     option (google.api.http).get = "/wevibe/org/v1/profile/{org_id}";
   }
@@ -89,15 +86,6 @@ message QueryGetOrgConfigResponse {
   bool serve_attestation_required = 1;
   uint64 min_contributions_per_epoch = 2;
   uint64 contest_stake_vibe = 3;
-}
-
-message QueryGetExtractionProfileRequest {
-  string org_id = 1;
-}
-
-message QueryGetExtractionProfileResponse {
-  bool found = 1;
-  StoredExtractionProfile profile = 2;
 }
 
 message QueryGetOrgAccountRequest {

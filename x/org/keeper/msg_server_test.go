@@ -106,7 +106,6 @@ func assertLeaderFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowance
 			"/wevibe.org.v1.MsgSetOrgConfig",
 			"/wevibe.org.v1.MsgSetServingKey",
 			"/wevibe.org.v1.MsgSetServingInfo",
-			"/wevibe.org.v1.MsgSetExtractionProfile",
 			"/wevibe.org.v1.MsgRotateEpoch",
 			"/wevibe.org.v1.MsgTransferLeadership",
 			"/wevibe.org.v1.MsgCloseOrg",

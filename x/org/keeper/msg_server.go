@@ -122,38 +122,6 @@ func (m *msgServer) SetServingInfo(ctx context.Context, msg *types.MsgSetServing
 	return &types.MsgSetServingInfoResponse{}, nil
 }
 
-func (m *msgServer) SetExtractionProfile(ctx context.Context, msg *types.MsgSetExtractionProfile) (*types.MsgSetExtractionProfileResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
-	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, types.ErrOrgNotFound
-	}
-
-	profileVersion, err := m.keeper.SetExtractionProfile(
-		ctx,
-		msg.Signer,
-		msg.OrgId,
-		msg.ExtractionModel,
-		msg.NumCtx,
-		msg.SystemPrompt,
-		msg.OutputSchema,
-		msg.DomainFraming,
-		msg.Exemplars,
-		msg.Constraints,
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.MsgSetExtractionProfileResponse{ProfileVersion: profileVersion}, nil
-}
-
 func (m *msgServer) RemoveMember(ctx context.Context, msg *types.MsgRemoveMember) (*types.MsgRemoveMemberResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err

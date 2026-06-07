@@ -82,18 +82,6 @@ func (q *queryServer) GetOrgConfig(ctx context.Context, req *types.QueryGetOrgCo
 	}, nil
 }
 
-func (q *queryServer) GetExtractionProfile(ctx context.Context, req *types.QueryGetExtractionProfileRequest) (*types.QueryGetExtractionProfileResponse, error) {
-	profile, found, err := q.keeper.GetExtractionProfile(ctx, req.OrgId)
-	if err != nil {
-		return nil, err
-	}
-	if !found {
-		return &types.QueryGetExtractionProfileResponse{Found: false}, nil
-	}
-
-	return &types.QueryGetExtractionProfileResponse{Found: true, Profile: &profile}, nil
-}
-
 func (q *queryServer) GetOrgAccount(ctx context.Context, req *types.QueryGetOrgAccountRequest) (*types.QueryGetOrgAccountResponse, error) {
 	org, err := q.keeper.GetOrg(ctx, req.OrgId)
 	if err != nil {

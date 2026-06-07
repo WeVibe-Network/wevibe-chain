@@ -16,20 +16,19 @@ const (
 
 	// These must match x/org and x/memory registered message type URLs
 	// (verified against x/org/types/tx.pb.go and x/memory/types/tx.pb.go).
-	msgTypeURLOrgAddMember            = "/wevibe.org.v1.MsgAddMember"
-	msgTypeURLOrgRemoveMember         = "/wevibe.org.v1.MsgRemoveMember"
-	msgTypeURLOrgUpdateMemberRole     = "/wevibe.org.v1.MsgUpdateMemberRole"
-	msgTypeURLOrgSetOrgConfig         = "/wevibe.org.v1.MsgSetOrgConfig"
-	msgTypeURLOrgSetServingKey        = "/wevibe.org.v1.MsgSetServingKey"
-	msgTypeURLOrgSetServingInfo       = "/wevibe.org.v1.MsgSetServingInfo"
-	msgTypeURLOrgSetExtractionProfile = "/wevibe.org.v1.MsgSetExtractionProfile"
-	msgTypeURLOrgRotateEpoch          = "/wevibe.org.v1.MsgRotateEpoch"
-	msgTypeURLOrgTransferLeadership   = "/wevibe.org.v1.MsgTransferLeadership"
-	msgTypeURLOrgCloseOrg             = "/wevibe.org.v1.MsgCloseOrg"
-	msgTypeURLOrgGrantTrialAllowance  = "/wevibe.org.v1.MsgGrantTrialAllowance"
-	msgTypeURLMemorySubmitCommitment  = "/wevibe.memory.v1.MsgSubmitCommitment"
-	msgTypeURLMemoryApproveMemory     = "/wevibe.memory.v1.MsgApproveMemory"
-	msgTypeURLMemoryReportMemory      = "/wevibe.memory.v1.MsgReportMemory"
+	msgTypeURLOrgAddMember           = "/wevibe.org.v1.MsgAddMember"
+	msgTypeURLOrgRemoveMember        = "/wevibe.org.v1.MsgRemoveMember"
+	msgTypeURLOrgUpdateMemberRole    = "/wevibe.org.v1.MsgUpdateMemberRole"
+	msgTypeURLOrgSetOrgConfig        = "/wevibe.org.v1.MsgSetOrgConfig"
+	msgTypeURLOrgSetServingKey       = "/wevibe.org.v1.MsgSetServingKey"
+	msgTypeURLOrgSetServingInfo      = "/wevibe.org.v1.MsgSetServingInfo"
+	msgTypeURLOrgRotateEpoch         = "/wevibe.org.v1.MsgRotateEpoch"
+	msgTypeURLOrgTransferLeadership  = "/wevibe.org.v1.MsgTransferLeadership"
+	msgTypeURLOrgCloseOrg            = "/wevibe.org.v1.MsgCloseOrg"
+	msgTypeURLOrgGrantTrialAllowance = "/wevibe.org.v1.MsgGrantTrialAllowance"
+	msgTypeURLMemorySubmitCommitment = "/wevibe.memory.v1.MsgSubmitCommitment"
+	msgTypeURLMemoryApproveMemory    = "/wevibe.memory.v1.MsgApproveMemory"
+	msgTypeURLMemoryReportMemory     = "/wevibe.memory.v1.MsgReportMemory"
 )
 
 var leaderAllowedMsgTypeURLs = []string{
@@ -39,7 +38,6 @@ var leaderAllowedMsgTypeURLs = []string{
 	msgTypeURLOrgSetOrgConfig,
 	msgTypeURLOrgSetServingKey,
 	msgTypeURLOrgSetServingInfo,
-	msgTypeURLOrgSetExtractionProfile,
 	msgTypeURLOrgRotateEpoch,
 	msgTypeURLOrgTransferLeadership,
 	msgTypeURLOrgCloseOrg,

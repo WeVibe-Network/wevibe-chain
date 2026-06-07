@@ -180,56 +180,6 @@ func TestQueryGetOrgConfig_DefaultWhenUnset(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// GetExtractionProfile
-// ---------------------------------------------------------------------------
-
-func TestQueryGetExtractionProfile_Found(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	profile := &types.StoredExtractionProfile{
-		OrgId:           "org1",
-		ProfileVersion:  2,
-		ExtractionModel: "nutboy02/Qwen3.6-Example",
-		NumCtx:          8192,
-		SystemPrompt:    "extract memories",
-		OutputSchema:    `{"type":"object"}`,
-		DomainFraming:   "coding",
-		Exemplars:       []string{`{"memory":"one"}`},
-		Constraints:     `{"min_specificity": "high"}`,
-		UpdatedAtHeight: 42,
-	}
-	require.NoError(t, k.InitGenesis(ctx, &types.GenesisState{ExtractionProfiles: []*types.StoredExtractionProfile{profile}, Params: types.DefaultParams()}))
-
-	resp, err := qs.GetExtractionProfile(ctx, &types.QueryGetExtractionProfileRequest{OrgId: "org1"})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.True(t, resp.Found)
-	require.NotNil(t, resp.Profile)
-	require.Equal(t, profile.OrgId, resp.Profile.OrgId)
-	require.Equal(t, profile.ProfileVersion, resp.Profile.ProfileVersion)
-	require.Equal(t, profile.ExtractionModel, resp.Profile.ExtractionModel)
-	require.Equal(t, profile.NumCtx, resp.Profile.NumCtx)
-	require.Equal(t, profile.SystemPrompt, resp.Profile.SystemPrompt)
-	require.Equal(t, profile.OutputSchema, resp.Profile.OutputSchema)
-	require.Equal(t, profile.DomainFraming, resp.Profile.DomainFraming)
-	require.Equal(t, profile.Exemplars, resp.Profile.Exemplars)
-	require.Equal(t, profile.Constraints, resp.Profile.Constraints)
-	require.Equal(t, profile.UpdatedAtHeight, resp.Profile.UpdatedAtHeight)
-}
-
-func TestQueryGetExtractionProfile_NotFound(t *testing.T) {
-	k, ctx, _ := newTestKeeper(t)
-	qs := keeper.NewQueryServerImpl(k)
-
-	resp, err := qs.GetExtractionProfile(ctx, &types.QueryGetExtractionProfileRequest{OrgId: "missing"})
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.False(t, resp.Found)
-	require.Nil(t, resp.Profile)
-}
-
-// ---------------------------------------------------------------------------
 // GetOrgProfile
 // ---------------------------------------------------------------------------
 
