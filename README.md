@@ -1,4 +1,17 @@
-# WeVibe Chain
+<div align="center">
+
+<img src="https://capsule-render.vercel.app/api?type=waving&color=0:02100a,100:2fe07a&height=160&section=header&text=WeVibe%20Chain&fontColor=54f59a&fontSize=42&fontAlignY=40&desc=Sovereign%20appchain%20for%20encrypted%20memory%20and%20reputation&descAlignY=64&descSize=16" alt="WeVibe Chain" width="100%" />
+
+![Go](https://img.shields.io/badge/Go-00ADD8?style=flat-square&logo=go&logoColor=white)
+![Cosmos SDK](https://img.shields.io/badge/Cosmos%20SDK-1B1F3B?style=flat-square)
+[![status-alpha](https://img.shields.io/badge/status-alpha-ffc266?style=flat-square)](https://github.com/WeVibe-Network)
+[![license-Apache--2.0](https://img.shields.io/badge/license-Apache--2.0-82aaff?style=flat-square)](LICENSE)
+[![docs-wevibe-docs](https://img.shields.io/badge/docs-wevibe--docs-54f59a?style=flat-square)](https://github.com/WeVibe-Network/wevibe-docs)
+[![%40WeVibe__Network](https://img.shields.io/badge/%40WeVibe__Network-0a0a0a?style=flat-square&logo=x&logoColor=white)](https://x.com/WeVibe_Network)
+
+</div>
+
+---
 
 WeVibe Chain is WeVibe Network's sovereign Cosmos SDK + CometBFT appchain. It is the source of truth for encrypted organizational memory, membership and role state, serve attestations, contributor reputation aggregates, and VIBE economic state.
 
