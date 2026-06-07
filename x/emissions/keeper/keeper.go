@@ -57,12 +57,13 @@ func (k *Keeper) getStore(ctx context.Context) store.KVStore {
 }
 
 const (
-	KeyPrefixPool          = "pool/"
-	KeyPrefixEmission      = "emission/"
-	KeyPrefixGate          = "gate/"
-	KeyPrefixBootstrap     = "bootstrap/"
-	KeyPrefixBootstrapPool = "bootstrappool/"
-	KeyPrefixContribReward = "contribreward/"
+	KeyPrefixPool           = "pool/"
+	KeyPrefixEmission       = "emission/"
+	KeyPrefixGate           = "gate/"
+	KeyPrefixBootstrap      = "bootstrap/"
+	KeyPrefixBootstrapPool  = "bootstrappool/"
+	KeyPrefixContribReward  = "contribreward/"
+	KeyPrefixLifetimeReward = "lifetimereward/"
 )
 
 func poolKey() []byte {
@@ -87,6 +88,10 @@ func bootstrapPoolKey() []byte {
 
 func contribRewardKey(addr string) []byte {
 	return []byte(KeyPrefixContribReward + addr)
+}
+
+func lifetimeRewardKey(addr string) []byte {
+	return []byte(KeyPrefixLifetimeReward + addr)
 }
 
 const ParamsKey = "params"
@@ -307,19 +312,35 @@ func (k *Keeper) MintDailyEmission(ctx context.Context, epoch uint64) (*types.Da
 
 func (k *Keeper) AddContributorReward(ctx context.Context, addr string, amount uint64) error {
 	store := k.getStore(ctx)
-	current := uint64(0)
+	currentPending := uint64(0)
 	bz, err := store.Get(contribRewardKey(addr))
 	if err != nil {
 		return err
 	}
 	if bz != nil {
-		current, err = strconv.ParseUint(string(bz), 10, 64)
+		currentPending, err = strconv.ParseUint(string(bz), 10, 64)
 		if err != nil {
 			return fmt.Errorf("parse contributor reward: %w", err)
 		}
 	}
-	current += amount
-	return store.Set(contribRewardKey(addr), []byte(strconv.FormatUint(current, 10)))
+	currentPending += amount
+	if err := store.Set(contribRewardKey(addr), []byte(strconv.FormatUint(currentPending, 10))); err != nil {
+		return err
+	}
+
+	currentLifetime := uint64(0)
+	lifetimeBz, err := store.Get(lifetimeRewardKey(addr))
+	if err != nil {
+		return err
+	}
+	if lifetimeBz != nil {
+		currentLifetime, err = strconv.ParseUint(string(lifetimeBz), 10, 64)
+		if err != nil {
+			return fmt.Errorf("parse contributor lifetime reward: %w", err)
+		}
+	}
+	currentLifetime += amount
+	return store.Set(lifetimeRewardKey(addr), []byte(strconv.FormatUint(currentLifetime, 10)))
 }
 
 func (k *Keeper) SetContributorReward(ctx context.Context, addr string, amount uint64) error {
@@ -339,6 +360,22 @@ func (k *Keeper) GetContributorReward(ctx context.Context, addr string) (uint64,
 	amount, err := strconv.ParseUint(string(bz), 10, 64)
 	if err != nil {
 		return 0, fmt.Errorf("parse contributor reward: %w", err)
+	}
+	return amount, nil
+}
+
+func (k *Keeper) GetLifetimeContributorReward(ctx context.Context, addr string) (uint64, error) {
+	store := k.getStore(ctx)
+	bz, err := store.Get(lifetimeRewardKey(addr))
+	if err != nil {
+		return 0, err
+	}
+	if bz == nil {
+		return 0, nil
+	}
+	amount, err := strconv.ParseUint(string(bz), 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("parse contributor lifetime reward: %w", err)
 	}
 	return amount, nil
 }

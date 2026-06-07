@@ -220,44 +220,151 @@ func (m *QueryParamsResponse) GetParams() *Params {
 	return nil
 }
 
+type QueryContributorRewardRequest struct {
+	Pubkey string `protobuf:"bytes,1,opt,name=pubkey,proto3" json:"pubkey,omitempty"`
+}
+
+func (m *QueryContributorRewardRequest) Reset()         { *m = QueryContributorRewardRequest{} }
+func (m *QueryContributorRewardRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryContributorRewardRequest) ProtoMessage()    {}
+func (*QueryContributorRewardRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0d4eb1f4737b161, []int{4}
+}
+func (m *QueryContributorRewardRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryContributorRewardRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryContributorRewardRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryContributorRewardRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryContributorRewardRequest.Merge(m, src)
+}
+func (m *QueryContributorRewardRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryContributorRewardRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryContributorRewardRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryContributorRewardRequest proto.InternalMessageInfo
+
+func (m *QueryContributorRewardRequest) GetPubkey() string {
+	if m != nil {
+		return m.Pubkey
+	}
+	return ""
+}
+
+type QueryContributorRewardResponse struct {
+	PendingWithdrawal uint64 `protobuf:"varint,1,opt,name=pending_withdrawal,json=pendingWithdrawal,proto3" json:"pending_withdrawal,omitempty"`
+	AllTimeEarnings   uint64 `protobuf:"varint,2,opt,name=all_time_earnings,json=allTimeEarnings,proto3" json:"all_time_earnings,omitempty"`
+}
+
+func (m *QueryContributorRewardResponse) Reset()         { *m = QueryContributorRewardResponse{} }
+func (m *QueryContributorRewardResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryContributorRewardResponse) ProtoMessage()    {}
+func (*QueryContributorRewardResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c0d4eb1f4737b161, []int{5}
+}
+func (m *QueryContributorRewardResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryContributorRewardResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryContributorRewardResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryContributorRewardResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryContributorRewardResponse.Merge(m, src)
+}
+func (m *QueryContributorRewardResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryContributorRewardResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryContributorRewardResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryContributorRewardResponse proto.InternalMessageInfo
+
+func (m *QueryContributorRewardResponse) GetPendingWithdrawal() uint64 {
+	if m != nil {
+		return m.PendingWithdrawal
+	}
+	return 0
+}
+
+func (m *QueryContributorRewardResponse) GetAllTimeEarnings() uint64 {
+	if m != nil {
+		return m.AllTimeEarnings
+	}
+	return 0
+}
+
 func init() {
 	proto.RegisterType((*QueryGetEmissionPoolRequest)(nil), "wevibe.emissions.v1.QueryGetEmissionPoolRequest")
 	proto.RegisterType((*QueryGetEmissionPoolResponse)(nil), "wevibe.emissions.v1.QueryGetEmissionPoolResponse")
 	proto.RegisterType((*QueryParamsRequest)(nil), "wevibe.emissions.v1.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "wevibe.emissions.v1.QueryParamsResponse")
+	proto.RegisterType((*QueryContributorRewardRequest)(nil), "wevibe.emissions.v1.QueryContributorRewardRequest")
+	proto.RegisterType((*QueryContributorRewardResponse)(nil), "wevibe.emissions.v1.QueryContributorRewardResponse")
 }
 
 func init() { proto.RegisterFile("wevibe/emissions/v1/query.proto", fileDescriptor_c0d4eb1f4737b161) }
 
 var fileDescriptor_c0d4eb1f4737b161 = []byte{
-	// 428 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x92, 0xc1, 0x8e, 0x12, 0x31,
-	0x18, 0xc7, 0x29, 0x2e, 0x24, 0x76, 0x75, 0x37, 0xe9, 0xee, 0x61, 0x9c, 0x59, 0x46, 0x18, 0x63,
-	0xe0, 0xe2, 0x54, 0xe0, 0xe2, 0xd9, 0xc4, 0x98, 0x98, 0x98, 0x20, 0xdc, 0xbc, 0x90, 0x02, 0x0d,
-	0xd3, 0x38, 0xd3, 0x96, 0x69, 0x67, 0x70, 0x6e, 0xc6, 0x27, 0x30, 0xf1, 0xe4, 0x0b, 0xf8, 0x28,
-	0xc6, 0x23, 0x89, 0x17, 0x8f, 0x06, 0x7c, 0x10, 0x43, 0x67, 0x20, 0x60, 0x06, 0xcd, 0x1e, 0xfb,
-	0xff, 0x7e, 0xdf, 0xd7, 0xef, 0xff, 0x6f, 0xe1, 0xc3, 0x25, 0x4d, 0xd9, 0x84, 0x62, 0x1a, 0x31,
-	0xa5, 0x98, 0xe0, 0x0a, 0xa7, 0x5d, 0xbc, 0x48, 0x68, 0x9c, 0xf9, 0x32, 0x16, 0x5a, 0xa0, 0xab,
-	0x1c, 0xf0, 0xf7, 0x80, 0x9f, 0x76, 0xed, 0x9b, 0xb9, 0x10, 0xf3, 0x90, 0x62, 0x22, 0x19, 0x26,
-	0x9c, 0x0b, 0x4d, 0xb4, 0x29, 0x99, 0x16, 0xbb, 0x59, 0x36, 0x53, 0x92, 0x98, 0x44, 0x05, 0xe1,
-	0x35, 0xa0, 0xf3, 0x66, 0x7b, 0xc7, 0x4b, 0xaa, 0x5f, 0x14, 0xd0, 0x40, 0x88, 0x70, 0x48, 0x17,
-	0x09, 0x55, 0xda, 0xfb, 0x06, 0xe0, 0x4d, 0x79, 0x5d, 0x49, 0xc1, 0x15, 0x45, 0x2d, 0x78, 0x4f,
-	0x0b, 0x4d, 0xc2, 0xb1, 0x4a, 0xa4, 0x0c, 0x33, 0x0b, 0x34, 0x41, 0xe7, 0x6c, 0x78, 0x6e, 0xb4,
-	0x91, 0x91, 0x50, 0x03, 0xc2, 0x19, 0x61, 0x61, 0x36, 0x8e, 0x18, 0xd7, 0x56, 0xd5, 0x00, 0x77,
-	0x8d, 0xf2, 0x9a, 0x71, 0x8d, 0x1e, 0xc3, 0x0b, 0x21, 0x69, 0x4c, 0xb4, 0x88, 0xc7, 0x2a, 0x20,
-	0x31, 0xb5, 0xee, 0x18, 0xe4, 0xfe, 0x4e, 0x1d, 0x6d, 0x45, 0xd4, 0x86, 0x97, 0x29, 0x09, 0xd9,
-	0xec, 0x80, 0x3b, 0x33, 0xdc, 0xc5, 0x5e, 0xce, 0xc1, 0x6b, 0x58, 0xa3, 0x52, 0x4c, 0x03, 0xab,
-	0x66, 0xca, 0xf9, 0xc1, 0xbb, 0x86, 0xc8, 0xf8, 0x18, 0x18, 0xf3, 0x3b, 0x7b, 0xaf, 0xe0, 0xd5,
-	0x91, 0x5a, 0x98, 0xea, 0xc3, 0x7a, 0x1e, 0x92, 0xb1, 0x73, 0xde, 0x73, 0xfc, 0x92, 0xe8, 0xfd,
-	0xa2, 0xa9, 0x40, 0x7b, 0x5f, 0xab, 0xb0, 0x66, 0x86, 0xa1, 0x2f, 0x00, 0x5e, 0xfe, 0x95, 0x17,
-	0x7a, 0x5a, 0x3a, 0xe2, 0x1f, 0xd1, 0xdb, 0xdd, 0x5b, 0x74, 0xe4, 0x7b, 0x7b, 0xad, 0x8f, 0x3f,
-	0x7e, 0x7f, 0xae, 0x3a, 0xe8, 0x01, 0x2e, 0x7d, 0xf7, 0xed, 0x1e, 0x1f, 0x00, 0xac, 0xe7, 0x8b,
-	0xa3, 0xf6, 0xe9, 0x0b, 0x8e, 0x52, 0xb2, 0x3b, 0xff, 0x07, 0x8b, 0x05, 0x1e, 0x99, 0x05, 0x1a,
-	0xc8, 0xc1, 0xa7, 0x3f, 0xde, 0xf3, 0xe1, 0xf7, 0xb5, 0x0b, 0x56, 0x6b, 0x17, 0xfc, 0x5a, 0xbb,
-	0xe0, 0xd3, 0xc6, 0xad, 0xac, 0x36, 0x6e, 0xe5, 0xe7, 0xc6, 0xad, 0xbc, 0x7d, 0x36, 0x67, 0x3a,
-	0x48, 0x26, 0xfe, 0x54, 0x44, 0xc5, 0x80, 0x27, 0x9c, 0xea, 0xa5, 0x88, 0xdf, 0xed, 0x8e, 0xd3,
-	0x80, 0x30, 0x8e, 0xdf, 0x1f, 0xcc, 0xd5, 0x99, 0xa4, 0x6a, 0x52, 0x37, 0xbf, 0xb9, 0xff, 0x27,
-	0x00, 0x00, 0xff, 0xff, 0xd9, 0xf5, 0x28, 0x1c, 0x45, 0x03, 0x00, 0x00,
+	// 561 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0x51, 0x6b, 0x13, 0x4d,
+	0x14, 0xcd, 0xb6, 0x4d, 0xa0, 0xb7, 0xdf, 0xd7, 0x90, 0x69, 0x91, 0x98, 0x34, 0x6b, 0xbb, 0x22,
+	0x2d, 0x42, 0x76, 0x9b, 0xe4, 0xc1, 0x3e, 0x2b, 0x45, 0x10, 0x84, 0x9a, 0x0a, 0x82, 0x2f, 0xcb,
+	0x24, 0x19, 0x92, 0xa1, 0xb3, 0x33, 0xd3, 0xd9, 0xd9, 0xc4, 0x50, 0x04, 0xf1, 0x17, 0x08, 0x3e,
+	0xf9, 0x47, 0xfc, 0x09, 0xe2, 0x63, 0xc1, 0x17, 0xdf, 0x94, 0xc4, 0x1f, 0x22, 0x99, 0x9d, 0xc4,
+	0x56, 0x37, 0x4a, 0x1f, 0xe7, 0xdc, 0x73, 0xe6, 0x9e, 0x73, 0xe7, 0xee, 0xc2, 0x9d, 0x11, 0x19,
+	0xd2, 0x0e, 0x09, 0x48, 0x44, 0xe3, 0x98, 0x0a, 0x1e, 0x07, 0xc3, 0x46, 0x70, 0x9e, 0x10, 0x35,
+	0xf6, 0xa5, 0x12, 0x5a, 0xa0, 0xad, 0x94, 0xe0, 0x2f, 0x08, 0xfe, 0xb0, 0x51, 0xd9, 0xe9, 0x0b,
+	0xd1, 0x67, 0x24, 0xc0, 0x92, 0x06, 0x98, 0x73, 0xa1, 0xb1, 0x36, 0x25, 0x23, 0xa9, 0xec, 0x66,
+	0xdd, 0x29, 0xb1, 0xc2, 0x91, 0x65, 0x78, 0x35, 0xa8, 0x3e, 0x9b, 0xf5, 0x78, 0x4c, 0xf4, 0xb1,
+	0x25, 0x9d, 0x08, 0xc1, 0xda, 0xe4, 0x3c, 0x21, 0xb1, 0xf6, 0x3e, 0x39, 0xb0, 0x93, 0x5d, 0x8f,
+	0xa5, 0xe0, 0x31, 0x41, 0x7b, 0xf0, 0x9f, 0x16, 0x1a, 0xb3, 0x30, 0x4e, 0xa4, 0x64, 0xe3, 0xb2,
+	0xb3, 0xeb, 0x1c, 0xac, 0xb5, 0x37, 0x0c, 0x76, 0x6a, 0x20, 0x54, 0x03, 0xe8, 0x61, 0xca, 0xc6,
+	0x61, 0x44, 0xb9, 0x2e, 0xaf, 0x18, 0xc2, 0xba, 0x41, 0x9e, 0x52, 0xae, 0xd1, 0x3d, 0xd8, 0x14,
+	0x92, 0x28, 0xac, 0x85, 0x0a, 0xe3, 0x01, 0x56, 0xa4, 0xbc, 0x6a, 0x28, 0xff, 0xcf, 0xd1, 0xd3,
+	0x19, 0x88, 0xf6, 0xa1, 0x38, 0xc4, 0x8c, 0xf6, 0xae, 0xf0, 0xd6, 0x0c, 0x6f, 0x73, 0x01, 0xa7,
+	0xc4, 0x6d, 0xc8, 0x13, 0x29, 0xba, 0x83, 0x72, 0xde, 0x94, 0xd3, 0x83, 0xb7, 0x0d, 0xc8, 0xe4,
+	0x38, 0x31, 0xe1, 0xe7, 0xf1, 0x9e, 0xc0, 0xd6, 0x35, 0xd4, 0x86, 0x6a, 0x41, 0x21, 0x1d, 0x92,
+	0x89, 0xb3, 0xd1, 0xac, 0xfa, 0x19, 0xa3, 0xf7, 0xad, 0xc8, 0x52, 0xbd, 0x07, 0x50, 0x33, 0x77,
+	0x3d, 0x12, 0x5c, 0x2b, 0xda, 0x49, 0xb4, 0x50, 0x6d, 0x32, 0xc2, 0xaa, 0x67, 0x9b, 0xa1, 0x5b,
+	0x50, 0x90, 0x49, 0xe7, 0x8c, 0xa4, 0x43, 0x5a, 0x6f, 0xdb, 0x93, 0x77, 0x01, 0xee, 0x32, 0xa1,
+	0xf5, 0x53, 0x07, 0x24, 0x09, 0xef, 0x51, 0xde, 0x0f, 0x47, 0x54, 0x0f, 0x7a, 0x0a, 0x8f, 0x30,
+	0xb3, 0xa3, 0x2e, 0xd9, 0xca, 0x8b, 0x45, 0x01, 0xdd, 0x87, 0x12, 0x66, 0x2c, 0xd4, 0x34, 0x22,
+	0x21, 0xc1, 0x8a, 0x53, 0xde, 0x8f, 0xed, 0xdc, 0x8b, 0x98, 0xb1, 0xe7, 0x34, 0x22, 0xc7, 0x16,
+	0x6e, 0x7e, 0x5b, 0x85, 0xbc, 0xe9, 0x8e, 0x3e, 0x38, 0x50, 0xfc, 0xed, 0x95, 0xd1, 0x61, 0x66,
+	0xf0, 0xbf, 0x2c, 0x4c, 0xa5, 0x71, 0x03, 0x45, 0x9a, 0xce, 0xdb, 0x7b, 0xfb, 0xe5, 0xc7, 0xfb,
+	0x95, 0x2a, 0xba, 0x1d, 0x64, 0x6e, 0xeb, 0xcc, 0xc7, 0x1b, 0x07, 0x0a, 0xe9, 0xb8, 0xd1, 0xfe,
+	0xf2, 0x06, 0xd7, 0xde, 0xb6, 0x72, 0xf0, 0x6f, 0xa2, 0x35, 0x70, 0xd7, 0x18, 0xa8, 0xa1, 0x6a,
+	0xb0, 0xfc, 0x73, 0x41, 0x1f, 0x1d, 0x28, 0xfd, 0xf1, 0x42, 0xa8, 0xb9, 0xbc, 0xc9, 0xb2, 0x3d,
+	0xa8, 0xb4, 0x6e, 0xa4, 0xb1, 0x1e, 0x8f, 0x8c, 0xc7, 0x26, 0x3a, 0xcc, 0xf4, 0xd8, 0xfd, 0xa5,
+	0xab, 0x2b, 0x23, 0x0c, 0x2e, 0xd2, 0xed, 0x7a, 0xfd, 0xb0, 0xfd, 0x79, 0xe2, 0x3a, 0x97, 0x13,
+	0xd7, 0xf9, 0x3e, 0x71, 0x9d, 0x77, 0x53, 0x37, 0x77, 0x39, 0x75, 0x73, 0x5f, 0xa7, 0x6e, 0xee,
+	0xe5, 0x51, 0x9f, 0xea, 0x41, 0xd2, 0xf1, 0xbb, 0x22, 0xb2, 0xb7, 0xd6, 0x39, 0xd1, 0x23, 0xa1,
+	0xce, 0xe6, 0xc7, 0xee, 0x00, 0x53, 0x1e, 0xbc, 0xba, 0xd2, 0x4c, 0x8f, 0x25, 0x89, 0x3b, 0x05,
+	0xf3, 0xf3, 0x68, 0xfd, 0x0c, 0x00, 0x00, 0xff, 0xff, 0x3f, 0x7a, 0x67, 0xed, 0xb4, 0x04, 0x00,
+	0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -274,6 +381,7 @@ const _ = grpc.SupportPackageIsVersion4
 type QueryClient interface {
 	GetEmissionPool(ctx context.Context, in *QueryGetEmissionPoolRequest, opts ...grpc.CallOption) (*QueryGetEmissionPoolResponse, error)
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
+	ContributorReward(ctx context.Context, in *QueryContributorRewardRequest, opts ...grpc.CallOption) (*QueryContributorRewardResponse, error)
 }
 
 type queryClient struct {
@@ -302,10 +410,20 @@ func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts .
 	return out, nil
 }
 
+func (c *queryClient) ContributorReward(ctx context.Context, in *QueryContributorRewardRequest, opts ...grpc.CallOption) (*QueryContributorRewardResponse, error) {
+	out := new(QueryContributorRewardResponse)
+	err := c.cc.Invoke(ctx, "/wevibe.emissions.v1.Query/ContributorReward", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // QueryServer is the server API for Query service.
 type QueryServer interface {
 	GetEmissionPool(context.Context, *QueryGetEmissionPoolRequest) (*QueryGetEmissionPoolResponse, error)
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
+	ContributorReward(context.Context, *QueryContributorRewardRequest) (*QueryContributorRewardResponse, error)
 }
 
 // UnimplementedQueryServer can be embedded to have forward compatible implementations.
@@ -317,6 +435,9 @@ func (*UnimplementedQueryServer) GetEmissionPool(ctx context.Context, req *Query
 }
 func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsRequest) (*QueryParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Params not implemented")
+}
+func (*UnimplementedQueryServer) ContributorReward(ctx context.Context, req *QueryContributorRewardRequest) (*QueryContributorRewardResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ContributorReward not implemented")
 }
 
 func RegisterQueryServer(s grpc1.Server, srv QueryServer) {
@@ -359,6 +480,24 @@ func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interf
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_ContributorReward_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryContributorRewardRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).ContributorReward(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wevibe.emissions.v1.Query/ContributorReward",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).ContributorReward(ctx, req.(*QueryContributorRewardRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var Query_serviceDesc = _Query_serviceDesc
 var _Query_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "wevibe.emissions.v1.Query",
@@ -371,6 +510,10 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "Params",
 			Handler:    _Query_Params_Handler,
+		},
+		{
+			MethodName: "ContributorReward",
+			Handler:    _Query_ContributorReward_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
@@ -506,6 +649,69 @@ func (m *QueryParamsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryContributorRewardRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryContributorRewardRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryContributorRewardRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Pubkey) > 0 {
+		i -= len(m.Pubkey)
+		copy(dAtA[i:], m.Pubkey)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.Pubkey)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryContributorRewardResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryContributorRewardResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryContributorRewardResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.AllTimeEarnings != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.AllTimeEarnings))
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.PendingWithdrawal != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.PendingWithdrawal))
+		i--
+		dAtA[i] = 0x8
+	}
+	return len(dAtA) - i, nil
+}
+
 func encodeVarintQuery(dAtA []byte, offset int, v uint64) int {
 	offset -= sovQuery(v)
 	base := offset
@@ -568,6 +774,34 @@ func (m *QueryParamsResponse) Size() (n int) {
 	if m.Params != nil {
 		l = m.Params.Size()
 		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryContributorRewardRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Pubkey)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryContributorRewardResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.PendingWithdrawal != 0 {
+		n += 1 + sovQuery(uint64(m.PendingWithdrawal))
+	}
+	if m.AllTimeEarnings != 0 {
+		n += 1 + sovQuery(uint64(m.AllTimeEarnings))
 	}
 	return n
 }
@@ -888,6 +1122,176 @@ func (m *QueryParamsResponse) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryContributorRewardRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryContributorRewardRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryContributorRewardRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Pubkey", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Pubkey = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryContributorRewardResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryContributorRewardResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryContributorRewardResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PendingWithdrawal", wireType)
+			}
+			m.PendingWithdrawal = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.PendingWithdrawal |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field AllTimeEarnings", wireType)
+			}
+			m.AllTimeEarnings = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.AllTimeEarnings |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])

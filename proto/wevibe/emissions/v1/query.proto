@@ -13,6 +13,9 @@ service Query {
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
     option (google.api.http).get = "/wevibe/emissions/v1/params";
   }
+  rpc ContributorReward(QueryContributorRewardRequest) returns (QueryContributorRewardResponse) {
+    option (google.api.http).get = "/wevibe/emissions/v1/contributor-reward/{pubkey}";
+  }
 }
 
 message QueryGetEmissionPoolRequest {}
@@ -29,4 +32,13 @@ message QueryParamsRequest {}
 
 message QueryParamsResponse {
   Params params = 1;
+}
+
+message QueryContributorRewardRequest {
+  string pubkey = 1;
+}
+
+message QueryContributorRewardResponse {
+  uint64 pending_withdrawal = 1;
+  uint64 all_time_earnings = 2;
 }

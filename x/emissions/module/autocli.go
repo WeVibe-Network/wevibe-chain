@@ -15,6 +15,14 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					Short:     "Query emission pool state",
 				},
 				{
+					RpcMethod: "ContributorReward",
+					Use:       "contributor-reward [pubkey]",
+					Short:     "Query contributor pending withdrawal and all-time earnings",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "pubkey"},
+					},
+				},
+				{
 					RpcMethod: "Params",
 					Use:       "params",
 					Short:     "Query emissions module params",
