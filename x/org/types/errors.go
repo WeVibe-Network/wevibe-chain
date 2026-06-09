@@ -11,6 +11,7 @@ var (
 	ErrOrgNotFound              = errors.New("org not found")
 	ErrMemberNotFound           = errors.New("member not found")
 	ErrMemberExists             = errors.New("member already exists")
+	ErrCannotRemoveLeader       = errors.New("cannot remove org leader")
 	ErrNotLeader                = errors.New("caller is not the org leader")
 	ErrInvalidRole              = errors.New("invalid role")
 	ErrInvalidHubEndpoints      = errors.New("invalid hub endpoints")

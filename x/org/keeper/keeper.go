@@ -236,7 +236,10 @@ func (k *Keeper) RegisterOrg(ctx context.Context, org *types.Org, creator sdk.Ac
 		}
 	}
 
-	bz, err := proto.Marshal(orgToStored(org))
+	storedOrg := orgToStored(org)
+	storedOrg.TotalActiveMembers = 1
+
+	bz, err := proto.Marshal(storedOrg)
 	if err != nil {
 		return fmt.Errorf("marshal org: %w", err)
 	}
@@ -309,6 +312,23 @@ func (k *Keeper) AddMember(ctx context.Context, member *types.MemberRecord) erro
 	}
 
 	store := k.getStore(ctx)
+	orgStorageKey := orgKey(member.OrgID)
+	orgBz, err := store.Get(orgStorageKey)
+	if err != nil {
+		return err
+	}
+	if orgBz == nil {
+		return types.ErrOrgNotFound
+	}
+
+	var orgStored types.StoredOrg
+	if err := proto.Unmarshal(orgBz, &orgStored); err != nil {
+		return fmt.Errorf("unmarshal org: %w", err)
+	}
+	if types.OrgStatus(orgStored.Status) != types.OrgStatus_ACTIVE {
+		return types.ErrOrgNotActive
+	}
+
 	key := memberKey(member.OrgID, member.Pubkey)
 
 	has, err := store.Has(key)
@@ -327,6 +347,16 @@ func (k *Keeper) AddMember(ctx context.Context, member *types.MemberRecord) erro
 	if err := store.Set(key, bz); err != nil {
 		return err
 	}
+
+	orgStored.TotalActiveMembers++
+	orgBz, err = proto.Marshal(&orgStored)
+	if err != nil {
+		return fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(orgStorageKey, orgBz); err != nil {
+		return err
+	}
+
 	k.logger.Info("member added",
 		"org_id", member.OrgID,
 		"member", member.Pubkey,
@@ -339,17 +369,54 @@ func (k *Keeper) RemoveMember(ctx context.Context, orgID, memberPubkey string) e
 	store := k.getStore(ctx)
 	key := memberKey(orgID, memberPubkey)
 
-	has, err := store.Has(key)
+	memberBz, err := store.Get(key)
 	if err != nil {
 		return err
 	}
-	if !has {
+	if memberBz == nil {
 		return types.ErrMemberNotFound
+	}
+
+	var memberStored types.StoredMemberRecord
+	if err := proto.Unmarshal(memberBz, &memberStored); err != nil {
+		return fmt.Errorf("unmarshal member: %w", err)
+	}
+	if memberStored.Role == "leader" {
+		return types.ErrCannotRemoveLeader
+	}
+
+	orgStorageKey := orgKey(orgID)
+	orgBz, err := store.Get(orgStorageKey)
+	if err != nil {
+		return err
+	}
+	if orgBz == nil {
+		return types.ErrOrgNotFound
+	}
+
+	var orgStored types.StoredOrg
+	if err := proto.Unmarshal(orgBz, &orgStored); err != nil {
+		return fmt.Errorf("unmarshal org: %w", err)
+	}
+	if types.OrgStatus(orgStored.Status) != types.OrgStatus_ACTIVE {
+		return types.ErrOrgNotActive
 	}
 
 	if err := store.Delete(key); err != nil {
 		return err
 	}
+
+	if orgStored.TotalActiveMembers > 0 {
+		orgStored.TotalActiveMembers--
+	}
+	orgBz, err = proto.Marshal(&orgStored)
+	if err != nil {
+		return fmt.Errorf("marshal org: %w", err)
+	}
+	if err := store.Set(orgStorageKey, orgBz); err != nil {
+		return err
+	}
+
 	k.logger.Info("member removed",
 		"org_id", orgID,
 		"member", memberPubkey,
@@ -549,6 +616,9 @@ func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, s
 	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
 		return types.ErrNotLeader
 	}
+	if org.Status != types.OrgStatus_ACTIVE {
+		return types.ErrOrgNotActive
+	}
 
 	member, err := k.GetMember(ctx, orgID, pubkey)
 	if err != nil {
@@ -621,7 +691,15 @@ func (k *Keeper) RotateEpoch(ctx context.Context, orgID, signer string) (uint64,
 	return stored.TotalEpochRotations, nil
 }
 
-func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signer string) error {
+func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, newLeaderWallet, signer string) error {
+	if newLeaderWallet == "" {
+		return fmt.Errorf("new_leader_wallet cannot be empty")
+	}
+
+	if _, err := sdk.AccAddressFromBech32(newLeaderWallet); err != nil {
+		return fmt.Errorf("invalid new_leader_wallet: %w", err)
+	}
+
 	org, err := k.GetOrg(ctx, orgID)
 	if err != nil {
 		return err
@@ -684,6 +762,7 @@ func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signe
 		return fmt.Errorf("unmarshal org: %w", err)
 	}
 	orgStored.Leader = newLeader
+	orgStored.LeaderWalletAddress = newLeaderWallet
 	orgBz, err = proto.Marshal(&orgStored)
 	if err != nil {
 		return fmt.Errorf("marshal org: %w", err)
@@ -699,7 +778,7 @@ func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, signe
 	// signer == current LeaderWalletAddress, and this feegrant is scoped only to
 	// org-purpose message type URLs.
 
-	if err := k.grantLeaderFeegrant(ctx, orgAccountAddr, newLeader); err != nil {
+	if err := k.grantLeaderFeegrant(ctx, orgAccountAddr, newLeaderWallet); err != nil {
 		return err
 	}
 

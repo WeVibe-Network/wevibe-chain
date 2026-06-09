@@ -91,6 +91,12 @@ func TestMsgAddMember_ValidateBasic(t *testing.T) {
 		m.Role = ""
 		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidRole)
 	})
+
+	t.Run("invalid role", func(t *testing.T) {
+		m := *valid
+		m.Role = "leader"
+		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidRole)
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -305,9 +311,10 @@ func TestMsgRotateEpoch_ValidateBasic(t *testing.T) {
 
 func TestMsgTransferLeadership_ValidateBasic(t *testing.T) {
 	valid := &types.MsgTransferLeadership{
-		Signer:    "cosmos1signer",
-		OrgId:     "org1",
-		NewLeader: "cosmos1newleader",
+		Signer:          "cosmos1signer",
+		OrgId:           "org1",
+		NewLeader:       "cosmos1newleader",
+		NewLeaderWallet: "cosmos1gsank9k6ygfnx376cuhw8zp9p8ssnyez44dtmh",
 	}
 	require.NoError(t, valid.ValidateBasic())
 
@@ -326,6 +333,18 @@ func TestMsgTransferLeadership_ValidateBasic(t *testing.T) {
 	t.Run("empty new leader", func(t *testing.T) {
 		m := *valid
 		m.NewLeader = ""
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("empty new leader wallet", func(t *testing.T) {
+		m := *valid
+		m.NewLeaderWallet = ""
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("invalid new leader wallet", func(t *testing.T) {
+		m := *valid
+		m.NewLeaderWallet = "not-a-bech32-address"
 		require.Error(t, m.ValidateBasic())
 	})
 

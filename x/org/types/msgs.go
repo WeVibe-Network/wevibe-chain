@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+
+	sdk "github.com/cosmos/cosmos-sdk/types"
 )
 
 func (m *MsgRegisterOrg) ValidateBasic() error {
@@ -90,7 +92,7 @@ func (m *MsgAddMember) ValidateBasic() error {
 	if m.Pubkey == "" {
 		return fmt.Errorf("pubkey cannot be empty")
 	}
-	if m.Role == "" {
+	if m.Role != "member" && m.Role != "moderator" && m.Role != "contributor" {
 		return ErrInvalidRole
 	}
 	return nil
@@ -183,6 +185,12 @@ func (m *MsgTransferLeadership) ValidateBasic() error {
 	}
 	if m.NewLeader == "" {
 		return fmt.Errorf("new_leader cannot be empty")
+	}
+	if m.NewLeaderWallet == "" {
+		return fmt.Errorf("new_leader_wallet cannot be empty")
+	}
+	if _, err := sdk.AccAddressFromBech32(m.NewLeaderWallet); err != nil {
+		return fmt.Errorf("invalid new_leader_wallet: %w", err)
 	}
 	if m.Signer == m.NewLeader {
 		return fmt.Errorf("signer cannot transfer leadership to self")

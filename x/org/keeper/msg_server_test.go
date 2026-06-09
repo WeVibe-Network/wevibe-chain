@@ -621,9 +621,10 @@ func TestMsgTransferLeadership_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	msg := &types.MsgTransferLeadership{
-		Signer:    validLeader,
-		OrgId:     orgID,
-		NewLeader: validMember,
+		Signer:          validLeader,
+		OrgId:           orgID,
+		NewLeader:       validMember,
+		NewLeaderWallet: validMember,
 	}
 
 	resp, err := srv.TransferLeadership(ctx, msg)
@@ -637,9 +638,10 @@ func TestMsgTransferLeadership_NotLeader(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
 	msg := &types.MsgTransferLeadership{
-		Signer:    validSigner,
-		OrgId:     orgID,
-		NewLeader: validMember,
+		Signer:          validSigner,
+		OrgId:           orgID,
+		NewLeader:       validMember,
+		NewLeaderWallet: validMember,
 	}
 
 	_, err := srv.TransferLeadership(ctx, msg)
@@ -652,9 +654,10 @@ func TestMsgTransferLeadership_NewLeaderNotMember(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
 	msg := &types.MsgTransferLeadership{
-		Signer:    validLeader,
-		OrgId:     orgID,
-		NewLeader: validMember,
+		Signer:          validLeader,
+		OrgId:           orgID,
+		NewLeader:       validMember,
+		NewLeaderWallet: validMember,
 	}
 
 	_, err := srv.TransferLeadership(ctx, msg)
@@ -675,9 +678,10 @@ func TestMsgTransferLeadership_SelfTransfer(t *testing.T) {
 	orgID := orgResp.OrgId
 
 	msg := &types.MsgTransferLeadership{
-		Signer:    validLeader,
-		OrgId:     orgID,
-		NewLeader: validLeader,
+		Signer:          validLeader,
+		OrgId:           orgID,
+		NewLeader:       validLeader,
+		NewLeaderWallet: validLeader,
 	}
 
 	err = msg.ValidateBasic()

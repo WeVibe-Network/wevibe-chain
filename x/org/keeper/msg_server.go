@@ -69,6 +69,9 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 	if org.LeaderWalletAddress == "" || msg.Signer != org.LeaderWalletAddress {
 		return nil, types.ErrNotLeader
 	}
+	if org.Status != types.OrgStatus_ACTIVE {
+		return nil, types.ErrOrgNotActive
+	}
 
 	if msg.Role == "leader" {
 		return nil, types.ErrInvalidRole
@@ -78,6 +81,14 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 	if err := m.keeper.AddMember(ctx, member); err != nil {
 		return nil, err
 	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeMemberAdded,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeyMemberPubkey, msg.Pubkey),
+		sdk.NewAttribute(types.AttributeKeyRole, msg.Role),
+	))
 
 	return &types.MsgAddMemberResponse{}, nil
 }
@@ -291,6 +302,14 @@ func (m *msgServer) UpdateMemberRole(ctx context.Context, msg *types.MsgUpdateMe
 		return nil, err
 	}
 
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeMemberRoleUpdated,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeyMemberPubkey, msg.Pubkey),
+		sdk.NewAttribute(types.AttributeKeyRole, msg.NewRole),
+	))
+
 	return &types.MsgUpdateMemberRoleResponse{}, nil
 }
 
@@ -328,9 +347,22 @@ func (m *msgServer) TransferLeadership(ctx context.Context, msg *types.MsgTransf
 		return nil, types.ErrOrgNotFound
 	}
 
-	if err := m.keeper.TransferLeadership(ctx, msg.OrgId, msg.NewLeader, msg.Signer); err != nil {
+	org, err := m.keeper.GetOrg(ctx, msg.OrgId)
+	if err != nil {
 		return nil, err
 	}
+
+	if err := m.keeper.TransferLeadership(ctx, msg.OrgId, msg.NewLeader, msg.NewLeaderWallet, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeLeadershipTransferred,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeyOldLeader, org.Leader),
+		sdk.NewAttribute(types.AttributeKeyNewLeader, msg.NewLeader),
+	))
 
 	return &types.MsgTransferLeadershipResponse{}, nil
 }
@@ -351,6 +383,12 @@ func (m *msgServer) CloseOrg(ctx context.Context, msg *types.MsgCloseOrg) (*type
 	if err := m.keeper.CloseOrg(ctx, msg.OrgId, msg.Signer); err != nil {
 		return nil, err
 	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeOrgClosed,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+	))
 
 	return &types.MsgCloseOrgResponse{}, nil
 }

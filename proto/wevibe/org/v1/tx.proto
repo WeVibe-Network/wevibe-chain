@@ -133,6 +133,7 @@ message MsgTransferLeadership {
   string signer = 1;
   string org_id = 2;
   string new_leader = 3;
+  string new_leader_wallet = 4;
 }
 message MsgTransferLeadershipResponse {}
 
