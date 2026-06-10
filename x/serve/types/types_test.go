@@ -16,20 +16,29 @@ func hash32(b byte) []byte {
 	return h
 }
 
-func nullifier32(b byte) []byte {
-	n := make([]byte, types.NullifierLen)
+func fingerprint32(b byte) []byte {
+	n := make([]byte, types.FingerprintLen)
 	for i := range n {
 		n[i] = b
 	}
 	return n
 }
 
+func sig64(b byte) []byte {
+	s := make([]byte, types.ServeSigLen)
+	for i := range s {
+		s[i] = b
+	}
+	return s
+}
+
 func validServeEntry() *types.ServeEntry {
 	return &types.ServeEntry{
 		MemoryContentHash: hash32(0x01),
-		ServeKey:          "serve-key",
+		ServeKeyPubkey:    hash32(0x10),
+		ServeSig:          sig64(0x20),
 		ContributorId:     "contrib",
-		Nullifier:         nullifier32(0x01),
+		Nonce:             []byte{0x01},
 		MatchedKeywords:   []string{"alpha"},
 	}
 }
@@ -51,9 +60,9 @@ func TestMsgSubmitServeBatch_ValidateBasic(t *testing.T) {
 		{"empty org", func(m *types.MsgSubmitServeBatch) { m.OrgId = "" }},
 		{"empty batch", func(m *types.MsgSubmitServeBatch) { m.Serves = nil }},
 		{"short hash", func(m *types.MsgSubmitServeBatch) { m.Serves[0].MemoryContentHash = []byte{1, 2} }},
-		{"empty serve key", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeKey = "" }},
+		{"short serve pubkey", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeKeyPubkey = []byte{1} }},
+		{"short serve signature", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeSig = []byte{1} }},
 		{"empty contributor", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ContributorId = "" }},
-		{"short nullifier", func(m *types.MsgSubmitServeBatch) { m.Serves[0].Nullifier = []byte{1} }},
 		{"nil matched keywords", func(m *types.MsgSubmitServeBatch) { m.Serves[0].MatchedKeywords = nil }},
 		{"empty keyword string", func(m *types.MsgSubmitServeBatch) { m.Serves[0].MatchedKeywords = []string{""} }},
 	}
@@ -73,7 +82,12 @@ func TestMsgSubmitDenialBatch_ValidateBasic(t *testing.T) {
 	valid := func() *types.MsgSubmitDenialBatch {
 		return &types.MsgSubmitDenialBatch{
 			Signer: "s", OrgId: "org", Epoch: 1,
-			Entries: []*types.DenialEntry{{MemoryHash: hash32(0x02), Nullifier: nullifier32(0x02), DenyKey: "dk"}},
+			Entries: []*types.DenialEntry{{
+				MemoryHash:       hash32(0x02),
+				ServeKeyPubkey:   hash32(0x03),
+				ServeSig:         sig64(0x04),
+				ServeFingerprint: fingerprint32(0x05),
+			}},
 		}
 	}
 	require.NoError(t, valid().ValidateBasic())
@@ -86,8 +100,9 @@ func TestMsgSubmitDenialBatch_ValidateBasic(t *testing.T) {
 		{"empty org", func(m *types.MsgSubmitDenialBatch) { m.OrgId = "" }},
 		{"empty entries", func(m *types.MsgSubmitDenialBatch) { m.Entries = nil }},
 		{"short hash", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].MemoryHash = []byte{1} }},
-		{"short nullifier", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].Nullifier = []byte{1} }},
-		{"empty deny key", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].DenyKey = "" }},
+		{"short serve pubkey", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].ServeKeyPubkey = []byte{1} }},
+		{"short serve signature", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].ServeSig = []byte{1} }},
+		{"short serve fingerprint", func(m *types.MsgSubmitDenialBatch) { m.Entries[0].ServeFingerprint = []byte{1} }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -104,13 +119,15 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 }
 
 func TestServeAttestation_Validate(t *testing.T) {
-	valid := types.NewServeAttestation("org", hash32(0x03), "sk", "c", 1, nullifier32(0x03), false, "model", 2, []string{"k"})
+	valid := types.NewServeAttestation("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2, []string{"k"})
 	require.NoError(t, valid.Validate())
 
-	require.Error(t, (&types.ServeAttestation{}).Validate())                                                  // empty org
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: []byte{1}}).Validate())                // bad hash
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1)}).Validate())                // empty serve key
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s"}).Validate()) // empty contributor
+	require.Error(t, (&types.ServeAttestation{}).Validate())                                   // empty org
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: []byte{1}}).Validate()) // bad hash
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1)}).Validate()) // empty serve key
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x31)}).Validate())
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: []byte{1}, ContributorID: "c", Fingerprint: fingerprint32(0x32)}).Validate())
+	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x33), ContributorID: "c", Fingerprint: []byte{1}}).Validate())
 }
 
 func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
@@ -122,13 +139,15 @@ func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
 }
 
 func TestServeAttestation_StoredRoundtrip(t *testing.T) {
-	sa := types.NewServeAttestation("org", hash32(0x04), "sk", "c", 7, nullifier32(0x04), true, "m", 3, []string{"x", "y"})
+	sa := types.NewServeAttestation("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3, []string{"x", "y"})
 	stored := types.ServeAttestationToStored(sa)
 	back := types.StoredToServeAttestation(*stored)
 	require.Equal(t, sa.OrgID, back.OrgID)
 	require.Equal(t, sa.ContentHash, back.ContentHash)
 	require.Equal(t, sa.IsSelfServe, back.IsSelfServe)
 	require.Equal(t, sa.MatchedKeywords, back.MatchedKeywords)
+	require.Equal(t, sa.ServeKeyPubkey, back.ServeKeyPubkey)
+	require.Equal(t, sa.Fingerprint, back.Fingerprint)
 }
 
 func TestEpochServeStats_StoredRoundtrip(t *testing.T) {
@@ -171,7 +190,7 @@ func TestContentHashToHex(t *testing.T) {
 
 func TestGenesisJSONRoundtrip(t *testing.T) {
 	gs := types.NewGenesisState(
-		[]*types.ServeAttestation{types.NewServeAttestation("org", hash32(5), "sk", "c", 1, nullifier32(5), false, "m", 1, []string{"k"})},
+		[]*types.ServeAttestation{types.NewServeAttestation("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1, []string{"k"})},
 		nil, nil, nil,
 	)
 	bz, err := gs.MarshalJSON()

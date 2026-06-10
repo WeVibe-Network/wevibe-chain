@@ -1,6 +1,10 @@
 package keeper_test
 
 import (
+	"bytes"
+	"crypto/ed25519"
+	"encoding/hex"
+	"strings"
 	"testing"
 	"time"
 
@@ -29,7 +33,7 @@ func TestMsgSubmitServeBatch_HappyPath(t *testing.T) {
 		Signer: "s",
 		OrgId:  "org-1",
 		Epoch:  1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", nullifier32(0x01))},
+		Serves: []*types.ServeEntry{serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x01))},
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), resp.Accepted)
@@ -46,13 +50,21 @@ func TestMsgSubmitServeBatch_ValidateBasicErrors(t *testing.T) {
 		name string
 		msg  *types.MsgSubmitServeBatch
 	}{
-		{"empty signer", &types.MsgSubmitServeBatch{OrgId: "org-1", Serves: []*types.ServeEntry{serveEntry(h, "k", "c", nullifier32(1))}}},
-		{"empty org", &types.MsgSubmitServeBatch{Signer: "s", Serves: []*types.ServeEntry{serveEntry(h, "k", "c", nullifier32(1))}}},
+		{"empty signer", &types.MsgSubmitServeBatch{OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{serveEntry("org-1", 1, h, "k", "c", nonce32(1))}}},
+		{"empty org", &types.MsgSubmitServeBatch{Signer: "s", Epoch: 1, Serves: []*types.ServeEntry{serveEntry("org-1", 1, h, "k", "c", nonce32(1))}}},
 		{"empty batch", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1"}},
-		{"bad hash len", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Serves: []*types.ServeEntry{serveEntry([]byte{1, 2}, "k", "c", nullifier32(1))}}},
-		{"empty serve key", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Serves: []*types.ServeEntry{serveEntry(h, "", "c", nullifier32(1))}}},
-		{"empty contributor", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Serves: []*types.ServeEntry{serveEntry(h, "k", "", nullifier32(1))}}},
-		{"bad nullifier len", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Serves: []*types.ServeEntry{serveEntry(h, "k", "c", []byte{1})}}},
+		{"bad hash len", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{serveEntry("org-1", 1, []byte{1, 2}, "k", "c", nonce32(1))}}},
+		{"empty contributor", &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{serveEntry("org-1", 1, h, "k", "", nonce32(1))}}},
+		{"bad serve pubkey len", func() *types.MsgSubmitServeBatch {
+			entry := serveEntry("org-1", 1, h, "k", "c", nonce32(1))
+			entry.ServeKeyPubkey = []byte{1}
+			return &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{entry}}
+		}()},
+		{"bad serve signature len", func() *types.MsgSubmitServeBatch {
+			entry := serveEntry("org-1", 1, h, "k", "c", nonce32(1))
+			entry.ServeSig = []byte{1}
+			return &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{entry}}
+		}()},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -66,7 +78,7 @@ func TestMsgSubmitServeBatch_EmptyMatchedKeywords(t *testing.T) {
 	env := setupKeeper(t)
 	srv := keeper.NewMsgServerImpl(env.k)
 	h := hash32(0x03)
-	bad := serveEntry(h, "k", "c", nullifier32(1))
+	bad := serveEntry("org-1", 1, h, "k", "c", nonce32(1))
 	bad.MatchedKeywords = nil
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1, Serves: []*types.ServeEntry{bad},
@@ -81,7 +93,7 @@ func TestMsgSubmitServeBatch_OrgNotFound(t *testing.T) {
 	env.mem.approve("ghost-org", h)
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "ghost-org", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "k", "c", nullifier32(0x04))},
+		Serves: []*types.ServeEntry{serveEntry("ghost-org", 1, h, "k", "c", nonce32(0x04))},
 	})
 	require.ErrorIs(t, err, types.ErrOrgNotFound)
 }
@@ -91,24 +103,27 @@ func TestMsgSubmitDenialBatch_HappyPath(t *testing.T) {
 	srv := keeper.NewMsgServerImpl(env.k)
 	h := hash32(0x05)
 	env.mem.approve("org-1", h)
-	null := nullifier32(0x05)
+	originatingServe := serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x05))
 
 	// First create an originating serve attestation (with matched keywords).
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", null)},
+		Serves: []*types.ServeEntry{originatingServe},
 	})
 	require.NoError(t, err)
+	originatingFingerprint := serveFingerprint(originatingServe, 1)
+	denial := denialEntry("org-1", 1, h, "sk", originatingFingerprint, nonce32(0x06), "bad")
 
-	// Now deny it using the same nullifier and matching memory hash.
+	// Now deny it using the originating serve fingerprint and matching memory hash.
 	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Entries: []*types.DenialEntry{{MemoryHash: h, Nullifier: null, DenyKey: "dk", Reason: "bad"}},
+		Entries: []*types.DenialEntry{denial},
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), resp.Accepted)
 	require.Equal(t, uint64(0), resp.Rejected)
-	require.True(t, env.k.HasDenialNullifier(env.ctx, null))
+	denialFingerprint := types.ComputeDenialFingerprint("org-1", h, 1, denial.ServeKeyPubkey, denial.ServeFingerprint)
+	require.True(t, env.k.HasDenialFingerprint(env.ctx, denialFingerprint))
 	require.Equal(t, uint64(1), env.k.GetMemoryDenialCount(env.ctx, "org-1", h, 1))
 	require.Equal(t, 1, env.mem.decayCalls)
 }
@@ -124,17 +139,17 @@ func TestEpochTrafficStats_AggregatesServesAndDenialsByOrgEpoch(t *testing.T) {
 	env.mem.approve("org-1", h1)
 	env.mem.approve("org-2", h2)
 
-	null1 := nullifier32(0x21)
-	null2 := nullifier32(0x22)
-	null3 := nullifier32(0x23)
+	serve1 := serveEntry("org-1", 7, h1, "sk-1", "c1", nonce32(0x21))
+	serve2 := serveEntry("org-1", 7, h1, "sk-2", "c2", nonce32(0x22))
+	serve3 := serveEntry("org-2", 7, h2, "sk-3", "c3", nonce32(0x23))
 
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s",
 		OrgId:  "org-1",
 		Epoch:  7,
 		Serves: []*types.ServeEntry{
-			serveEntry(h1, "sk-1", "c1", null1),
-			serveEntry(h1, "sk-2", "c2", null2),
+			serve1,
+			serve2,
 		},
 	})
 	require.NoError(t, err)
@@ -143,17 +158,20 @@ func TestEpochTrafficStats_AggregatesServesAndDenialsByOrgEpoch(t *testing.T) {
 		Signer: "s",
 		OrgId:  "org-2",
 		Epoch:  7,
-		Serves: []*types.ServeEntry{serveEntry(h2, "sk-3", "c3", null3)},
+		Serves: []*types.ServeEntry{serve3},
 	})
 	require.NoError(t, err)
+
+	denial1 := denialEntry("org-1", 7, h1, "sk-1", serveFingerprint(serve1, 7), nonce32(0x24), "bad")
+	denial2 := denialEntry("org-1", 7, h1, "sk-2", serveFingerprint(serve2, 7), nonce32(0x25), "bad")
 
 	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s",
 		OrgId:  "org-1",
 		Epoch:  7,
 		Entries: []*types.DenialEntry{
-			{MemoryHash: h1, Nullifier: null1, DenyKey: "dk-1", Reason: "bad"},
-			{MemoryHash: h1, Nullifier: null2, DenyKey: "dk-2", Reason: "bad"},
+			denial1,
+			denial2,
 		},
 	})
 	require.NoError(t, err)
@@ -170,15 +188,16 @@ func TestEpochTrafficStats_AggregatesServesAndDenialsByOrgEpoch(t *testing.T) {
 	require.Equal(t, uint64(0), denialsOrg2)
 }
 
-func TestMsgSubmitDenialBatch_RejectsUnknownNullifier(t *testing.T) {
+func TestMsgSubmitDenialBatch_RejectsUnknownServeFingerprint(t *testing.T) {
 	env := setupKeeper(t)
 	srv := keeper.NewMsgServerImpl(env.k)
 	h := hash32(0x06)
 	env.mem.approve("org-1", h)
+	unknown := denialEntry("org-1", 1, h, "dk", hash32(0xAB), nonce32(0xAB), "bad")
 
 	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Entries: []*types.DenialEntry{{MemoryHash: h, Nullifier: nullifier32(0xAB), DenyKey: "dk"}},
+		Entries: []*types.DenialEntry{unknown},
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), resp.Accepted)
@@ -192,18 +211,20 @@ func TestMsgSubmitDenialBatch_RejectsMismatchedMemoryHash(t *testing.T) {
 	other := hash32(0x08)
 	env.mem.approve("org-1", h)
 	env.mem.approve("org-1", other)
-	null := nullifier32(0x07)
+	originatingServe := serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x07))
 
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", null)},
+		Serves: []*types.ServeEntry{originatingServe},
 	})
 	require.NoError(t, err)
+
+	denial := denialEntry("org-1", 1, other, "sk", serveFingerprint(originatingServe, 1), nonce32(0x08), "bad")
 
 	// Deny with a different memory hash than the originating attestation.
 	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Entries: []*types.DenialEntry{{MemoryHash: other, Nullifier: null, DenyKey: "dk"}},
+		Entries: []*types.DenialEntry{denial},
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), resp.Accepted)
@@ -215,22 +236,22 @@ func TestMsgSubmitDenialBatch_DuplicateDenialRejected(t *testing.T) {
 	srv := keeper.NewMsgServerImpl(env.k)
 	h := hash32(0x09)
 	env.mem.approve("org-1", h)
-	null := nullifier32(0x09)
+	originatingServe := serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x09))
 
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", null)},
+		Serves: []*types.ServeEntry{originatingServe},
 	})
 	require.NoError(t, err)
 
-	entry := &types.DenialEntry{MemoryHash: h, Nullifier: null, DenyKey: "dk"}
+	entry := denialEntry("org-1", 1, h, "sk", serveFingerprint(originatingServe, 1), nonce32(0x0A), "bad")
 	r1, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1, Entries: []*types.DenialEntry{entry},
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), r1.Accepted)
 
-	// Second denial with same nullifier is rejected as duplicate.
+	// Second denial with same denial fingerprint is rejected as duplicate.
 	r2, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1, Entries: []*types.DenialEntry{entry},
 	})
@@ -244,7 +265,7 @@ func TestMsgSubmitDenialBatch_OrgNotFound(t *testing.T) {
 	srv := keeper.NewMsgServerImpl(env.k)
 	_, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "ghost", Epoch: 1,
-		Entries: []*types.DenialEntry{{MemoryHash: hash32(1), Nullifier: nullifier32(1), DenyKey: "dk"}},
+		Entries: []*types.DenialEntry{denialEntry("ghost", 1, hash32(1), "dk", hash32(1), nonce32(1), "bad")},
 	})
 	require.ErrorIs(t, err, types.ErrOrgNotFound)
 }
@@ -293,7 +314,7 @@ func TestMsgSubmitServeBatch_RejectsNonServingSigner(t *testing.T) {
 		Signer: "attacker",
 		OrgId:  "org-1",
 		Epoch:  1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", nullifier32(0x31))},
+		Serves: []*types.ServeEntry{serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x31))},
 	})
 	require.ErrorIs(t, err, types.ErrUnauthorized)
 }
@@ -303,19 +324,21 @@ func TestMsgSubmitDenialBatch_RejectsNonServingSigner(t *testing.T) {
 	srv := keeper.NewMsgServerImpl(env.k)
 	h := hash32(0x32)
 	env.mem.approve("org-1", h)
-	null := nullifier32(0x32)
+	originatingServe := serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x32))
 
 	// Legit serve by the serving key.
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", null)},
+		Serves: []*types.ServeEntry{originatingServe},
 	})
 	require.NoError(t, err)
+
+	denial := denialEntry("org-1", 1, h, "sk", serveFingerprint(originatingServe, 1), nonce32(0x33), "bad")
 
 	// Attacker (non-serving key) attempts a denial → rejected before processing.
 	_, err = srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "attacker", OrgId: "org-1", Epoch: 1,
-		Entries: []*types.DenialEntry{{MemoryHash: h, Nullifier: null, DenyKey: "dk", Reason: "bad"}},
+		Entries: []*types.DenialEntry{denial},
 	})
 	require.ErrorIs(t, err, types.ErrUnauthorized)
 }
@@ -330,7 +353,170 @@ func TestMsgSubmitServeBatch_RejectsWhenNoServingKeyRegistered(t *testing.T) {
 
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-3", Epoch: 1,
-		Serves: []*types.ServeEntry{serveEntry(h, "sk", "c1", nullifier32(0x33))},
+		Serves: []*types.ServeEntry{serveEntry("org-3", 1, h, "sk", "c1", nonce32(0x33))},
 	})
 	require.ErrorIs(t, err, types.ErrUnauthorized)
+}
+
+func TestSubmitServeBatch_FixedSignedVectorRejectsTampered(t *testing.T) {
+	env := setupKeeper(t)
+	srv := keeper.NewMsgServerImpl(env.k)
+
+	orgID := "org-test"
+	epoch := uint64(7)
+	hash := make([]byte, 32)
+	for i := range hash {
+		hash[i] = byte(i + 1)
+	}
+	env.org.orgs[orgID] = true
+	env.org.setServing(orgID, "s")
+	env.mem.approve(orgID, hash)
+
+	seed := bytes.Repeat([]byte{0x01}, 32)
+	priv := ed25519.NewKeyFromSeed(seed)
+	pub := priv.Public().(ed25519.PublicKey)
+	nonce := []byte{0xDE, 0xAD, 0xBE, 0xEF}
+	matchedKeywords := []string{"beta", "alpha"} // intentional out-of-order input
+
+	body := types.CanonicalServeBody(orgID, hash, epoch, pub, matchedKeywords, nonce)
+	sig := ed25519.Sign(priv, body)
+	require.True(t, ed25519.Verify(pub, body, sig))
+	fingerprint := types.ComputeServeFingerprint(hash, pub, epoch)
+	t.Logf("serve_vector seed=%s pubkey=%s body=%s sig=%s fingerprint=%s",
+		hex.EncodeToString(seed),
+		hex.EncodeToString(pub),
+		strings.ReplaceAll(string(body), "\n", "\\n"),
+		hex.EncodeToString(sig),
+		hex.EncodeToString(fingerprint),
+	)
+
+	validEntry := &types.ServeEntry{
+		MemoryContentHash: hash,
+		ServeKeyPubkey:    pub,
+		ServeSig:          sig,
+		ContributorId:     "contrib-1",
+		ModelId:           "qwen3:4b",
+		TurnCount:         2,
+		ContributorWallet: "wallet-1",
+		MatchedKeywords:   matchedKeywords,
+		Nonce:             nonce,
+	}
+
+	resp, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
+		Signer: "s", OrgId: orgID, Epoch: epoch, Serves: []*types.ServeEntry{validEntry},
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), resp.Accepted)
+	require.Equal(t, uint64(0), resp.RejectedDuplicate)
+	require.Equal(t, uint64(0), resp.RejectedInvalid)
+	require.True(t, env.k.HasServeFingerprint(env.ctx, fingerprint))
+
+	tamperedSig := append([]byte(nil), sig...)
+	tamperedSig[0] ^= 0xFF
+	require.False(t, ed25519.Verify(pub, body, tamperedSig))
+	tamperedEntry := &types.ServeEntry{
+		MemoryContentHash: hash,
+		ServeKeyPubkey:    pub,
+		ServeSig:          tamperedSig,
+		ContributorId:     "contrib-1",
+		ModelId:           "qwen3:4b",
+		TurnCount:         2,
+		ContributorWallet: "wallet-1",
+		MatchedKeywords:   matchedKeywords,
+		Nonce:             nonce,
+	}
+
+	tamperedResp, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
+		Signer: "s", OrgId: orgID, Epoch: epoch, Serves: []*types.ServeEntry{tamperedEntry},
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), tamperedResp.Accepted)
+	require.Equal(t, uint64(0), tamperedResp.RejectedDuplicate)
+	require.Equal(t, uint64(1), tamperedResp.RejectedInvalid)
+}
+
+func TestSubmitDenialBatch_FixedSignedVector(t *testing.T) {
+	env := setupKeeper(t)
+	srv := keeper.NewMsgServerImpl(env.k)
+
+	orgID := "org-test"
+	epoch := uint64(7)
+	hash := make([]byte, 32)
+	for i := range hash {
+		hash[i] = byte(i + 1)
+	}
+	env.org.orgs[orgID] = true
+	env.org.setServing(orgID, "s")
+	env.mem.approve(orgID, hash)
+
+	seed := bytes.Repeat([]byte{0x01}, 32)
+	priv := ed25519.NewKeyFromSeed(seed)
+	pub := priv.Public().(ed25519.PublicKey)
+	serveNonce := []byte{0xDE, 0xAD, 0xBE, 0xEF}
+	serveKeywords := []string{"beta", "alpha"}
+	serveBody := types.CanonicalServeBody(orgID, hash, epoch, pub, serveKeywords, serveNonce)
+	serveSig := ed25519.Sign(priv, serveBody)
+	originatingServe := &types.ServeEntry{
+		MemoryContentHash: hash,
+		ServeKeyPubkey:    pub,
+		ServeSig:          serveSig,
+		ContributorId:     "contrib-1",
+		ModelId:           "qwen3:4b",
+		TurnCount:         2,
+		ContributorWallet: "wallet-1",
+		MatchedKeywords:   serveKeywords,
+		Nonce:             serveNonce,
+	}
+	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
+		Signer: "s", OrgId: orgID, Epoch: epoch, Serves: []*types.ServeEntry{originatingServe},
+	})
+	require.NoError(t, err)
+	serveFingerprint := types.ComputeServeFingerprint(hash, pub, epoch)
+
+	denialNonce := []byte{0xCA, 0xFE, 0xBA, 0xBE}
+	denialBody := types.CanonicalDenialBody(orgID, hash, epoch, pub, serveFingerprint, denialNonce)
+	denialSig := ed25519.Sign(priv, denialBody)
+	require.True(t, ed25519.Verify(pub, denialBody, denialSig))
+	denialFingerprint := types.ComputeDenialFingerprint(orgID, hash, epoch, pub, serveFingerprint)
+	t.Logf("denial_vector seed=%s pubkey=%s body=%s sig=%s fingerprint=%s serve_fingerprint=%s",
+		hex.EncodeToString(seed),
+		hex.EncodeToString(pub),
+		strings.ReplaceAll(string(denialBody), "\n", "\\n"),
+		hex.EncodeToString(denialSig),
+		hex.EncodeToString(denialFingerprint),
+		hex.EncodeToString(serveFingerprint),
+	)
+
+	entry := &types.DenialEntry{
+		MemoryHash:       hash,
+		Reason:           "bad",
+		ServeKeyPubkey:   pub,
+		ServeSig:         denialSig,
+		ServeFingerprint: serveFingerprint,
+		Nonce:            denialNonce,
+	}
+	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
+		Signer: "s", OrgId: orgID, Epoch: epoch, Entries: []*types.DenialEntry{entry},
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), resp.Accepted)
+	require.Equal(t, uint64(0), resp.Rejected)
+
+	tamperedSig := append([]byte(nil), denialSig...)
+	tamperedSig[0] ^= 0xFF
+	require.False(t, ed25519.Verify(pub, denialBody, tamperedSig))
+	tampered := &types.DenialEntry{
+		MemoryHash:       hash,
+		Reason:           "bad",
+		ServeKeyPubkey:   pub,
+		ServeSig:         tamperedSig,
+		ServeFingerprint: serveFingerprint,
+		Nonce:            denialNonce,
+	}
+	tamperedResp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
+		Signer: "s", OrgId: orgID, Epoch: epoch, Entries: []*types.DenialEntry{tampered},
+	})
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), tamperedResp.Accepted)
+	require.Equal(t, uint64(1), tamperedResp.Rejected)
 }

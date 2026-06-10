@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -96,21 +97,37 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 
 	var accepted uint64
 	var rejected uint64
-	var rejectedDupNullifier uint64
+	var rejectedDupFingerprint uint64
+	var rejectedInvalidSignature uint64
 	var rejectedNoAttestation uint64
 	var rejectedNoKeywords uint64
 	var rejectedHashMismatch uint64
+	var rejectedServeKeyMismatch uint64
 	var rejectedNoMemory uint64
 
 	store := s.keeper.getStore(ctx)
 	for _, entry := range msg.Entries {
-		if s.keeper.HasDenialNullifier(ctx, entry.Nullifier) {
+		if len(entry.ServeKeyPubkey) != ed25519.PublicKeySize || len(entry.ServeSig) != ed25519.SignatureSize {
 			rejected++
-			rejectedDupNullifier++
+			rejectedInvalidSignature++
 			continue
 		}
 
-		originatingAttestation, found, err := s.keeper.GetServeAttestationByNullifier(ctx, entry.Nullifier)
+		canonicalBody := types.CanonicalDenialBody(msg.OrgId, entry.MemoryHash, msg.Epoch, entry.ServeKeyPubkey, entry.ServeFingerprint, entry.Nonce)
+		if !ed25519.Verify(ed25519.PublicKey(entry.ServeKeyPubkey), canonicalBody, entry.ServeSig) {
+			rejected++
+			rejectedInvalidSignature++
+			continue
+		}
+
+		denialFingerprint := types.ComputeDenialFingerprint(msg.OrgId, entry.MemoryHash, msg.Epoch, entry.ServeKeyPubkey, entry.ServeFingerprint)
+		if s.keeper.HasDenialFingerprint(ctx, denialFingerprint) {
+			rejected++
+			rejectedDupFingerprint++
+			continue
+		}
+
+		originatingAttestation, found, err := s.keeper.GetServeAttestationByFingerprint(ctx, entry.ServeFingerprint)
 		if err != nil {
 			return nil, err
 		}
@@ -129,6 +146,11 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			rejectedHashMismatch++
 			continue
 		}
+		if !bytes.Equal(entry.ServeKeyPubkey, originatingAttestation.ServeKeyPubkey) {
+			rejected++
+			rejectedServeKeyMismatch++
+			continue
+		}
 
 		if _, err := s.keeper.memoryKeeper.GetApprovedMemory(ctx, msg.OrgId, entry.MemoryHash); err != nil {
 			rejected++
@@ -136,10 +158,10 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			continue
 		}
 
-		store.Set(denialNullifierKey(entry.Nullifier), []byte{1})
+		store.Set(denialFingerprintKey(denialFingerprint), []byte{1})
 		s.keeper.IncrementDenialCount(ctx, msg.OrgId, originatingAttestation.MemoryContentHash, msg.Epoch)
 		s.keeper.updateEpochDenialStats(ctx, msg.OrgId, msg.Epoch)
-		if err := s.keeper.StoreDenialAttestation(ctx, msg.OrgId, msg.Epoch, entry); err != nil {
+		if err := s.keeper.StoreDenialAttestation(ctx, msg.OrgId, msg.Epoch, denialFingerprint, entry); err != nil {
 			return nil, err
 		}
 		cidHex := types.ContentHashToHex(originatingAttestation.MemoryContentHash)
@@ -168,7 +190,7 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	s.keeper.logger.Info(fmt.Sprintf(
 		msg.OrgId, msg.Epoch, len(msg.Entries), accepted, rejected,
-		rejectedDupNullifier, rejectedNoAttestation, rejectedNoKeywords, rejectedHashMismatch, rejectedNoMemory,
+		rejectedDupFingerprint, rejectedInvalidSignature, rejectedNoAttestation, rejectedNoKeywords, rejectedHashMismatch, rejectedServeKeyMismatch, rejectedNoMemory,
 	))
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDenialBatchSubmitted,

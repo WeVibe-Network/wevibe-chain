@@ -20,14 +20,14 @@ func (m *MsgSubmitServeBatch) ValidateBasic() error {
 		if len(serve.MemoryContentHash) != ContentHashLen {
 			return ErrInvalidContentHash
 		}
-		if serve.ServeKey == "" {
-			return ErrInvalidServeKey
+		if len(serve.ServeKeyPubkey) != ServePubKeyLen {
+			return ErrInvalidServeKeyPubkey
+		}
+		if len(serve.ServeSig) != ServeSigLen {
+			return ErrInvalidServeSignature
 		}
 		if serve.ContributorId == "" {
 			return ErrInvalidContributor
-		}
-		if len(serve.Nullifier) != NullifierLen {
-			return ErrInvalidNullifier
 		}
 		if len(serve.MatchedKeywords) == 0 {
 			return fmt.Errorf("matched_keywords must be non-empty per D-4.2")
@@ -55,11 +55,14 @@ func (m *MsgSubmitDenialBatch) ValidateBasic() error {
 		if len(entry.MemoryHash) != ContentHashLen {
 			return ErrInvalidContentHash
 		}
-		if len(entry.Nullifier) != NullifierLen {
-			return ErrInvalidNullifier
+		if len(entry.ServeKeyPubkey) != ServePubKeyLen {
+			return ErrInvalidServeKeyPubkey
 		}
-		if entry.DenyKey == "" {
-			return ErrInvalidServeKey
+		if len(entry.ServeSig) != ServeSigLen {
+			return ErrInvalidServeSignature
+		}
+		if len(entry.ServeFingerprint) != FingerprintLen {
+			return ErrInvalidServeFingerprint
 		}
 	}
 	return nil

@@ -15,9 +15,11 @@ service Msg {
 
 message ServeEntry {
   bytes memory_content_hash = 1;
-  string serve_key = 2;
+  reserved 2;
+  reserved "serve_key";
   string contributor_id = 3;
-  bytes nullifier = 4;
+  reserved 4;
+  reserved "nullifier";
   string model_id = 5;
   uint32 turn_count = 6;
   string contributor_wallet = 7;
@@ -25,6 +27,9 @@ message ServeEntry {
   // memory's keywords and the query's keyword set. Required, non-empty.
   // Per D-4.2 Implementation Clarifications (DMO-007).
   repeated string matched_keywords = 8;
+  bytes serve_key_pubkey = 9;
+  bytes serve_sig = 10;
+  bytes nonce = 11;
 }
 
 message MsgSubmitServeBatch {
@@ -43,9 +48,15 @@ message MsgSubmitServeBatchResponse {
 
 message DenialEntry {
   bytes memory_hash = 1;
-  bytes nullifier = 2;
-  string deny_key = 3;
+  reserved 2;
+  reserved "nullifier";
+  reserved 3;
+  reserved "deny_key";
   string reason = 4;
+  bytes serve_key_pubkey = 5;
+  bytes serve_sig = 6;
+  bytes serve_fingerprint = 7;
+  bytes nonce = 8;
 }
 
 message MsgSubmitDenialBatch {

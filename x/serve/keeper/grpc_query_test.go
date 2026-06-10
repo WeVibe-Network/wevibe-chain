@@ -26,7 +26,7 @@ func TestQueryGetEpochServeStats(t *testing.T) {
 	env.mem.approve("org-1", h)
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "sk", "c1", nullifier32(0x01)),
+		serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x01)),
 	})
 	require.NoError(t, err)
 
@@ -51,7 +51,7 @@ func TestQueryGetContributorServes(t *testing.T) {
 	env.mem.approve("org-1", h)
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "sk", "contrib-x", nullifier32(0x02)),
+		serveEntry("org-1", 1, h, "sk", "contrib-x", nonce32(0x02)),
 	})
 	require.NoError(t, err)
 
@@ -76,7 +76,7 @@ func TestQueryGetMemoryServeCount(t *testing.T) {
 	env.mem.approve("org-1", h)
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "sk", "c1", nullifier32(0x03)),
+		serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x03)),
 	})
 	require.NoError(t, err)
 

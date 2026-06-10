@@ -2,8 +2,11 @@ package keeper_test
 
 import (
 	"context"
+	"crypto/ed25519"
+	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"testing"
 
 	logv2 "cosmossdk.io/log"
@@ -28,12 +31,24 @@ func hash32(b byte) []byte {
 	return h
 }
 
-// nullifier32 returns a deterministic 32-byte nullifier seeded by b.
-func nullifier32(b byte) []byte {
-	n := make([]byte, types.NullifierLen)
+// nonce32 returns a deterministic 32-byte nonce seeded by b.
+func nonce32(b byte) []byte {
+	n := make([]byte, 32)
 	n[0] = b
 	n[31] = b
 	return n
+}
+
+func serveKeypair(keyID string) (ed25519.PublicKey, ed25519.PrivateKey) {
+	seed := sha256.Sum256([]byte(keyID))
+	priv := ed25519.NewKeyFromSeed(seed[:])
+	pub := priv.Public().(ed25519.PublicKey)
+	return pub, priv
+}
+
+func serveKeyHex(keyID string) string {
+	pub, _ := serveKeypair(keyID)
+	return hex.EncodeToString(pub)
 }
 
 type serveTestEnv struct {
@@ -98,26 +113,49 @@ func TestSetGetParams_Roundtrip(t *testing.T) {
 // ProcessServeBatch — happy path & side effects
 // ---------------------------------------------------------------------------
 
-func serveEntry(hash []byte, serveKey, contributorID string, nullifier []byte) *types.ServeEntry {
-	return &types.ServeEntry{
+func serveEntry(orgID string, epoch uint64, hash []byte, serveKey, contributorID string, nonce []byte) *types.ServeEntry {
+	pub, priv := serveKeypair(serveKey)
+	entry := &types.ServeEntry{
 		MemoryContentHash: hash,
-		ServeKey:          serveKey,
+		ServeKeyPubkey:    append([]byte(nil), pub...),
 		ContributorId:     contributorID,
-		Nullifier:         nullifier,
 		ModelId:           "qwen3:4b",
 		TurnCount:         3,
 		ContributorWallet: "wallet-1",
 		MatchedKeywords:   []string{"alpha", "beta"},
+		Nonce:             append([]byte(nil), nonce...),
 	}
+	body := types.CanonicalServeBody(orgID, hash, epoch, entry.ServeKeyPubkey, entry.MatchedKeywords, entry.Nonce)
+	entry.ServeSig = ed25519.Sign(priv, body)
+	return entry
+}
+
+func serveFingerprint(entry *types.ServeEntry, epoch uint64) []byte {
+	return types.ComputeServeFingerprint(entry.MemoryContentHash, entry.ServeKeyPubkey, epoch)
+}
+
+func denialEntry(orgID string, epoch uint64, memoryHash []byte, serveKey string, serveFingerprint []byte, nonce []byte, reason string) *types.DenialEntry {
+	pub, priv := serveKeypair(serveKey)
+	entry := &types.DenialEntry{
+		MemoryHash:       memoryHash,
+		Reason:           reason,
+		ServeKeyPubkey:   append([]byte(nil), pub...),
+		ServeFingerprint: append([]byte(nil), serveFingerprint...),
+		Nonce:            append([]byte(nil), nonce...),
+	}
+	body := types.CanonicalDenialBody(orgID, memoryHash, epoch, entry.ServeKeyPubkey, entry.ServeFingerprint, entry.Nonce)
+	entry.ServeSig = ed25519.Sign(priv, body)
+	return entry
 }
 
 func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x11)
 	env.mem.approve("org-1", h)
+	entry := serveEntry("org-1", 1, h, "serve-key-1", "contrib-1", nonce32(0x01))
 
 	accepted, dup, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "serve-key-1", "contrib-1", nullifier32(0x01)),
+		entry,
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
@@ -129,8 +167,8 @@ func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	require.Equal(t, 1, env.mem.boostCalls)
 	require.Equal(t, 1, env.rep.serveCalls)
 
-	// Nullifier now registered, serve count incremented.
-	require.True(t, env.k.HasNullifier(env.ctx, nullifier32(0x01)))
+	// Fingerprint now registered, serve count incremented.
+	require.True(t, env.k.HasServeFingerprint(env.ctx, serveFingerprint(entry, 1)))
 	require.Equal(t, uint64(1), env.k.GetMemoryServeCount(env.ctx, "org-1", h, 1))
 
 	// Epoch stats reflect the serve.
@@ -152,7 +190,7 @@ func TestProcessServeBatch_AttributionFromStoredMemory(t *testing.T) {
 
 	// Serve payload carries a DIFFERENT (untrusted) wallet ("wallet-1").
 	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "serve-key-1", "contrib-1", nullifier32(0x33)),
+		serveEntry("org-1", 1, h, "serve-key-1", "contrib-1", nonce32(0x33)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
@@ -170,7 +208,7 @@ func TestProcessServeBatch_SkipsAttributionWhenNoStoredContributor(t *testing.T)
 	env.mem.approveWithContributor("org-1", h, "")
 
 	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "serve-key-1", "contrib-1", nullifier32(0x44)),
+		serveEntry("org-1", 1, h, "serve-key-1", "contrib-1", nonce32(0x44)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
@@ -181,10 +219,11 @@ func TestProcessServeBatch_SelfServeCounted(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x22)
 	env.mem.approve("org-1", h)
+	selfContributor := serveKeyHex("same-id")
 
-	// Self-serve: ServeKey == ContributorId.
+	// Self-serve: hex(ServeKeyPubkey) == ContributorId.
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "same-id", "same-id", nullifier32(0x02)),
+		serveEntry("org-1", 1, h, "same-id", selfContributor, nonce32(0x02)),
 	})
 	require.NoError(t, err)
 
@@ -192,7 +231,7 @@ func TestProcessServeBatch_SelfServeCounted(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), stats.SelfServes)
 
-	cs, err := env.k.GetContributorEpochServes(env.ctx, "same-id", 1)
+	cs, err := env.k.GetContributorEpochServes(env.ctx, selfContributor, 1)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), cs.ServeCount)
 	require.Equal(t, uint64(1), cs.SelfServeCount)
@@ -204,20 +243,20 @@ func TestProcessServeBatch_SelfServeCounted(t *testing.T) {
 // ProcessServeBatch — rejection edge cases
 // ---------------------------------------------------------------------------
 
-func TestProcessServeBatch_DuplicateNullifierRejected(t *testing.T) {
+func TestProcessServeBatch_DuplicateFingerprintRejected(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x33)
 	env.mem.approve("org-1", h)
-	null := nullifier32(0x03)
+	nonce := nonce32(0x03)
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", null),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce),
 	})
 	require.NoError(t, err)
 
-	// Resubmit same nullifier — must be counted as duplicate, not accepted.
+	// Resubmit same serve fingerprint — must be counted as duplicate, not accepted.
 	accepted, dup, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", null),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), accepted)
@@ -231,7 +270,7 @@ func TestProcessServeBatch_UnapprovedMemoryRejected(t *testing.T) {
 	env := setupKeeper(t)
 	// Memory never approved.
 	accepted, dup, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(hash32(0x44), "k1", "c1", nullifier32(0x04)),
+		serveEntry("org-1", 1, hash32(0x44), "k1", "c1", nonce32(0x04)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), accepted)
@@ -247,7 +286,7 @@ func TestProcessServeBatch_InvalidInEpochRejected(t *testing.T) {
 	env.mem.validEpoch["org-1|"+hexEncode(h)] = false
 
 	accepted, _, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 9, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x05)),
+		serveEntry("org-1", 9, h, "k1", "c1", nonce32(0x05)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), accepted)
@@ -261,7 +300,7 @@ func TestProcessServeBatch_IsValidInEpochErrorPropagates(t *testing.T) {
 	env.mem.validErr = context.Canceled
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x57)),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x57)),
 	})
 	require.Error(t, err)
 }
@@ -273,8 +312,8 @@ func TestProcessServeBatch_BatchTooLarge(t *testing.T) {
 	env.mem.approve("org-1", h)
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x06)),
-		serveEntry(h, "k2", "c2", nullifier32(0x07)),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x06)),
+		serveEntry("org-1", 1, h, "k2", "c2", nonce32(0x07)),
 	})
 	require.ErrorIs(t, err, types.ErrBatchTooLarge)
 	// Nothing consumed because the size check precedes bandwidth.
@@ -286,12 +325,13 @@ func TestProcessServeBatch_BandwidthErrorAborts(t *testing.T) {
 	env.band.err = context.DeadlineExceeded
 	h := hash32(0x77)
 	env.mem.approve("org-1", h)
+	entry := serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x08))
 
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x08)),
+		entry,
 	})
 	require.Error(t, err)
-	require.False(t, env.k.HasNullifier(env.ctx, nullifier32(0x08)))
+	require.False(t, env.k.HasServeFingerprint(env.ctx, serveFingerprint(entry, 1)))
 }
 
 func TestProcessServeBatch_MaxServesPerMemoryEnforced(t *testing.T) {
@@ -302,14 +342,14 @@ func TestProcessServeBatch_MaxServesPerMemoryEnforced(t *testing.T) {
 
 	// First serve accepted.
 	a1, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x09)),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x09)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), a1)
 
 	// Second serve on same memory/epoch rejected (cap=1).
 	a2, _, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k2", "c2", nullifier32(0x0A)),
+		serveEntry("org-1", 1, h, "k2", "c2", nonce32(0x0A)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), a2)
@@ -321,13 +361,14 @@ func TestProcessServeBatch_BoostFailureNonFatal(t *testing.T) {
 	h := hash32(0x99)
 	env.mem.approve("org-1", h)
 	env.mem.boostErr = context.Canceled // boost fails, serve must still be accepted
+	entry := serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x0B))
 
 	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x0B)),
+		entry,
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
-	require.True(t, env.k.HasNullifier(env.ctx, nullifier32(0x0B)))
+	require.True(t, env.k.HasServeFingerprint(env.ctx, serveFingerprint(entry, 1)))
 }
 
 func TestProcessServeBatch_ReputationFailureNonFatal(t *testing.T) {
@@ -337,7 +378,7 @@ func TestProcessServeBatch_ReputationFailureNonFatal(t *testing.T) {
 	env.rep.serveErr = context.Canceled
 
 	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x0C)),
+		serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x0C)),
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
@@ -348,18 +389,18 @@ func TestProcessServeBatch_MixedBatch(t *testing.T) {
 	approved := hash32(0xB1)
 	env.mem.approve("org-1", approved)
 	unapproved := hash32(0xB2)
-	dupNull := nullifier32(0x0D)
+	dupNonce := nonce32(0x0D)
 
-	// Pre-register a nullifier to force a duplicate.
+	// Pre-register a fingerprint to force a duplicate.
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(approved, "k0", "c0", dupNull),
+		serveEntry("org-1", 1, approved, "k0", "c0", dupNonce),
 	})
 	require.NoError(t, err)
 
 	accepted, dup, invalid, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		serveEntry(approved, "k1", "c1", nullifier32(0x0E)),   // accepted
-		serveEntry(approved, "k0", "c0", dupNull),             // duplicate
-		serveEntry(unapproved, "k2", "c2", nullifier32(0x0F)), // invalid (unapproved)
+		serveEntry("org-1", 1, approved, "k1", "c1", nonce32(0x0E)),   // accepted
+		serveEntry("org-1", 1, approved, "k0", "c0", dupNonce),        // duplicate
+		serveEntry("org-1", 1, unapproved, "k2", "c2", nonce32(0x0F)), // invalid (unapproved)
 	})
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), accepted)
@@ -454,9 +495,9 @@ func TestGetContributorEpochServes_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrContributorNotFound)
 }
 
-func TestGetServeAttestationByNullifier_NotFound(t *testing.T) {
+func TestGetServeAttestationByFingerprint_NotFound(t *testing.T) {
 	env := setupKeeper(t)
-	_, found, err := env.k.GetServeAttestationByNullifier(env.ctx, nullifier32(0xEE))
+	_, found, err := env.k.GetServeAttestationByFingerprint(env.ctx, hash32(0xEE))
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -469,10 +510,11 @@ func TestGenesisRoundtrip(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0xF1)
 	env.mem.approve("org-1", h)
+	entry := serveEntry("org-1", 2, h, "k1", "c1", nonce32(0x10))
 
 	// Produce some state via a real serve.
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 2, []*types.ServeEntry{
-		serveEntry(h, "k1", "c1", nullifier32(0x10)),
+		entry,
 	})
 	require.NoError(t, err)
 
@@ -493,7 +535,7 @@ func TestGenesisRoundtrip(t *testing.T) {
 	env2 := setupKeeper(t)
 	require.NoError(t, env2.k.InitGenesis(env2.ctx, &decoded))
 
-	require.True(t, env2.k.HasNullifier(env2.ctx, nullifier32(0x10)))
+	require.True(t, env2.k.HasServeFingerprint(env2.ctx, serveFingerprint(entry, 2)))
 	stats, err := env2.k.GetEpochServeStats(env2.ctx, "org-1", 2)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), stats.TotalServes)
@@ -502,14 +544,16 @@ func TestGenesisRoundtrip(t *testing.T) {
 func TestGenesisInit_DenialAttestations(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0xF2)
-	null := nullifier32(0x11)
+	servePub, _ := serveKeypair("serve-denial-genesis")
+	serveFingerprint := hash32(0x11)
 	gs := &types.GenesisState{
 		DenialAttestations: []*types.StoredDenialAttestation{
-			{OrgId: "org-1", MemoryHash: h, DenyKey: "dk", Reason: "spam", Epoch: 3, Nullifier: null},
+			{OrgId: "org-1", MemoryHash: h, DenyKey: "dk", Reason: "spam", Epoch: 3, ServeFingerprint: serveFingerprint, ServeKeyPubkey: servePub},
 		},
 	}
 	require.NoError(t, env.k.InitGenesis(env.ctx, gs))
-	require.True(t, env.k.HasDenialNullifier(env.ctx, null))
+	denialFingerprint := types.ComputeDenialFingerprint("org-1", h, 3, servePub, serveFingerprint)
+	require.True(t, env.k.HasDenialFingerprint(env.ctx, denialFingerprint))
 	require.Equal(t, uint64(1), env.k.GetMemoryDenialCount(env.ctx, "org-1", h, 3))
 	serves, denials, err := env.k.GetEpochTrafficStats(env.ctx, "org-1", 3)
 	require.NoError(t, err)
@@ -525,7 +569,7 @@ func TestGetServeAttestations_ListByOrgEpoch(t *testing.T) {
 
 	for i := 0; i < 3; i++ {
 		_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 4, []*types.ServeEntry{
-			serveEntry(h, "k", "c", nullifier32(byte(0x20+i))),
+			serveEntry("org-1", 4, h, fmt.Sprintf("k-%d", i), "c", nonce32(byte(0x20+i))),
 		})
 		require.NoError(t, err)
 	}
@@ -548,7 +592,7 @@ func TestGetMemoryServeCount_Encoding(t *testing.T) {
 	require.NoError(t, env.k.SetParams(env.ctx, types.Params{MaxServesPerBatch: 500, MaxServesPerMemoryPerEpoch: 100}))
 	for i := 0; i < 5; i++ {
 		_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 6, []*types.ServeEntry{
-			serveEntry(h, "k", "c", nullifier32(byte(0x30+i))),
+			serveEntry("org-1", 6, h, fmt.Sprintf("k-%d", i), "c", nonce32(byte(0x30+i))),
 		})
 		require.NoError(t, err)
 	}

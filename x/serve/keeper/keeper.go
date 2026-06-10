@@ -3,6 +3,7 @@ package keeper
 import (
 	"bytes"
 	"context"
+	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -50,24 +51,24 @@ func (k *Keeper) getStore(ctx context.Context) store.KVStore {
 	return k.storeService.OpenKVStore(ctx)
 }
 
-func nullifierKey(nullifier []byte) []byte {
-	return []byte(fmt.Sprintf("nullifier/%s", types.ContentHashToHex(nullifier)))
+func serveFingerprintKey(fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("fingerprint/%s", types.ContentHashToHex(fingerprint)))
 }
 
-func denialNullifierKey(nullifier []byte) []byte {
-	return []byte(fmt.Sprintf("denynull/%s", types.ContentHashToHex(nullifier)))
+func denialFingerprintKey(fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("denyfingerprint/%s", types.ContentHashToHex(fingerprint)))
 }
 
-func attestationKey(orgID string, epoch uint64, nullifier []byte) []byte {
-	return []byte(fmt.Sprintf("attestation/%s/%d/%s", orgID, epoch, types.ContentHashToHex(nullifier)))
+func attestationKey(orgID string, epoch uint64, fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("attestation/%s/%d/%s", orgID, epoch, types.ContentHashToHex(fingerprint)))
 }
 
 func attestationPrefix(orgID string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("attestation/%s/%d/", orgID, epoch))
 }
 
-func denialAttestationKey(orgID string, epoch uint64, nullifier []byte) []byte {
-	return []byte(fmt.Sprintf("denial/%s/%d/%s", orgID, epoch, types.ContentHashToHex(nullifier)))
+func denialAttestationKey(orgID string, epoch uint64, fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("denial/%s/%d/%s", orgID, epoch, types.ContentHashToHex(fingerprint)))
 }
 
 func denialAttestationPrefix(orgID string, epoch uint64) []byte {
@@ -136,27 +137,27 @@ func (k *Keeper) GetParams(ctx context.Context) (types.Params, error) {
 	return params, nil
 }
 
-func (k *Keeper) HasNullifier(ctx context.Context, nullifier []byte) bool {
+func (k *Keeper) HasServeFingerprint(ctx context.Context, fingerprint []byte) bool {
 	store := k.getStore(ctx)
-	has, err := store.Has(nullifierKey(nullifier))
+	has, err := store.Has(serveFingerprintKey(fingerprint))
 	if err != nil {
 		return false
 	}
 	return has
 }
 
-func (k *Keeper) HasDenialNullifier(ctx context.Context, nullifier []byte) bool {
+func (k *Keeper) HasDenialFingerprint(ctx context.Context, fingerprint []byte) bool {
 	store := k.getStore(ctx)
-	has, err := store.Has(denialNullifierKey(nullifier))
+	has, err := store.Has(denialFingerprintKey(fingerprint))
 	if err != nil {
 		return false
 	}
 	return has
 }
 
-func (k *Keeper) GetServeAttestationByNullifier(ctx context.Context, nullifier []byte) (*types.StoredServeAttestation, bool, error) {
+func (k *Keeper) GetServeAttestationByFingerprint(ctx context.Context, fingerprint []byte) (*types.StoredServeAttestation, bool, error) {
 	store := k.getStore(ctx)
-	attKey, err := store.Get(nullifierKey(nullifier))
+	attKey, err := store.Get(serveFingerprintKey(fingerprint))
 	if err != nil {
 		return nil, false, fmt.Errorf("get serve attestation pointer: %w", err)
 	}
@@ -180,21 +181,22 @@ func (k *Keeper) GetServeAttestationByNullifier(ctx context.Context, nullifier [
 	return &stored, true, nil
 }
 
-func (k *Keeper) StoreDenialAttestation(ctx context.Context, orgID string, epoch uint64, entry *types.DenialEntry) error {
+func (k *Keeper) StoreDenialAttestation(ctx context.Context, orgID string, epoch uint64, denialFingerprint []byte, entry *types.DenialEntry) error {
 	store := k.getStore(ctx)
 	att := &types.StoredDenialAttestation{
-		OrgId:      orgID,
-		MemoryHash: entry.MemoryHash,
-		DenyKey:    entry.DenyKey,
-		Reason:     entry.Reason,
-		Epoch:      epoch,
-		Nullifier:  entry.Nullifier,
+		OrgId:            orgID,
+		MemoryHash:       entry.MemoryHash,
+		DenyKey:          hex.EncodeToString(entry.ServeKeyPubkey),
+		Reason:           entry.Reason,
+		Epoch:            epoch,
+		ServeFingerprint: entry.ServeFingerprint,
+		ServeKeyPubkey:   entry.ServeKeyPubkey,
 	}
 	bz, err := proto.Marshal(att)
 	if err != nil {
 		return fmt.Errorf("marshal denial attestation: %w", err)
 	}
-	store.Set(denialAttestationKey(orgID, epoch, entry.Nullifier), bz)
+	store.Set(denialAttestationKey(orgID, epoch, denialFingerprint), bz)
 	return nil
 }
 
@@ -210,7 +212,19 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 	}
 
 	for _, serve := range serves {
-		if k.HasNullifier(ctx, serve.Nullifier) {
+		if len(serve.ServeKeyPubkey) != ed25519.PublicKeySize || len(serve.ServeSig) != ed25519.SignatureSize {
+			rejectedInvalid++
+			continue
+		}
+
+		canonicalBody := types.CanonicalServeBody(orgID, serve.MemoryContentHash, epoch, serve.ServeKeyPubkey, serve.MatchedKeywords, serve.Nonce)
+		if !ed25519.Verify(ed25519.PublicKey(serve.ServeKeyPubkey), canonicalBody, serve.ServeSig) {
+			rejectedInvalid++
+			continue
+		}
+
+		serveFingerprint := types.ComputeServeFingerprint(serve.MemoryContentHash, serve.ServeKeyPubkey, epoch)
+		if k.HasServeFingerprint(ctx, serveFingerprint) {
 			rejectedDuplicate++
 			continue
 		}
@@ -231,7 +245,8 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 			continue
 		}
 
-		isSelfServe := serve.ServeKey == serve.ContributorId
+		serveKeyID := hex.EncodeToString(serve.ServeKeyPubkey)
+		isSelfServe := serveKeyID == serve.ContributorId
 
 		currentCount := k.GetMemoryServeCount(ctx, orgID, serve.MemoryContentHash, epoch)
 		if currentCount >= uint64(params.MaxServesPerMemoryPerEpoch) {
@@ -241,14 +256,14 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		store := k.getStore(ctx)
 
-		attestation := types.NewServeAttestation(orgID, serve.MemoryContentHash, serve.ServeKey, serve.ContributorId, epoch, serve.Nullifier, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
+		attestation := types.NewServeAttestation(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
 		attBz, err := proto.Marshal(types.ServeAttestationToStored(attestation))
 		if err != nil {
 			return 0, 0, 0, fmt.Errorf("marshal attestation: %w", err)
 		}
-		attKey := attestationKey(orgID, epoch, serve.Nullifier)
+		attKey := attestationKey(orgID, epoch, serveFingerprint)
 		store.Set(attKey, attBz)
-		store.Set(nullifierKey(serve.Nullifier), attKey)
+		store.Set(serveFingerprintKey(serveFingerprint), attKey)
 
 		if err := k.StoreMatchedKeywordsForEpoch(ctx, orgID, serve.MemoryContentHash, epoch, serve.MatchedKeywords); err != nil {
 			return 0, 0, 0, err
@@ -256,7 +271,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		k.incrementMemoryServeCount(ctx, orgID, serve.MemoryContentHash, epoch)
 
-		k.updateEpochStats(ctx, orgID, epoch, serve.MemoryContentHash, serve.ServeKey, isSelfServe, serve.ModelId)
+		k.updateEpochStats(ctx, orgID, epoch, serve.MemoryContentHash, serveKeyID, isSelfServe, serve.ModelId)
 
 		k.updateContributorServes(ctx, serve.ContributorId, epoch, orgID, isSelfServe, serve.TurnCount)
 
@@ -581,9 +596,9 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 
 	for _, att := range state.Attestations {
 		attBz, _ := proto.Marshal(types.ServeAttestationToStored(att))
-		attKey := attestationKey(att.OrgID, att.Epoch, att.Nullifier)
+		attKey := attestationKey(att.OrgID, att.Epoch, att.Fingerprint)
 		store.Set(attKey, attBz)
-		store.Set(nullifierKey(att.Nullifier), attKey)
+		store.Set(serveFingerprintKey(att.Fingerprint), attKey)
 		if len(att.MatchedKeywords) > 0 {
 			if err := k.StoreMatchedKeywordsForEpoch(ctx, att.OrgID, att.ContentHash, att.Epoch, att.MatchedKeywords); err != nil {
 				return err
@@ -595,12 +610,13 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		if denial == nil {
 			continue
 		}
-		store.Set(denialNullifierKey(denial.Nullifier), []byte{1})
+		denialFingerprint := types.ComputeDenialFingerprint(denial.OrgId, denial.MemoryHash, denial.Epoch, denial.ServeKeyPubkey, denial.ServeFingerprint)
+		store.Set(denialFingerprintKey(denialFingerprint), []byte{1})
 		denialBz, err := proto.Marshal(denial)
 		if err != nil {
 			return fmt.Errorf("marshal denial attestation: %w", err)
 		}
-		store.Set(denialAttestationKey(denial.OrgId, denial.Epoch, denial.Nullifier), denialBz)
+		store.Set(denialAttestationKey(denial.OrgId, denial.Epoch, denialFingerprint), denialBz)
 		k.IncrementDenialCount(ctx, denial.OrgId, denial.MemoryHash, denial.Epoch)
 		k.updateEpochDenialStats(ctx, denial.OrgId, denial.Epoch)
 	}

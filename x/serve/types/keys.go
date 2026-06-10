@@ -16,30 +16,34 @@ const (
 
 const (
 	ContentHashLen = 32
-	NullifierLen   = 32
+	FingerprintLen = 32
+	ServePubKeyLen = 32
+	ServeSigLen    = 64
 )
 
 type ServeAttestation struct {
 	OrgID           string
 	ContentHash     []byte
 	ServeKey        string
+	ServeKeyPubkey  []byte
 	ContributorID   string
 	Epoch           uint64
-	Nullifier       []byte
+	Fingerprint     []byte
 	IsSelfServe     bool
 	ModelID         string
 	TurnCount       uint32
 	MatchedKeywords []string
 }
 
-func NewServeAttestation(orgID string, contentHash []byte, serveKey, contributorID string, epoch uint64, nullifier []byte, isSelfServe bool, modelID string, turnCount uint32, matchedKeywords []string) *ServeAttestation {
+func NewServeAttestation(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32, matchedKeywords []string) *ServeAttestation {
 	return &ServeAttestation{
 		OrgID:           orgID,
 		ContentHash:     contentHash,
 		ServeKey:        serveKey,
+		ServeKeyPubkey:  serveKeyPubkey,
 		ContributorID:   contributorID,
 		Epoch:           epoch,
-		Nullifier:       nullifier,
+		Fingerprint:     fingerprint,
 		IsSelfServe:     isSelfServe,
 		ModelID:         modelID,
 		TurnCount:       turnCount,
@@ -60,8 +64,11 @@ func (sa *ServeAttestation) Validate() error {
 	if sa.ContributorID == "" {
 		return ErrInvalidContributor
 	}
-	if len(sa.Nullifier) != NullifierLen {
-		return ErrInvalidNullifier
+	if len(sa.ServeKeyPubkey) != ServePubKeyLen {
+		return ErrInvalidServeKeyPubkey
+	}
+	if len(sa.Fingerprint) != FingerprintLen {
+		return ErrInvalidServeFingerprint
 	}
 	return nil
 }
@@ -123,14 +130,14 @@ func ServeAttestationToStored(sa *ServeAttestation) *StoredServeAttestation {
 	return &StoredServeAttestation{
 		OrgId:             sa.OrgID,
 		MemoryContentHash: sa.ContentHash,
-		ServeKey:          sa.ServeKey,
 		ContributorId:     sa.ContributorID,
 		Epoch:             sa.Epoch,
-		Nullifier:         sa.Nullifier,
 		IsSelfServe:       sa.IsSelfServe,
 		ModelId:           sa.ModelID,
 		TurnCount:         sa.TurnCount,
 		MatchedKeywords:   sa.MatchedKeywords,
+		ServeKeyPubkey:    sa.ServeKeyPubkey,
+		Fingerprint:       sa.Fingerprint,
 	}
 }
 
@@ -138,10 +145,11 @@ func StoredToServeAttestation(stored StoredServeAttestation) ServeAttestation {
 	return ServeAttestation{
 		OrgID:           stored.OrgId,
 		ContentHash:     stored.MemoryContentHash,
-		ServeKey:        stored.ServeKey,
+		ServeKey:        hex.EncodeToString(stored.ServeKeyPubkey),
+		ServeKeyPubkey:  stored.ServeKeyPubkey,
 		ContributorID:   stored.ContributorId,
 		Epoch:           stored.Epoch,
-		Nullifier:       stored.Nullifier,
+		Fingerprint:     stored.Fingerprint,
 		IsSelfServe:     stored.IsSelfServe,
 		ModelID:         stored.ModelId,
 		TurnCount:       stored.TurnCount,
