@@ -11,6 +11,7 @@ import (
 
 // queryLeader is a deterministic leader pubkey reused across query tests.
 const queryLeader = "leader_pubkey_12345678901234567890123456789012"
+const queryX25519Pubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 
 // ---------------------------------------------------------------------------
 // GetOrg
@@ -57,8 +58,8 @@ func TestQueryGetMembers_Success(t *testing.T) {
 	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_aaaa1234567890123456789012", "member")))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_bbbb1234567890123456789012", "moderator")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_aaaa1234567890123456789012", "member", queryX25519Pubkey)))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_bbbb1234567890123456789012", "moderator", queryX25519Pubkey)))
 
 	resp, err := qs.GetMembers(ctx, &types.QueryGetMembersRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
@@ -91,7 +92,7 @@ func TestQueryIsMember_True(t *testing.T) {
 
 	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_cccc1234567890123456789012", "member")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_cccc1234567890123456789012", "member", queryX25519Pubkey)))
 
 	resp, err := qs.IsMember(ctx, &types.QueryIsMemberRequest{OrgId: org.OrgID, Pubkey: "member_pubkey_cccc1234567890123456789012"})
 	require.NoError(t, err)
@@ -189,7 +190,7 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 
 	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "moderator")))
+	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "moderator", queryX25519Pubkey)))
 
 	resp, err := qs.GetOrgProfile(ctx, &types.QueryGetOrgProfileRequest{OrgId: org.OrgID})
 	require.NoError(t, err)

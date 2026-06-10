@@ -45,6 +45,7 @@ message StoredMemberRecord {
   string org_id = 1;
   string pubkey = 2;
   string role = 3;
+  string x25519_pubkey = 4;
 }
 
 message StoredOrgConfig {

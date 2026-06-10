@@ -65,10 +65,11 @@ func TestMsgAddMember_Integration(t *testing.T) {
 	orgID := orgtypes.FormatOrgID(0)
 
 	memberMsg := &orgtypes.MsgAddMember{
-		Signer: suite.UserAddr.String(),
-		OrgId:  orgID,
-		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
-		Role:   "member",
+		Signer:       suite.UserAddr.String(),
+		OrgId:        orgID,
+		Pubkey:       "wevibe1member1234567890123456789012345678901234567890",
+		Role:         "member",
+		X25519Pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
 	}
 
 	result, err := suite.DeliverMsg(memberMsg)
@@ -91,10 +92,11 @@ func TestMsgRemoveMember_Integration(t *testing.T) {
 	orgID := orgtypes.FormatOrgID(0)
 
 	memberMsg := &orgtypes.MsgAddMember{
-		Signer: suite.UserAddr.String(),
-		OrgId:  orgID,
-		Pubkey: "wevibe1member1234567890123456789012345678901234567890",
-		Role:   "member",
+		Signer:       suite.UserAddr.String(),
+		OrgId:        orgID,
+		Pubkey:       "wevibe1member1234567890123456789012345678901234567890",
+		Role:         "member",
+		X25519Pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
 	}
 	_, err = suite.DeliverMsg(memberMsg)
 	require.NoError(t, err)

@@ -103,17 +103,19 @@ func storedToOrg(stored types.StoredOrg) types.Org {
 
 func memberToStored(member *types.MemberRecord) *types.StoredMemberRecord {
 	return &types.StoredMemberRecord{
-		OrgId:  member.OrgID,
-		Pubkey: member.Pubkey,
-		Role:   member.Role,
+		OrgId:        member.OrgID,
+		Pubkey:       member.Pubkey,
+		Role:         member.Role,
+		X25519Pubkey: member.X25519Pubkey,
 	}
 }
 
 func storedToMember(stored types.StoredMemberRecord) types.MemberRecord {
 	return types.MemberRecord{
-		OrgID:  stored.OrgId,
-		Pubkey: stored.Pubkey,
-		Role:   stored.Role,
+		OrgID:        stored.OrgId,
+		Pubkey:       stored.Pubkey,
+		Role:         stored.Role,
+		X25519Pubkey: stored.X25519Pubkey,
 	}
 }
 

@@ -49,9 +49,10 @@ func (m *mockOrgKeeperServer) GetMember(ctx context.Context, orgID, memberPubkey
 	}
 
 	return &orgtypes.MemberRecord{
-		OrgID:  orgID,
-		Pubkey: memberPubkey,
-		Role:   role,
+		OrgID:        orgID,
+		Pubkey:       memberPubkey,
+		Role:         role,
+		X25519Pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
 	}, nil
 }
 

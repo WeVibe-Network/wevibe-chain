@@ -8,6 +8,8 @@ import (
 	"github.com/wevibe-network/wevibe-chain/x/org/types"
 )
 
+const validX25519Pubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+
 // ---------------------------------------------------------------------------
 // MsgRegisterOrg.ValidateBasic
 // ---------------------------------------------------------------------------
@@ -61,10 +63,11 @@ func TestValidateHubResponsePubkey(t *testing.T) {
 
 func TestMsgAddMember_ValidateBasic(t *testing.T) {
 	valid := &types.MsgAddMember{
-		Signer: "cosmos1signer",
-		OrgId:  "org1",
-		Pubkey: "member_pubkey",
-		Role:   "member",
+		Signer:       "cosmos1signer",
+		OrgId:        "org1",
+		Pubkey:       "member_pubkey",
+		Role:         "member",
+		X25519Pubkey: validX25519Pubkey,
 	}
 	require.NoError(t, valid.ValidateBasic())
 
@@ -83,6 +86,12 @@ func TestMsgAddMember_ValidateBasic(t *testing.T) {
 	t.Run("empty pubkey", func(t *testing.T) {
 		m := *valid
 		m.Pubkey = ""
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("empty x25519 pubkey", func(t *testing.T) {
+		m := *valid
+		m.X25519Pubkey = ""
 		require.Error(t, m.ValidateBasic())
 	})
 
@@ -410,7 +419,7 @@ func TestParamsValidate(t *testing.T) {
 
 func TestNewGenesisState(t *testing.T) {
 	orgs := []*types.Org{types.NewOrg("org1", "leader", "", 1, 1)}
-	members := []*types.MemberRecord{types.NewMemberRecord("org1", "pk", "member")}
+	members := []*types.MemberRecord{types.NewMemberRecord("org1", "pk", "member", validX25519Pubkey)}
 
 	gs := types.NewGenesisState(orgs, members)
 	require.NotNil(t, gs)
@@ -504,20 +513,21 @@ func TestOrgIsActive(t *testing.T) {
 }
 
 func TestNewMemberRecord(t *testing.T) {
-	m := types.NewMemberRecord("org1", "pk", "moderator")
+	m := types.NewMemberRecord("org1", "pk", "moderator", validX25519Pubkey)
 	require.Equal(t, "org1", m.OrgID)
 	require.Equal(t, "pk", m.Pubkey)
 	require.Equal(t, "moderator", m.Role)
+	require.Equal(t, validX25519Pubkey, m.X25519Pubkey)
 }
 
 func TestMemberRecordMemberKey(t *testing.T) {
-	m := types.NewMemberRecord("org1", "pk", "member")
+	m := types.NewMemberRecord("org1", "pk", "member", validX25519Pubkey)
 	key := m.MemberKey()
 	require.Equal(t, types.MemberKey{OrgID: "org1", Member: "pk"}, key)
 }
 
 func TestMemberRecordMemberKey_Empty(t *testing.T) {
-	m := types.NewMemberRecord("", "", "")
+	m := types.NewMemberRecord("", "", "", "")
 	key := m.MemberKey()
 	require.Equal(t, types.MemberKey{}, key)
 }

@@ -103,16 +103,18 @@ const (
 )
 
 type MemberRecord struct {
-	OrgID  string `json:"org_id"`
-	Pubkey string `json:"pubkey"`
-	Role   string `json:"role"`
+	OrgID        string `json:"org_id"`
+	Pubkey       string `json:"pubkey"`
+	Role         string `json:"role"`
+	X25519Pubkey string `json:"x25519_pubkey"`
 }
 
-func NewMemberRecord(orgID, pubkey, role string) *MemberRecord {
+func NewMemberRecord(orgID, pubkey, role, x25519Pubkey string) *MemberRecord {
 	return &MemberRecord{
-		OrgID:  orgID,
-		Pubkey: pubkey,
-		Role:   role,
+		OrgID:        orgID,
+		Pubkey:       pubkey,
+		Role:         role,
+		X25519Pubkey: x25519Pubkey,
 	}
 }
 

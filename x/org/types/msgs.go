@@ -92,6 +92,9 @@ func (m *MsgAddMember) ValidateBasic() error {
 	if m.Pubkey == "" {
 		return fmt.Errorf("pubkey cannot be empty")
 	}
+	if m.X25519Pubkey == "" {
+		return fmt.Errorf("x25519_pubkey cannot be empty")
+	}
 	if m.Role != "member" && m.Role != "moderator" && m.Role != "contributor" {
 		return ErrInvalidRole
 	}

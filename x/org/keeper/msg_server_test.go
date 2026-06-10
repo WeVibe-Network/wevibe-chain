@@ -24,6 +24,7 @@ var (
 	validMember            = "cosmos1gsank9k6ygfnx376cuhw8zp9p8ssnyez44dtmh"
 	validAuthority         = "cosmos14taukd54w5eak58yjv4lpzz3a0vr0petthfpc5"
 	validHubResponsePubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+	validX25519Pubkey      = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 )
 
 type mockFeegrantKeeper struct {
@@ -356,6 +357,7 @@ func TestMsgAddMember_ValidateBasic(t *testing.T) {
 	msg.OrgId = "org1"
 	msg.Pubkey = validMember
 	msg.Role = "member"
+	msg.X25519Pubkey = validX25519Pubkey
 	require.NoError(t, msg.ValidateBasic())
 }
 
@@ -365,10 +367,11 @@ func TestMsgAddMember_Success(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
 
 	memberMsg := &types.MsgAddMember{
-		Signer: validLeader,
-		OrgId:  orgID,
-		Pubkey: validMember,
-		Role:   "member",
+		Signer:       validLeader,
+		OrgId:        orgID,
+		Pubkey:       validMember,
+		Role:         "member",
+		X25519Pubkey: validX25519Pubkey,
 	}
 
 	resp, err := srv.AddMember(ctx, memberMsg)
@@ -474,10 +477,11 @@ func TestMsgUpdateMemberRole_Success(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: validLeader,
-		OrgId:  orgID,
-		Pubkey: validMember,
-		Role:   "member",
+		Signer:       validLeader,
+		OrgId:        orgID,
+		Pubkey:       validMember,
+		Role:         "member",
+		X25519Pubkey: validX25519Pubkey,
 	})
 	require.NoError(t, err)
 
@@ -499,10 +503,11 @@ func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: validLeader,
-		OrgId:  orgID,
-		Pubkey: validMember,
-		Role:   "member",
+		Signer:       validLeader,
+		OrgId:        orgID,
+		Pubkey:       validMember,
+		Role:         "member",
+		X25519Pubkey: validX25519Pubkey,
 	})
 	require.NoError(t, err)
 
@@ -613,10 +618,11 @@ func TestMsgTransferLeadership_Success(t *testing.T) {
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: validLeader,
-		OrgId:  orgID,
-		Pubkey: validMember,
-		Role:   "member",
+		Signer:       validLeader,
+		OrgId:        orgID,
+		Pubkey:       validMember,
+		Role:         "member",
+		X25519Pubkey: validX25519Pubkey,
 	})
 	require.NoError(t, err)
 

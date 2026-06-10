@@ -18,8 +18,9 @@ import (
 )
 
 var (
-	orgStoreKey     = storetypes.NewKVStoreKey("org")
-	testCreatorAddr = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	orgStoreKey      = storetypes.NewKVStoreKey("org")
+	testCreatorAddr  = sdk.AccAddress(secp256k1.GenPrivKey().PubKey().Address())
+	testX25519Pubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 )
 
 type mockBankKeeper struct {
@@ -351,7 +352,7 @@ func TestAddMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member", testX25519Pubkey)
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("AddMember failed: %v", err)
@@ -375,7 +376,7 @@ func TestAddMember_DuplicateMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member", testX25519Pubkey)
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("first AddMember failed: %v", err)
@@ -396,7 +397,7 @@ func TestRemoveMember(t *testing.T) {
 		t.Fatalf("RegisterOrg failed: %v", err)
 	}
 
-	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member")
+	member := types.NewMemberRecord(org.OrgID, "member_pubkey_123456789012345678901234", "member", testX25519Pubkey)
 	err = k.AddMember(ctx, member)
 	if err != nil {
 		t.Fatalf("AddMember failed: %v", err)
@@ -531,8 +532,8 @@ func TestGetAllMembers(t *testing.T) {
 	}
 
 	members := []*types.MemberRecord{
-		types.NewMemberRecord(org.OrgID, "member1_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord(org.OrgID, "member2_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org.OrgID, "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),
+		types.NewMemberRecord(org.OrgID, "member2_pubkey_123456789012345678901", "member", testX25519Pubkey),
 	}
 
 	for _, m := range members {
@@ -559,7 +560,7 @@ func TestInitGenesisAndExportGenesis(t *testing.T) {
 			types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
-			types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member"),
+			types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member", testX25519Pubkey),
 		},
 	}
 
@@ -671,7 +672,7 @@ func TestSDKGenesisRoundTrip(t *testing.T) {
 			types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
-			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
+			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),
 		},
 	}
 
@@ -732,9 +733,9 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 	org1ID := orgs[1].OrgID
 
 	members := []*types.MemberRecord{
-		types.NewMemberRecord(org0ID, "member1_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord(org0ID, "member2_pubkey_123456789012345678901", "member"),
-		types.NewMemberRecord(org1ID, "member3_pubkey_123456789012345678901", "member"),
+		types.NewMemberRecord(org0ID, "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),
+		types.NewMemberRecord(org0ID, "member2_pubkey_123456789012345678901", "member", testX25519Pubkey),
+		types.NewMemberRecord(org1ID, "member3_pubkey_123456789012345678901", "member", testX25519Pubkey),
 	}
 
 	for _, m := range members {
@@ -835,7 +836,7 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 			types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
-			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member"),
+			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),
 		},
 		OrgConfigs: []*types.OrgConfig{
 			{
@@ -872,10 +873,11 @@ func TestMsgAddMember_RejectsNonLeaderWalletSigner(t *testing.T) {
 	)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
-		OrgId:  orgID,
-		Pubkey: "member_pubkey_12345678901234567890123456789012",
-		Role:   "contributor",
+		Signer:       "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
+		OrgId:        orgID,
+		Pubkey:       "member_pubkey_12345678901234567890123456789012",
+		Role:         "contributor",
+		X25519Pubkey: testX25519Pubkey,
 	})
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
@@ -893,10 +895,11 @@ func TestMsgRemoveMember_RejectsNonLeaderWalletSigner(t *testing.T) {
 	)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
-		OrgId:  orgID,
-		Pubkey: "member_pubkey_remove_1234567890123456789012",
-		Role:   "member",
+		Signer:       "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:        orgID,
+		Pubkey:       "member_pubkey_remove_1234567890123456789012",
+		Role:         "member",
+		X25519Pubkey: testX25519Pubkey,
 	})
 	require.NoError(t, err)
 
@@ -940,10 +943,11 @@ func TestMsgAddMember_RejectsLeaderRole(t *testing.T) {
 	)
 
 	_, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
-		OrgId:  orgID,
-		Pubkey: "member_pubkey_leader_1234567890123456789012",
-		Role:   "leader",
+		Signer:       "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:        orgID,
+		Pubkey:       "member_pubkey_leader_1234567890123456789012",
+		Role:         "leader",
+		X25519Pubkey: testX25519Pubkey,
 	})
 	require.ErrorIs(t, err, types.ErrInvalidRole)
 }
@@ -961,10 +965,11 @@ func TestOrgDecisionMsgs_AcceptsLeaderWalletSigner(t *testing.T) {
 	)
 
 	addResp, err := srv.AddMember(ctx, &types.MsgAddMember{
-		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
-		OrgId:  orgID,
-		Pubkey: "member_pubkey_success_1234567890123456789012",
-		Role:   "contributor",
+		Signer:       "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
+		OrgId:        orgID,
+		Pubkey:       "member_pubkey_success_1234567890123456789012",
+		Role:         "contributor",
+		X25519Pubkey: testX25519Pubkey,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, addResp)

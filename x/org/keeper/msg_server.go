@@ -77,7 +77,7 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 		return nil, types.ErrInvalidRole
 	}
 
-	member := types.NewMemberRecord(msg.OrgId, msg.Pubkey, msg.Role)
+	member := types.NewMemberRecord(msg.OrgId, msg.Pubkey, msg.Role, msg.X25519Pubkey)
 	if err := m.keeper.AddMember(ctx, member); err != nil {
 		return nil, err
 	}
@@ -88,6 +88,7 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
 		sdk.NewAttribute(types.AttributeKeyMemberPubkey, msg.Pubkey),
 		sdk.NewAttribute(types.AttributeKeyRole, msg.Role),
+		sdk.NewAttribute(types.AttributeKeyMemberX25519Pubkey, msg.X25519Pubkey),
 	))
 
 	return &types.MsgAddMemberResponse{}, nil

@@ -18,6 +18,7 @@ const (
 	AttributeKeyMember             = "member"
 	AttributeKeyRole               = "role"
 	AttributeKeyMemberPubkey       = "member_pubkey"
+	AttributeKeyMemberX25519Pubkey = "member_x25519_pubkey"
 	AttributeKeyEpochIds           = "epoch_ids"
 	AttributeKeyRemovedBy          = "removed_by"
 	AttributeKeyBlockHeight        = "block_height"
