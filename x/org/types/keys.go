@@ -122,6 +122,8 @@ type OrgConfig struct {
 	OrgID                    string `json:"org_id"`
 	ServeAttestationRequired bool   `json:"serve_attestation_required"`
 	ContestStakeVibe         uint64 `json:"contest_stake_vibe"`
+	VocabHash                string `json:"vocab_hash"`
+	EmbeddingModelID         string `json:"embedding_model_id"`
 	MinContributionsPerEpoch uint64 `json:"min_contributions_per_epoch"`
 }
 
@@ -130,6 +132,8 @@ func orgConfigToStored(cfg *OrgConfig) *StoredOrgConfig {
 		OrgId:                    cfg.OrgID,
 		ServeAttestationRequired: cfg.ServeAttestationRequired,
 		ContestStakeVibe:         cfg.ContestStakeVibe,
+		VocabHash:                cfg.VocabHash,
+		EmbeddingModelId:         cfg.EmbeddingModelID,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
 	}
 }
@@ -139,6 +143,8 @@ func storedToOrgConfig(stored StoredOrgConfig) OrgConfig {
 		OrgID:                    stored.OrgId,
 		ServeAttestationRequired: stored.ServeAttestationRequired,
 		ContestStakeVibe:         stored.ContestStakeVibe,
+		VocabHash:                stored.VocabHash,
+		EmbeddingModelID:         stored.EmbeddingModelId,
 		MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 	}
 }

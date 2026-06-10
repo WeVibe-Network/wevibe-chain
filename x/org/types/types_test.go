@@ -1,6 +1,7 @@
 package types_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -166,6 +167,8 @@ func TestMsgSetOrgConfig_ValidateBasic(t *testing.T) {
 	valid := &types.MsgSetOrgConfig{
 		Signer:                   "cosmos1signer",
 		OrgId:                    "org1",
+		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		EmbeddingModelId:         "text-embedding-3-large",
 		MinContributionsPerEpoch: 10,
 	}
 	require.NoError(t, valid.ValidateBasic())
@@ -191,6 +194,42 @@ func TestMsgSetOrgConfig_ValidateBasic(t *testing.T) {
 	t.Run("min contributions above limit", func(t *testing.T) {
 		m := *valid
 		m.MinContributionsPerEpoch = 101
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("empty vocab hash allowed", func(t *testing.T) {
+		m := *valid
+		m.VocabHash = ""
+		require.NoError(t, m.ValidateBasic())
+	})
+
+	t.Run("vocab hash wrong length", func(t *testing.T) {
+		m := *valid
+		m.VocabHash = "00112233445566778899aabbccddeeff00112233445566778899aabbccddee"
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("vocab hash uppercase rejected", func(t *testing.T) {
+		m := *valid
+		m.VocabHash = "00112233445566778899AABBCCDDEEFF00112233445566778899AABBCCDDEEFF"
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("vocab hash non-hex rejected", func(t *testing.T) {
+		m := *valid
+		m.VocabHash = "g0112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
+		require.Error(t, m.ValidateBasic())
+	})
+
+	t.Run("empty embedding model id allowed", func(t *testing.T) {
+		m := *valid
+		m.EmbeddingModelId = ""
+		require.NoError(t, m.ValidateBasic())
+	})
+
+	t.Run("embedding model id too long", func(t *testing.T) {
+		m := *valid
+		m.EmbeddingModelId = strings.Repeat("a", 129)
 		require.Error(t, m.ValidateBasic())
 	})
 }

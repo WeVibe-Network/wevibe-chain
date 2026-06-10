@@ -98,6 +98,8 @@ message MsgSetOrgConfig {
   bool serve_attestation_required = 3;
   uint64 min_contributions_per_epoch = 4;
   uint64 contest_stake_vibe = 5;
+  string vocab_hash = 6;
+  string embedding_model_id = 7;
 }
 message MsgSetOrgConfigResponse {}
 

@@ -156,6 +156,8 @@ func TestQueryGetOrgConfig_Success(t *testing.T) {
 		ServeAttestationRequired: true,
 		MinContributionsPerEpoch: 7,
 		ContestStakeVibe:         123,
+		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		EmbeddingModelID:         "text-embedding-3-large",
 	}
 	require.NoError(t, k.SetOrgConfig(ctx, org.OrgID, cfg))
 

@@ -784,6 +784,8 @@ func TestSetOrgConfig(t *testing.T) {
 	cfg := &types.OrgConfig{
 		OrgID:                    org.OrgID,
 		ServeAttestationRequired: true,
+		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		EmbeddingModelID:         "text-embedding-3-large",
 	}
 
 	err = k.SetOrgConfig(ctx, org.OrgID, cfg)
@@ -796,6 +798,18 @@ func TestSetOrgConfig(t *testing.T) {
 		t.Fatalf("GetOrgConfig failed: %v", err)
 	}
 	require.True(t, retrieved.ServeAttestationRequired)
+	require.Equal(t, cfg.VocabHash, retrieved.VocabHash)
+	require.Equal(t, cfg.EmbeddingModelID, retrieved.EmbeddingModelID)
+}
+
+func TestGetOrgConfig_DefaultIncludesAnchors(t *testing.T) {
+	k, ctx, _ := newTestKeeper(t)
+
+	retrieved, err := k.GetOrgConfig(ctx, "missing-org")
+	require.NoError(t, err)
+	require.Equal(t, "missing-org", retrieved.OrgID)
+	require.Equal(t, "", retrieved.VocabHash)
+	require.Equal(t, "", retrieved.EmbeddingModelID)
 }
 
 func TestComputeSlotPrice_Base(t *testing.T) {
@@ -842,6 +856,8 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 			{
 				OrgID:                    "org1",
 				ServeAttestationRequired: true,
+				VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+				EmbeddingModelID:         "text-embedding-3-large",
 			},
 		},
 	}

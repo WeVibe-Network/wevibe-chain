@@ -213,6 +213,8 @@ func (m *msgServer) SetOrgConfig(ctx context.Context, msg *types.MsgSetOrgConfig
 		OrgID:                    msg.OrgId,
 		ServeAttestationRequired: msg.ServeAttestationRequired,
 		ContestStakeVibe:         msg.ContestStakeVibe,
+		VocabHash:                msg.VocabHash,
+		EmbeddingModelID:         msg.EmbeddingModelId,
 		MinContributionsPerEpoch: msg.MinContributionsPerEpoch,
 	}
 

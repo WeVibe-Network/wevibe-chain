@@ -53,5 +53,7 @@ message StoredOrgConfig {
   bool serve_attestation_required = 2;
   reserved 3;
   uint64 contest_stake_vibe = 4;
+  string vocab_hash = 5;
+  string embedding_model_id = 6;
   uint64 min_contributions_per_epoch = 10;
 }

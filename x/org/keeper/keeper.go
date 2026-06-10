@@ -934,6 +934,8 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 			OrgID:                    orgID,
 			ServeAttestationRequired: false,
 			ContestStakeVibe:         0,
+			VocabHash:                "",
+			EmbeddingModelID:         "",
 			MinContributionsPerEpoch: 0,
 		}, nil
 	}
@@ -946,6 +948,8 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 		OrgID:                    stored.OrgId,
 		ServeAttestationRequired: stored.ServeAttestationRequired,
 		ContestStakeVibe:         stored.ContestStakeVibe,
+		VocabHash:                stored.VocabHash,
+		EmbeddingModelID:         stored.EmbeddingModelId,
 		MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 	}, nil
 }
@@ -956,6 +960,8 @@ func (k *Keeper) SetOrgConfig(ctx context.Context, orgID string, cfg *types.OrgC
 		OrgId:                    cfg.OrgID,
 		ServeAttestationRequired: cfg.ServeAttestationRequired,
 		ContestStakeVibe:         cfg.ContestStakeVibe,
+		VocabHash:                cfg.VocabHash,
+		EmbeddingModelId:         cfg.EmbeddingModelID,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
 	})
 	if err != nil {

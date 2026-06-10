@@ -131,6 +131,17 @@ func (m *MsgSetOrgConfig) ValidateBasic() error {
 	if m.MinContributionsPerEpoch > 100 {
 		return fmt.Errorf("min_contributions_per_epoch must be <= 100")
 	}
+	if m.VocabHash != "" {
+		if len(m.VocabHash) != 64 || m.VocabHash != strings.ToLower(m.VocabHash) {
+			return fmt.Errorf("vocab_hash must be 64 lowercase hex chars")
+		}
+		if _, err := hex.DecodeString(m.VocabHash); err != nil {
+			return fmt.Errorf("vocab_hash must be 64 lowercase hex chars")
+		}
+	}
+	if m.EmbeddingModelId != "" && len(m.EmbeddingModelId) > 128 {
+		return fmt.Errorf("embedding_model_id must be <= 128 chars")
+	}
 	return nil
 }
 
