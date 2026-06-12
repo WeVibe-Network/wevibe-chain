@@ -410,19 +410,16 @@ func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
 	}
 }
 
-func TestMsgApproveMemory_VerificationFailureReturnsSuccessAndKeepsPending(t *testing.T) {
+func TestMsgApproveMemory_VerificationFailureReturnsError(t *testing.T) {
 	srv, k, _, ctx := makeTestMsgServer(t)
 	submitMsg, approveMsg, _, _, _, _, _ := makeApproveMemoryFixture(types.MemoryType_MEMORY_TYPE_MEMORY)
 	_, _ = srv.SubmitCommitment(ctx, submitMsg)
 
 	approveMsg.ContributorSig = []byte("invalid-signature")
 
-	resp, err := srv.ApproveMemory(ctx, approveMsg)
-	if err != nil {
-		t.Fatalf("expected no error on verification failure, got: %v", err)
-	}
-	if resp == nil {
-		t.Fatal("expected non-nil response")
+	_, err := srv.ApproveMemory(ctx, approveMsg)
+	if err == nil {
+		t.Fatal("expected verification failure to return error")
 	}
 
 	_, err = k.GetApprovedMemory(ctx, "test-org", approveMsg.ContentHash)

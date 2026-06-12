@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"strings"
 
+	errorsmod "cosmossdk.io/errors"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/wevibe-network/wevibe-chain/x/memory/types"
 )
@@ -134,7 +135,12 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 			"org_id", msg.OrgId,
 			"content_hash", types.ContentHashToHex(msg.ContentHash),
 		)
-		return &types.MsgApproveMemoryResponse{}, nil
+		return nil, errorsmod.Wrapf(
+			types.ErrInvalidContributor,
+			"memory approval rejected: invalid contributor pubkey (org=%s content_hash=%s)",
+			msg.OrgId,
+			types.ContentHashToHex(msg.ContentHash),
+		)
 	}
 
 	if !ed25519.Verify(ed25519.PublicKey(contributorPubkeyBytes), canonicalBody, msg.ContributorSig) {
@@ -142,7 +148,12 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 			"org_id", msg.OrgId,
 			"content_hash", types.ContentHashToHex(msg.ContentHash),
 		)
-		return &types.MsgApproveMemoryResponse{}, nil
+		return nil, errorsmod.Wrapf(
+			types.ErrInvalidContributorSignature,
+			"memory approval rejected: contributor signature verification failed (org=%s content_hash=%s)",
+			msg.OrgId,
+			types.ContentHashToHex(msg.ContentHash),
+		)
 	}
 
 	derivedCiphertextHash := sha256.Sum256(msg.EncryptedBlob)
@@ -151,7 +162,12 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 			"org_id", msg.OrgId,
 			"content_hash", types.ContentHashToHex(msg.ContentHash),
 		)
-		return &types.MsgApproveMemoryResponse{}, nil
+		return nil, errorsmod.Wrapf(
+			types.ErrInvalidBlob,
+			"memory approval rejected: ciphertext hash mismatch (org=%s content_hash=%s)",
+			msg.OrgId,
+			types.ContentHashToHex(msg.ContentHash),
+		)
 	}
 
 	if !bytesEqual(msg.ContentHash, submissionHash) {
@@ -159,7 +175,12 @@ func (m *msgServer) ApproveMemory(ctx context.Context, msg *types.MsgApproveMemo
 			"org_id", msg.OrgId,
 			"content_hash", types.ContentHashToHex(msg.ContentHash),
 		)
-		return &types.MsgApproveMemoryResponse{}, nil
+		return nil, errorsmod.Wrapf(
+			types.ErrInvalidContentHash,
+			"memory approval rejected: content hash mismatch (org=%s content_hash=%s)",
+			msg.OrgId,
+			types.ContentHashToHex(msg.ContentHash),
+		)
 	}
 
 	if err := m.keeper.ApproveMemory(
