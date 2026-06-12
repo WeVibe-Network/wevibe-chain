@@ -457,7 +457,7 @@ func TestParamsValidate(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewGenesisState(t *testing.T) {
-	orgs := []*types.Org{types.NewOrg("org1", "leader", "", 1, 1)}
+	orgs := []*types.Org{types.NewOrg("org1", "leader", "", "", "", "", 1, 1)}
 	members := []*types.MemberRecord{types.NewMemberRecord("org1", "pk", "member", validX25519Pubkey)}
 
 	gs := types.NewGenesisState(orgs, members)
@@ -480,10 +480,13 @@ func TestNewGenesisState_Empty(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestNewOrg(t *testing.T) {
-	o := types.NewOrg("org1", "leader", "example.com", 1024, 512)
+	o := types.NewOrg("org1", "leader", "example.com", "A test org", "Go, TypeScript", "AI, Security", 1024, 512)
 	require.Equal(t, "org1", o.OrgID)
 	require.Equal(t, "leader", o.Leader)
 	require.Equal(t, "example.com", o.Domain)
+	require.Equal(t, "A test org", o.Description)
+	require.Equal(t, "Go, TypeScript", o.TechStack)
+	require.Equal(t, "AI, Security", o.FocusAreas)
 	require.Equal(t, uint64(1024), o.StorageQuota)
 	require.Equal(t, uint64(512), o.RetrievalBudget)
 	require.Equal(t, types.OrgStatus_ACTIVE, o.Status)
@@ -501,22 +504,22 @@ func TestOrgAccountAddress_Deterministic(t *testing.T) {
 
 func TestOrgValidate(t *testing.T) {
 	t.Run("valid", func(t *testing.T) {
-		o := types.NewOrg("org1", "leader", "example.com", 1, 1)
+		o := types.NewOrg("org1", "leader", "example.com", "", "", "", 1, 1)
 		require.NoError(t, o.Validate())
 	})
 
 	t.Run("valid empty domain", func(t *testing.T) {
-		o := types.NewOrg("org1", "leader", "", 1, 1)
+		o := types.NewOrg("org1", "leader", "", "", "", "", 1, 1)
 		require.NoError(t, o.Validate())
 	})
 
 	t.Run("empty org id", func(t *testing.T) {
-		o := types.NewOrg("", "leader", "", 1, 1)
+		o := types.NewOrg("", "leader", "", "", "", "", 1, 1)
 		require.ErrorIs(t, o.Validate(), types.ErrInvalidOrgID)
 	})
 
 	t.Run("empty leader", func(t *testing.T) {
-		o := types.NewOrg("org1", "", "", 1, 1)
+		o := types.NewOrg("org1", "", "", "", "", "", 1, 1)
 		require.ErrorIs(t, o.Validate(), types.ErrInvalidLeader)
 	})
 
@@ -525,23 +528,53 @@ func TestOrgValidate(t *testing.T) {
 		for i := 0; i < 129; i++ {
 			long += "a"
 		}
-		o := types.NewOrg("org1", "leader", long, 1, 1)
+		o := types.NewOrg("org1", "leader", long, "", "", "", 1, 1)
 		require.ErrorIs(t, o.Validate(), types.ErrInvalidDomain)
 	})
 
 	t.Run("domain with invalid character", func(t *testing.T) {
-		o := types.NewOrg("org1", "leader", "bad domain!", 1, 1)
+		o := types.NewOrg("org1", "leader", "bad domain!", "", "", "", 1, 1)
 		require.ErrorIs(t, o.Validate(), types.ErrInvalidDomain)
 	})
 
 	t.Run("domain with allowed characters", func(t *testing.T) {
-		o := types.NewOrg("org1", "leader", "React, Next.js / TypeScript + Node & Go", 1, 1)
+		o := types.NewOrg("org1", "leader", "React, Next.js / TypeScript + Node & Go", "", "", "", 1, 1)
 		require.NoError(t, o.Validate())
+	})
+
+	t.Run("description too long", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", strings.Repeat("a", 501), "", "", 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidDescription)
+	})
+
+	t.Run("description with control character", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", "line1\nline2", "", "", 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidDescription)
+	})
+
+	t.Run("tech stack too long", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", "", strings.Repeat("b", 201), "", 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidTechStack)
+	})
+
+	t.Run("tech stack with control character", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", "", "Go\tTypeScript", "", 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidTechStack)
+	})
+
+	t.Run("focus areas too long", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", "", "", strings.Repeat("c", 201), 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidFocusAreas)
+	})
+
+	t.Run("focus areas with control character", func(t *testing.T) {
+		o := types.NewOrg("org1", "leader", "", "", "", "ai\x1fml", 1, 1)
+		require.ErrorIs(t, o.Validate(), types.ErrInvalidFocusAreas)
 	})
 }
 
 func TestOrgIsActive(t *testing.T) {
-	o := types.NewOrg("org1", "leader", "", 1, 1)
+	o := types.NewOrg("org1", "leader", "", "", "", "", 1, 1)
 	require.True(t, o.IsActive())
 
 	o.Status = types.OrgStatus_DORMANT

@@ -35,6 +35,10 @@ message StoredOrg {
   // response-signing key (INTEGRITY); distinct from hub_serving_address
   // (secp256k1 AUTH).
   string hub_response_pubkey = 19;
+  string description = 20;
+  string tech_stack = 21;
+  string focus_areas = 22;
+  string name = 23;
 }
 
 message StoredSlotRegistry {

@@ -32,9 +32,19 @@ func (m *msgServer) RegisterOrg(ctx context.Context, msg *types.MsgRegisterOrg) 
 		return nil, fmt.Errorf("invalid signer address: %w", err)
 	}
 
-	org := types.NewOrg("", msg.Leader, msg.Domain, msg.StorageQuota, msg.RetrievalBudget)
+	org := types.NewOrg(
+		"",
+		msg.Leader,
+		msg.Domain,
+		msg.Description,
+		msg.TechStack,
+		msg.FocusAreas,
+		msg.StorageQuota,
+		msg.RetrievalBudget,
+	)
 	org.HubServingAddress = msg.HubServingKey
 	org.LeaderWalletAddress = msg.LeaderWallet
+	org.Name = msg.Name
 	if err := m.keeper.RegisterOrg(ctx, org, creator); err != nil {
 		return nil, err
 	}

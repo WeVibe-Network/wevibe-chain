@@ -21,7 +21,7 @@ func TestQueryGetOrg_Success(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "example.com", "", "", "", 1000000, 5000)
 	org.HubResponsePubkey = "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff"
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
@@ -55,7 +55,7 @@ func TestQueryGetMembers_Success(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_aaaa1234567890123456789012", "member", queryX25519Pubkey)))
@@ -90,7 +90,7 @@ func TestQueryIsMember_True(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_cccc1234567890123456789012", "member", queryX25519Pubkey)))
 
@@ -148,7 +148,7 @@ func TestQueryGetOrgConfig_Success(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	cfg := &types.OrgConfig{
@@ -190,7 +190,7 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "example.com", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "example.com", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "moderator", queryX25519Pubkey)))
 
@@ -215,7 +215,7 @@ func TestQueryGetOrgAccount_Success(t *testing.T) {
 	k, ctx, _ := newTestKeeperWithStrictBank(t)
 	qs := keeper.NewQueryServerImpl(k)
 
-	org := types.NewOrg("org1", queryLeader, "", 1000000, 5000)
+	org := types.NewOrg("org1", queryLeader, "", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	resp, err := qs.GetOrgAccount(ctx, &types.QueryGetOrgAccountRequest{OrgId: org.OrgID})

@@ -23,6 +23,10 @@ type Org struct {
 	Slot            uint64    `json:"slot"`
 	Leader          string    `json:"leader"`
 	Domain          string    `json:"domain"`
+	Name            string    `json:"name"`
+	Description     string    `json:"description"`
+	TechStack       string    `json:"tech_stack"`
+	FocusAreas      string    `json:"focus_areas"`
 	CreatedAt       uint64    `json:"created_at"`
 	RenewalHeight   uint64    `json:"renewal_height"`
 	StorageQuota    uint64    `json:"storage_quota"`
@@ -39,11 +43,14 @@ type Org struct {
 	AccountAddress      string   `json:"account_address"`
 }
 
-func NewOrg(orgID, leader, domain string, storageQuota, retrievalBudget uint64) *Org {
+func NewOrg(orgID, leader, domain, description, techStack, focusAreas string, storageQuota, retrievalBudget uint64) *Org {
 	return &Org{
 		OrgID:           orgID,
 		Leader:          leader,
 		Domain:          domain,
+		Description:     description,
+		TechStack:       techStack,
+		FocusAreas:      focusAreas,
 		CreatedAt:       0,
 		RenewalHeight:   0,
 		StorageQuota:    storageQuota,
@@ -58,6 +65,18 @@ func (o *Org) Validate() error {
 	}
 	if o.Leader == "" {
 		return ErrInvalidLeader
+	}
+	if len(o.Description) > 500 || containsASCIIControl(o.Description) {
+		return ErrInvalidDescription
+	}
+	if len(o.TechStack) > 200 || containsASCIIControl(o.TechStack) {
+		return ErrInvalidTechStack
+	}
+	if len(o.FocusAreas) > 200 || containsASCIIControl(o.FocusAreas) {
+		return ErrInvalidFocusAreas
+	}
+	if len(o.Name) > 100 || containsASCIIControl(o.Name) {
+		return ErrInvalidName
 	}
 	if len(o.Domain) > 128 {
 		return ErrInvalidDomain
@@ -80,6 +99,16 @@ func (o *Org) Validate() error {
 		return ErrInvalidDomain
 	}
 	return nil
+}
+
+func containsASCIIControl(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] < 0x20 {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (o *Org) IsActive() bool {

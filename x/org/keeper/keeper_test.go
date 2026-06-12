@@ -222,7 +222,7 @@ func registerMsgServerOrgWithLeaderWallet(t *testing.T, srv types.MsgServer, ctx
 func TestRegisterOrg(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
@@ -248,7 +248,7 @@ func TestRegisterOrg(t *testing.T) {
 func TestRegisterOrg_DuplicateLeader(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
@@ -270,14 +270,14 @@ func TestRegisterOrg_SlotCapReached(t *testing.T) {
 	require.NoError(t, k.SetParams(ctx, params))
 
 	for i := 0; i < 32; i++ {
-		org := types.NewOrg("", fmt.Sprintf("leader-%d", i), "", 1000000, 5000)
+		org := types.NewOrg("", fmt.Sprintf("leader-%d", i), "", "", "", "", 1000000, 5000)
 		err := k.RegisterOrg(ctx, org, testCreatorAddr)
 		require.NoError(t, err)
 		require.Equal(t, types.FormatOrgID(uint64(i)), org.OrgID)
 		require.Equal(t, uint64(i), org.Slot)
 	}
 
-	err = k.RegisterOrg(ctx, types.NewOrg("", "leader-over-cap", "", 1000000, 5000), testCreatorAddr)
+	err = k.RegisterOrg(ctx, types.NewOrg("", "leader-over-cap", "", "", "", "", 1000000, 5000), testCreatorAddr)
 	require.ErrorIs(t, err, types.ErrSlotCapReached)
 }
 
@@ -290,7 +290,7 @@ func TestRegisterOrg_SplitsBurnAndOrgAccount(t *testing.T) {
 	creatorStart := bank.GetBalance(ctx, testCreatorAddr, "uvibe").Amount
 	moduleStart := bank.moduleBalances[types.ModuleName]
 
-	org := types.NewOrg("", "leader_pubkey_split_123456789012345678901234", "", 1000000, 5000)
+	org := types.NewOrg("", "leader_pubkey_split_123456789012345678901234", "", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	require.Equal(t, creatorStart.Sub(price), bank.GetBalance(ctx, testCreatorAddr, "uvibe").Amount)
@@ -307,7 +307,7 @@ func TestRegisterOrg_InsufficientFunds(t *testing.T) {
 	price := k.ComputeSlotPrice(ctx, 0)
 	bank.SetBalance(testCreatorAddr.String(), price.Sub(math.NewInt(1)))
 
-	org := types.NewOrg("", "leader_pubkey_insufficient_1234567890123456", "", 1000000, 5000)
+	org := types.NewOrg("", "leader_pubkey_insufficient_1234567890123456", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	require.ErrorIs(t, err, types.ErrInsufficientFund)
 }
@@ -315,7 +315,7 @@ func TestRegisterOrg_InsufficientFunds(t *testing.T) {
 func TestGetOrg(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
@@ -346,7 +346,7 @@ func TestGetOrg_NotFound(t *testing.T) {
 func TestAddMember(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -370,7 +370,7 @@ func TestAddMember(t *testing.T) {
 func TestAddMember_DuplicateMember(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -391,7 +391,7 @@ func TestAddMember_DuplicateMember(t *testing.T) {
 func TestRemoveMember(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -429,7 +429,7 @@ func TestRemoveMember_NotFound(t *testing.T) {
 func TestIsLeader(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -455,7 +455,7 @@ func TestIsLeader(t *testing.T) {
 func TestUpdateOrgStatus(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -478,7 +478,7 @@ func TestUpdateOrgStatus(t *testing.T) {
 func TestUpdateStorageQuota(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -502,8 +502,8 @@ func TestGetAllOrgs(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
 	orgs := []*types.Org{
-		types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", 1000000, 5000),
-		types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", 1000000, 5000),
+		types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
+		types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
 	}
 
 	for _, org := range orgs {
@@ -525,7 +525,7 @@ func TestGetAllOrgs(t *testing.T) {
 func TestGetAllMembers(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -557,7 +557,7 @@ func TestInitGenesisAndExportGenesis(t *testing.T) {
 
 	state := &types.GenesisState{
 		Orgs: []*types.Org{
-			types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000),
+			types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member_pubkey_123456789012345678901234", "member", testX25519Pubkey),
@@ -589,7 +589,7 @@ func TestSDKTransactionIsolation(t *testing.T) {
 	k1 := keeper.NewKeeper(storeService1, logger1, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", bank1, nil)
 	ctx1 := context.Background()
 
-	org1 := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org1 := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k1.RegisterOrg(ctx1, org1, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg in tx1 failed: %v", err)
@@ -627,7 +627,7 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 	k1 := keeper.NewKeeper(storeService1, logger1, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", bank1, nil)
 	ctx1 := context.Background()
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 
 	err := k1.RegisterOrg(ctx1, org, testCreatorAddr)
 	if err != nil {
@@ -668,8 +668,8 @@ func TestSDKGenesisRoundTrip(t *testing.T) {
 
 	genesisState := &types.GenesisState{
 		Orgs: []*types.Org{
-			types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", 1000000, 5000),
-			types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", 1000000, 5000),
+			types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
+			types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),
@@ -719,8 +719,8 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 	ctx := context.Background()
 
 	orgs := []*types.Org{
-		types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", 1000000, 5000),
-		types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", 1000000, 5000),
+		types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
+		types.NewOrg("org2", "leader2_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
 	}
 
 	for _, org := range orgs {
@@ -775,7 +775,7 @@ func TestSDKMultipleOrgsAndMembers(t *testing.T) {
 func TestSetOrgConfig(t *testing.T) {
 	k, ctx, _ := newTestKeeper(t)
 
-	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", 1000000, 5000)
+	org := types.NewOrg("org1", "leader_pubkey_12345678901234567890123456789012", "", "", "", "", 1000000, 5000)
 	err := k.RegisterOrg(ctx, org, testCreatorAddr)
 	if err != nil {
 		t.Fatalf("RegisterOrg failed: %v", err)
@@ -847,7 +847,7 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 
 	genesisState := &types.GenesisState{
 		Orgs: []*types.Org{
-			types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", 1000000, 5000),
+			types.NewOrg("org1", "leader1_pubkey_1234567890123456789012345", "", "", "", "", 1000000, 5000),
 		},
 		Members: []*types.MemberRecord{
 			types.NewMemberRecord("org1", "member1_pubkey_123456789012345678901", "member", testX25519Pubkey),

@@ -36,6 +36,10 @@ message MsgRegisterOrg {
   // (the on-chain authority for org decisions).
   string hub_serving_key = 7;
   string leader_wallet = 8;
+  string description = 9;
+  string tech_stack = 10;
+  string focus_areas = 11;
+  string name = 12;
 }
 
 message MsgRegisterOrgResponse {
