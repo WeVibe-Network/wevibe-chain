@@ -72,6 +72,17 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					},
 				},
 				{
+					RpcMethod: "SetMemberCapabilities",
+					Use:       "set-member-capabilities [org-id] [pubkey] [can-contribute] [can-moderate]",
+					Short:     "Set per-member capabilities",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "org_id"},
+						{ProtoField: "pubkey"},
+						{ProtoField: "can_contribute"},
+						{ProtoField: "can_moderate"},
+					},
+				},
+				{
 					RpcMethod: "RemoveMember",
 					Use:       "remove-member [org-id] [pubkey]",
 					Short:     "Remove a member from an org",

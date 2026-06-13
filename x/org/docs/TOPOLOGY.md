@@ -2,16 +2,15 @@
 
 ## Messages (as of CO-011b)
 
-### MsgUpdateMemberRole
-Leader can promote or demote a member's role (member ↔ moderator). The "leader" role itself cannot be changed via this message — leadership transfer requires MsgTransferLeadership.
+### MsgSetMemberCapabilities
+Leader sets per-member capability flags (`can_contribute`, `can_moderate`) while member roles remain `leader`/`member` only.
 
-- **Signer authority:** Leader of the org (signer must match org.Leader)
-- **ValidateBasic:** signer not empty, org_id not empty, pubkey not empty, new_role in ["member", "moderator"]
+- **Signer authority:** Leader wallet of the org (signer must match org.LeaderWalletAddress)
+- **ValidateBasic:** signer not empty, org_id not empty, pubkey not empty
 - **State mutations:**
-  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
+  1. Read StoredOrg from `org/{org_id}`, verify signer == leader wallet
   2. Read StoredMemberRecord from `member/{org_id}/{pubkey}`, verify exists
-  3. Reject if pubkey == leader (cannot change own leader role)
-  4. Update member.Role = new_role, marshal and store
+  3. Update member.CanContribute / member.CanModerate, marshal and store
 
 ### MsgRotateEpoch
 Leader increments the epoch rotation counter after member removal. This is the chain-side record of a rotation; the actual cryptographic rotation (new keypair, kfrags) happens hub-side via the Umbral sidecar.

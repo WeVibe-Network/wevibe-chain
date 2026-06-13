@@ -88,6 +88,8 @@ func (m *msgServer) AddMember(ctx context.Context, msg *types.MsgAddMember) (*ty
 	}
 
 	member := types.NewMemberRecord(msg.OrgId, msg.Pubkey, msg.Role, msg.X25519Pubkey)
+	member.CanContribute = msg.CanContribute
+	member.CanModerate = msg.CanModerate
 	if err := m.keeper.AddMember(ctx, member); err != nil {
 		return nil, err
 	}
@@ -298,7 +300,7 @@ func (m *msgServer) GrantTrialAllowance(ctx context.Context, msg *types.MsgGrant
 	return &types.MsgGrantTrialAllowanceResponse{}, nil
 }
 
-func (m *msgServer) UpdateMemberRole(ctx context.Context, msg *types.MsgUpdateMemberRole) (*types.MsgUpdateMemberRoleResponse, error) {
+func (m *msgServer) SetMemberCapabilities(ctx context.Context, msg *types.MsgSetMemberCapabilities) (*types.MsgSetMemberCapabilitiesResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err
 	}
@@ -311,19 +313,20 @@ func (m *msgServer) UpdateMemberRole(ctx context.Context, msg *types.MsgUpdateMe
 		return nil, types.ErrOrgNotFound
 	}
 
-	if err := m.keeper.UpdateMemberRole(ctx, msg.OrgId, msg.Pubkey, msg.NewRole, msg.Signer); err != nil {
+	if err := m.keeper.SetMemberCapabilities(ctx, msg.OrgId, msg.Pubkey, msg.CanContribute, msg.CanModerate, msg.Signer); err != nil {
 		return nil, err
 	}
 
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
-		types.EventTypeMemberRoleUpdated,
+		types.EventTypeMemberCapabilitiesSet,
 		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
 		sdk.NewAttribute(types.AttributeKeyMemberPubkey, msg.Pubkey),
-		sdk.NewAttribute(types.AttributeKeyRole, msg.NewRole),
+		sdk.NewAttribute(types.AttributeKeyCanContribute, fmt.Sprintf("%t", msg.CanContribute)),
+		sdk.NewAttribute(types.AttributeKeyCanModerate, fmt.Sprintf("%t", msg.CanModerate)),
 	))
 
-	return &types.MsgUpdateMemberRoleResponse{}, nil
+	return &types.MsgSetMemberCapabilitiesResponse{}, nil
 }
 
 func (m *msgServer) RotateEpoch(ctx context.Context, msg *types.MsgRotateEpoch) (*types.MsgRotateEpochResponse, error) {

@@ -95,7 +95,7 @@ func (m *MsgAddMember) ValidateBasic() error {
 	if m.X25519Pubkey == "" {
 		return fmt.Errorf("x25519_pubkey cannot be empty")
 	}
-	if m.Role != "member" && m.Role != "moderator" && m.Role != "contributor" {
+	if m.Role != "member" {
 		return ErrInvalidRole
 	}
 	return nil
@@ -164,7 +164,7 @@ func (m *MsgGrantTrialAllowance) ValidateBasic() error {
 	return nil
 }
 
-func (m *MsgUpdateMemberRole) ValidateBasic() error {
+func (m *MsgSetMemberCapabilities) ValidateBasic() error {
 	if m.Signer == "" {
 		return fmt.Errorf("signer cannot be empty")
 	}
@@ -173,9 +173,6 @@ func (m *MsgUpdateMemberRole) ValidateBasic() error {
 	}
 	if m.Pubkey == "" {
 		return fmt.Errorf("pubkey cannot be empty")
-	}
-	if m.NewRole != "member" && m.NewRole != "moderator" && m.NewRole != "contributor" {
-		return fmt.Errorf("new_role must be 'member', 'moderator', or 'contributor'")
 	}
 	return nil
 }

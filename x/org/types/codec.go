@@ -28,7 +28,7 @@ func RegisterInterfaces(registry codectypes.InterfaceRegistry) {
 		&MsgUpdateParams{},
 		&MsgSetOrgConfig{},
 		&MsgGrantTrialAllowance{},
-		&MsgUpdateMemberRole{},
+		&MsgSetMemberCapabilities{},
 		&MsgRotateEpoch{},
 		&MsgTransferLeadership{},
 		&MsgCloseOrg{},

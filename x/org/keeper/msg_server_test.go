@@ -103,7 +103,7 @@ func assertLeaderFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowance
 		[]string{
 			"/wevibe.org.v1.MsgAddMember",
 			"/wevibe.org.v1.MsgRemoveMember",
-			"/wevibe.org.v1.MsgUpdateMemberRole",
+			"/wevibe.org.v1.MsgSetMemberCapabilities",
 			"/wevibe.org.v1.MsgSetOrgConfig",
 			"/wevibe.org.v1.MsgSetServingKey",
 			"/wevibe.org.v1.MsgSetServingInfo",
@@ -473,8 +473,8 @@ func TestMsgGrantTrialAllowance_NotLeader(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
 
-func TestMsgUpdateMemberRole_Success(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
+func TestMsgSetMemberCapabilities_Success(t *testing.T) {
+	srv, qs, ctx, _, _ := setupMsgAndQueryServer(t)
 
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
@@ -487,19 +487,32 @@ func TestMsgUpdateMemberRole_Success(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	msg := &types.MsgUpdateMemberRole{
-		Signer:  validLeader,
-		OrgId:   orgID,
-		Pubkey:  validMember,
-		NewRole: "moderator",
-	}
-
-	resp, err := srv.UpdateMemberRole(ctx, msg)
+	resp, err := srv.SetMemberCapabilities(ctx, &types.MsgSetMemberCapabilities{
+		Signer:        validLeader,
+		OrgId:         orgID,
+		Pubkey:        validMember,
+		CanContribute: true,
+		CanModerate:   true,
+	})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
+
+	membersResp, err := qs.GetMembers(ctx, &types.QueryGetMembersRequest{OrgId: orgID})
+	require.NoError(t, err)
+
+	for _, m := range membersResp.Members {
+		if m.Pubkey != validMember {
+			continue
+		}
+		require.True(t, m.CanContribute)
+		require.True(t, m.CanModerate)
+		return
+	}
+
+	t.Fatalf("member %s not found in org %s", validMember, orgID)
 }
 
-func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
+func TestMsgSetMemberCapabilities_NotLeader(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
@@ -513,48 +526,29 @@ func TestMsgUpdateMemberRole_NotLeader(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	msg := &types.MsgUpdateMemberRole{
-		Signer:  validSigner,
-		OrgId:   orgID,
-		Pubkey:  validMember,
-		NewRole: "moderator",
-	}
-
-	_, err = srv.UpdateMemberRole(ctx, msg)
+	_, err = srv.SetMemberCapabilities(ctx, &types.MsgSetMemberCapabilities{
+		Signer:        validSigner,
+		OrgId:         orgID,
+		Pubkey:        validMember,
+		CanContribute: true,
+		CanModerate:   true,
+	})
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
 
-func TestMsgUpdateMemberRole_MemberNotFound(t *testing.T) {
+func TestMsgSetMemberCapabilities_MemberNotFound(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
 	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
 
-	msg := &types.MsgUpdateMemberRole{
-		Signer:  validLeader,
-		OrgId:   orgID,
-		Pubkey:  validMember,
-		NewRole: "moderator",
-	}
-
-	_, err := srv.UpdateMemberRole(ctx, msg)
+	_, err := srv.SetMemberCapabilities(ctx, &types.MsgSetMemberCapabilities{
+		Signer:        validLeader,
+		OrgId:         orgID,
+		Pubkey:        validMember,
+		CanContribute: true,
+		CanModerate:   true,
+	})
 	require.ErrorIs(t, err, types.ErrMemberNotFound)
-}
-
-func TestMsgUpdateMemberRole_CannotChangeLeaderRole(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
-
-	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeaderPubkey, validLeader)
-
-	msg := &types.MsgUpdateMemberRole{
-		Signer:  validLeader,
-		OrgId:   orgID,
-		Pubkey:  validLeaderPubkey,
-		NewRole: "member",
-	}
-
-	_, err := srv.UpdateMemberRole(ctx, msg)
-	require.Error(t, err)
-	require.Contains(t, err.Error(), "cannot change role of org leader")
 }
 
 func TestMsgRotateEpoch_Success(t *testing.T) {

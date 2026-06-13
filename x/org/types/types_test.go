@@ -107,6 +107,18 @@ func TestMsgAddMember_ValidateBasic(t *testing.T) {
 		m.Role = "leader"
 		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidRole)
 	})
+
+	t.Run("moderator role rejected", func(t *testing.T) {
+		m := *valid
+		m.Role = "moderator"
+		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidRole)
+	})
+
+	t.Run("contributor role rejected", func(t *testing.T) {
+		m := *valid
+		m.Role = "contributor"
+		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidRole)
+	})
 }
 
 // ---------------------------------------------------------------------------
@@ -275,56 +287,6 @@ func TestMsgGrantTrialAllowance_ValidateBasic(t *testing.T) {
 	t.Run("zero trial days", func(t *testing.T) {
 		m := *valid
 		m.TrialDays = 0
-		require.Error(t, m.ValidateBasic())
-	})
-}
-
-// ---------------------------------------------------------------------------
-// MsgUpdateMemberRole.ValidateBasic
-// ---------------------------------------------------------------------------
-
-func TestMsgUpdateMemberRole_ValidateBasic(t *testing.T) {
-	valid := &types.MsgUpdateMemberRole{
-		Signer:  "cosmos1signer",
-		OrgId:   "org1",
-		Pubkey:  "member_pubkey",
-		NewRole: "moderator",
-	}
-	require.NoError(t, valid.ValidateBasic())
-
-	t.Run("member role allowed", func(t *testing.T) {
-		m := *valid
-		m.NewRole = "member"
-		require.NoError(t, m.ValidateBasic())
-	})
-
-	t.Run("empty signer", func(t *testing.T) {
-		m := *valid
-		m.Signer = ""
-		require.Error(t, m.ValidateBasic())
-	})
-
-	t.Run("empty org id", func(t *testing.T) {
-		m := *valid
-		m.OrgId = ""
-		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidOrgID)
-	})
-
-	t.Run("empty pubkey", func(t *testing.T) {
-		m := *valid
-		m.Pubkey = ""
-		require.Error(t, m.ValidateBasic())
-	})
-
-	t.Run("invalid role", func(t *testing.T) {
-		m := *valid
-		m.NewRole = "leader"
-		require.Error(t, m.ValidateBasic())
-	})
-
-	t.Run("empty role", func(t *testing.T) {
-		m := *valid
-		m.NewRole = ""
 		require.Error(t, m.ValidateBasic())
 	})
 }
@@ -585,10 +547,10 @@ func TestOrgIsActive(t *testing.T) {
 }
 
 func TestNewMemberRecord(t *testing.T) {
-	m := types.NewMemberRecord("org1", "pk", "moderator", validX25519Pubkey)
+	m := types.NewMemberRecord("org1", "pk", "member", validX25519Pubkey)
 	require.Equal(t, "org1", m.OrgID)
 	require.Equal(t, "pk", m.Pubkey)
-	require.Equal(t, "moderator", m.Role)
+	require.Equal(t, "member", m.Role)
 	require.Equal(t, validX25519Pubkey, m.X25519Pubkey)
 }
 

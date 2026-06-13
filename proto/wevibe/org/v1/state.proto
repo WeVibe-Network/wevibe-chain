@@ -50,6 +50,8 @@ message StoredMemberRecord {
   string pubkey = 2;
   string role = 3;
   string x25519_pubkey = 4;
+  bool can_contribute = 5;
+  bool can_moderate = 6;
 }
 
 message StoredOrgConfig {

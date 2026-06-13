@@ -46,9 +46,11 @@ func (q *queryServer) GetMembers(ctx context.Context, req *types.QueryGetMembers
 	var memberInfos []*types.MemberInfo
 	for _, m := range members {
 		memberInfos = append(memberInfos, &types.MemberInfo{
-			OrgId:  m.OrgID,
-			Pubkey: m.Pubkey,
-			Role:   m.Role,
+			OrgId:         m.OrgID,
+			Pubkey:        m.Pubkey,
+			Role:          m.Role,
+			CanContribute: m.CanContribute,
+			CanModerate:   m.CanModerate,
 		})
 	}
 	return &types.QueryGetMembersResponse{Members: memberInfos}, nil
@@ -119,7 +121,7 @@ func (q *queryServer) GetOrgProfile(ctx context.Context, req *types.QueryGetOrgP
 	var memberCount, moderatorCount uint64
 	for _, m := range members {
 		memberCount++
-		if m.Role == "moderator" {
+		if m.CanModerate {
 			moderatorCount++
 		}
 	}

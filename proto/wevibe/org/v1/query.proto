@@ -57,6 +57,8 @@ message MemberInfo {
   string org_id = 1;
   string pubkey = 2;
   string role = 3;
+  bool can_contribute = 4;
+  bool can_moderate = 5;
 }
 
 message QueryGetMembersResponse {

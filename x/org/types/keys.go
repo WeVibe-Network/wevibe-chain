@@ -132,10 +132,12 @@ const (
 )
 
 type MemberRecord struct {
-	OrgID        string `json:"org_id"`
-	Pubkey       string `json:"pubkey"`
-	Role         string `json:"role"`
-	X25519Pubkey string `json:"x25519_pubkey"`
+	OrgID         string `json:"org_id"`
+	Pubkey        string `json:"pubkey"`
+	Role          string `json:"role"`
+	X25519Pubkey  string `json:"x25519_pubkey"`
+	CanContribute bool   `json:"can_contribute"`
+	CanModerate   bool   `json:"can_moderate"`
 }
 
 func NewMemberRecord(orgID, pubkey, role, x25519Pubkey string) *MemberRecord {

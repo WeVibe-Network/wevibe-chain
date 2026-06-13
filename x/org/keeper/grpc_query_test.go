@@ -59,7 +59,9 @@ func TestQueryGetMembers_Success(t *testing.T) {
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
 
 	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_aaaa1234567890123456789012", "member", queryX25519Pubkey)))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_bbbb1234567890123456789012", "moderator", queryX25519Pubkey)))
+	moderatorCapableMember := types.NewMemberRecord(org.OrgID, "member_pubkey_bbbb1234567890123456789012", "member", queryX25519Pubkey)
+	moderatorCapableMember.CanModerate = true
+	require.NoError(t, k.AddMember(ctx, moderatorCapableMember))
 
 	resp, err := qs.GetMembers(ctx, &types.QueryGetMembersRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
@@ -192,7 +194,9 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 
 	org := types.NewOrg("org1", queryLeader, "example.com", "", "", "", 1000000, 5000)
 	require.NoError(t, k.RegisterOrg(ctx, org, testCreatorAddr))
-	require.NoError(t, k.AddMember(ctx, types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "moderator", queryX25519Pubkey)))
+	moderatorCapableMember := types.NewMemberRecord(org.OrgID, "member_pubkey_dddd1234567890123456789012", "member", queryX25519Pubkey)
+	moderatorCapableMember.CanModerate = true
+	require.NoError(t, k.AddMember(ctx, moderatorCapableMember))
 
 	resp, err := qs.GetOrgProfile(ctx, &types.QueryGetOrgProfileRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
@@ -202,7 +206,7 @@ func TestQueryGetOrgProfile_Success(t *testing.T) {
 	require.Equal(t, org.AccountAddress, resp.AccountAddress)
 	require.Equal(t, "example.com", resp.Domain)
 	require.Equal(t, int32(types.OrgStatus_ACTIVE), resp.Status)
-	// leader + one moderator member.
+	// leader + one member with moderation capability.
 	require.Equal(t, uint64(2), resp.MemberCount)
 	require.Equal(t, uint64(1), resp.ModeratorCount)
 }

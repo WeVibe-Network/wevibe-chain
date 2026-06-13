@@ -111,19 +111,23 @@ func storedToOrg(stored types.StoredOrg) types.Org {
 
 func memberToStored(member *types.MemberRecord) *types.StoredMemberRecord {
 	return &types.StoredMemberRecord{
-		OrgId:        member.OrgID,
-		Pubkey:       member.Pubkey,
-		Role:         member.Role,
-		X25519Pubkey: member.X25519Pubkey,
+		OrgId:         member.OrgID,
+		Pubkey:        member.Pubkey,
+		Role:          member.Role,
+		X25519Pubkey:  member.X25519Pubkey,
+		CanContribute: member.CanContribute,
+		CanModerate:   member.CanModerate,
 	}
 }
 
 func storedToMember(stored types.StoredMemberRecord) types.MemberRecord {
 	return types.MemberRecord{
-		OrgID:        stored.OrgId,
-		Pubkey:       stored.Pubkey,
-		Role:         stored.Role,
-		X25519Pubkey: stored.X25519Pubkey,
+		OrgID:         stored.OrgId,
+		Pubkey:        stored.Pubkey,
+		Role:          stored.Role,
+		X25519Pubkey:  stored.X25519Pubkey,
+		CanContribute: stored.CanContribute,
+		CanModerate:   stored.CanModerate,
 	}
 }
 
@@ -317,7 +321,7 @@ func (k *Keeper) HasOrg(ctx context.Context, orgID string) (bool, error) {
 }
 
 func (k *Keeper) AddMember(ctx context.Context, member *types.MemberRecord) error {
-	if member.Role == "leader" {
+	if member.Role != "member" {
 		return types.ErrInvalidRole
 	}
 
@@ -502,7 +506,7 @@ func (k *Keeper) IsModerator(ctx context.Context, orgID, memberPubkey string) (b
 		}
 		return false, err
 	}
-	return member.Role == "moderator", nil
+	return member.CanModerate, nil
 }
 
 // GetServingAddress returns the org's currently-registered hub serving key
@@ -618,7 +622,7 @@ func (k *Keeper) SetServingInfo(ctx context.Context, orgID string, endpoints []s
 	return nil
 }
 
-func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, signer string) error {
+func (k *Keeper) SetMemberCapabilities(ctx context.Context, orgID, pubkey string, canContribute, canModerate bool, signer string) error {
 	org, err := k.GetOrg(ctx, orgID)
 	if err != nil {
 		return err
@@ -635,11 +639,8 @@ func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, s
 		return err
 	}
 
-	if member.Role == "leader" {
-		return fmt.Errorf("cannot change role of org leader")
-	}
-
-	member.Role = newRole
+	member.CanContribute = canContribute
+	member.CanModerate = canModerate
 	bz, err := proto.Marshal(memberToStored(member))
 	if err != nil {
 		return fmt.Errorf("marshal member: %w", err)
@@ -650,10 +651,11 @@ func (k *Keeper) UpdateMemberRole(ctx context.Context, orgID, pubkey, newRole, s
 		return err
 	}
 
-	k.logger.Info("member role updated",
+	k.logger.Info("member capabilities set",
 		"org_id", orgID,
 		"member", pubkey,
-		"new_role", newRole,
+		"can_contribute", canContribute,
+		"can_moderate", canModerate,
 	)
 	return nil
 }

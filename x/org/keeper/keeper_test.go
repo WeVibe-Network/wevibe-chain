@@ -892,7 +892,7 @@ func TestMsgAddMember_RejectsNonLeaderWalletSigner(t *testing.T) {
 		Signer:       "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
 		OrgId:        orgID,
 		Pubkey:       "member_pubkey_12345678901234567890123456789012",
-		Role:         "contributor",
+		Role:         "member",
 		X25519Pubkey: testX25519Pubkey,
 	})
 	require.ErrorIs(t, err, types.ErrNotLeader)
@@ -984,7 +984,7 @@ func TestOrgDecisionMsgs_AcceptsLeaderWalletSigner(t *testing.T) {
 		Signer:       "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
 		OrgId:        orgID,
 		Pubkey:       "member_pubkey_success_1234567890123456789012",
-		Role:         "contributor",
+		Role:         "member",
 		X25519Pubkey: testX25519Pubkey,
 	})
 	require.NoError(t, err)
