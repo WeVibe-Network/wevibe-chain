@@ -2,7 +2,6 @@ package types
 
 const (
 	EventTypeCommitmentSubmitted = "commitment_submitted"
-	EventTypeMemoryApproved      = "memory_approved"
 	EventTypeMemoryRejected      = "memory_rejected"
 	EventTypeExpiredPurged       = "expired_purged"
 
