@@ -7,7 +7,10 @@ applies Earned Trust decay to per-keyword weights.
 
 ## Active Message Handlers
 
-- **MsgSubmitCommitment** — stores pending commitments under `pending/{org}/{hash}`.
+- **MsgSubmitCommitment** — stores pending commitments under
+  `pending/{org}/{hash}`. Submit authorization requires
+  `can_contribute` capability (`Role == "leader"` is always allowed);
+  org roles are `{leader, member}` only.
 - **MsgApproveMemory** — promotes pending commitment to approved state under
   `approved/{org}/{hash}` after canonical-body verification.
 - **MsgUpdateParams** — governance-authority parameter updates.

@@ -7,7 +7,7 @@ var (
 	ErrInvalidOrgID                 = errors.New("invalid org ID")
 	ErrInvalidContributor           = errors.New("invalid contributor ID")
 	ErrInvalidContributorSignature  = errors.New("invalid contributor signature")
-	ErrNotContributor               = errors.New("contributor, moderator, or leader role required to submit memory")
+	ErrNotContributor               = errors.New("can_contribute capability or leader role required to submit memory")
 	ErrInvalidApprover              = errors.New("invalid approver ID")
 	ErrInvalidBlob                  = errors.New("invalid encrypted blob")
 	ErrBlobTooLarge                 = errors.New("encrypted blob exceeds max size")

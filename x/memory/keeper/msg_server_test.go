@@ -22,7 +22,13 @@ import (
 type mockOrgKeeperServer struct {
 	orgs    map[string]bool
 	leaders map[string]string
-	members map[string]map[string]string
+	members map[string]map[string]mockMemberRecord
+}
+
+type mockMemberRecord struct {
+	role          string
+	canContribute bool
+	canModerate   bool
 }
 
 func (m *mockOrgKeeperServer) HasOrg(ctx context.Context, orgID string) (bool, error) {
@@ -43,16 +49,18 @@ func (m *mockOrgKeeperServer) GetMember(ctx context.Context, orgID, memberPubkey
 		return nil, orgtypes.ErrMemberNotFound
 	}
 
-	role, ok := membersForOrg[memberPubkey]
+	member, ok := membersForOrg[memberPubkey]
 	if !ok {
 		return nil, orgtypes.ErrMemberNotFound
 	}
 
 	return &orgtypes.MemberRecord{
-		OrgID:        orgID,
-		Pubkey:       memberPubkey,
-		Role:         role,
-		X25519Pubkey: "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		OrgID:         orgID,
+		Pubkey:        memberPubkey,
+		Role:          member.role,
+		X25519Pubkey:  "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		CanContribute: member.canContribute,
+		CanModerate:   member.canModerate,
 	}, nil
 }
 
@@ -75,11 +83,19 @@ func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperSe
 	mockOrg := &mockOrgKeeperServer{
 		orgs:    map[string]bool{"test-org": true},
 		leaders: map[string]string{"test-org": "leader-pubkey"},
-		members: map[string]map[string]string{
+		members: map[string]map[string]mockMemberRecord{
 			"test-org": {
-				"leader-pubkey":             "leader",
-				"contributor":               "contributor",
-				fixtureContributorPubkeyHex: "contributor",
+				"leader-pubkey": {
+					role: "leader",
+				},
+				"contributor": {
+					role:          "member",
+					canContribute: true,
+				},
+				fixtureContributorPubkeyHex: {
+					role:          "member",
+					canContribute: true,
+				},
 			},
 		},
 	}
@@ -224,45 +240,42 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 	}
 }
 
-func TestMsgSubmitCommitment_RequiresContributorRole(t *testing.T) {
+func TestMsgSubmitCommitment_RequiresContributionCapability(t *testing.T) {
 	tests := []struct {
 		name          string
 		contributorID string
 		role          string
+		canContribute bool
 		setMember     bool
 		wantErr       error
 	}{
 		{
-			name:          "contributor accepted",
-			contributorID: "role-contributor",
-			role:          "contributor",
+			name:          "member with can_contribute accepted",
+			contributorID: "member-contributor",
+			role:          "member",
+			canContribute: true,
 			setMember:     true,
 			wantErr:       nil,
 		},
 		{
-			name:          "member rejected",
-			contributorID: "role-member",
+			name:          "member without can_contribute rejected",
+			contributorID: "member-no-contribute",
 			role:          "member",
+			canContribute: false,
 			setMember:     true,
 			wantErr:       types.ErrNotContributor,
 		},
 		{
-			name:          "moderator accepted",
-			contributorID: "role-moderator",
-			role:          "moderator",
-			setMember:     true,
-			wantErr:       nil,
-		},
-		{
-			name:          "leader accepted",
-			contributorID: "role-leader",
+			name:          "leader accepted regardless of capability",
+			contributorID: "leader-no-cap",
 			role:          "leader",
+			canContribute: false,
 			setMember:     true,
 			wantErr:       nil,
 		},
 		{
 			name:          "non-member rejected",
-			contributorID: "role-non-member",
+			contributorID: "non-member",
 			setMember:     false,
 			wantErr:       types.ErrNotContributor,
 		},
@@ -272,10 +285,13 @@ func TestMsgSubmitCommitment_RequiresContributorRole(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			srv, _, mockOrg, ctx := makeTestMsgServer(t)
 			if _, ok := mockOrg.members["test-org"]; !ok {
-				mockOrg.members["test-org"] = make(map[string]string)
+				mockOrg.members["test-org"] = make(map[string]mockMemberRecord)
 			}
 			if tt.setMember {
-				mockOrg.members["test-org"][tt.contributorID] = tt.role
+				mockOrg.members["test-org"][tt.contributorID] = mockMemberRecord{
+					role:          tt.role,
+					canContribute: tt.canContribute,
+				}
 			} else {
 				delete(mockOrg.members["test-org"], tt.contributorID)
 			}

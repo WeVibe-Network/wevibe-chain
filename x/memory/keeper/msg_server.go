@@ -57,10 +57,7 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 		return nil, types.ErrNotContributor
 	}
 
-	switch member.Role {
-	case "contributor", "moderator", "leader":
-		// allowed
-	default:
+	if member.Role != "leader" && !member.CanContribute {
 		return nil, types.ErrNotContributor
 	}
 
