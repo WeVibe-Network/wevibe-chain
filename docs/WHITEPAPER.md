@@ -202,17 +202,28 @@ scope_tags: Opaque metadata for filtering (serialized bytes)
 
 ## 6. Serve Receipts
 
-### 6.1 Deduplication: Nullifiers
+### 6.1 Deduplication: Computed Fingerprints
 
-Each `ServeEntry` contains a client-provided `nullifier` (bytes). The serve module:
+`ServeEntry` does not carry a client-provided dedup key. The chain computes:
 
-1. Checks `nullifier/{hash}` prefix existence
+`fingerprint = SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`
+
+from the serve's own canonical contents, then:
+
+1. Checks `fingerprint/{hex}` prefix existence
 2. If exists → reject as duplicate
 3. If not exists → mark and accept
 
-**Why nullifiers instead of hash of content?**
-- Allows contributors to use different nullifiers for same memory (privacy)
-- Prevents replay of any attestation, not just content-addressed ones
+`ServeEntry` carries `serve_key_pubkey`, `serve_sig`, and `nonce`. The `nonce` is signature freshness inside the signed canonical body; it is not the dedup key.
+
+**Why computed fingerprints?**
+- The chain does not trust a client-supplied dedup value.
+- Identical `(memory_content_hash, serve_key_pubkey, epoch)` tuples collide deterministically, making retries idempotent and replay-resistant.
+- The dedup identity is self-asserted by the consumer's serve key (D-SERVE-CONSUMER-SIGNED).
+
+Denial receipts follow the same model with their own computed key:
+`SHA256(CanonicalDenialBody(org_id, memory_hash, epoch, serve_key_pubkey, serve_fingerprint, nonce=nil))`,
+stored under `denial/{org}/{epoch}/{fingerprint}` with `denyfingerprint/{hex}` dedup markers.
 
 ### 6.2 Self-Serve Detection
 
@@ -500,7 +511,7 @@ MsgSubmitServeBatch
     │       │
     │       ├─► BandwidthKeeper.ConsumeServeBandwidth
     │       │
-    │       ├─► Check nullifier/{hash} (reject duplicates)
+    │       ├─► Check fingerprint/{hex} (reject duplicates)
     │       │
     │       ├─► For each ServeEntry:
     │       │   ├─► MemoryKeeper.IsApproved    (validate memory exists)
@@ -540,7 +551,7 @@ AfterEpochEnd (Emissions)
 
 | Measure | Implementation | Purpose |
 |---------|----------------|---------|
-| **Nullifier deduplication** | `nullifier/{hash}` prefix check | Prevents replay attacks |
+| **Fingerprint deduplication** | `fingerprint/{hex}` prefix check | Prevents replay attacks |
 | **Per-memory serve cap** | `memcount/{org}/{hash}/{epoch}` counter | Limits repeat serving |
 | **Self-serve discount** | `is_self_serve = (serve_key == contributor_id)` | Reduces self-serving incentive |
 | **Bandwidth caps** | `state/{org}/{epoch}` usage tracking | Rate limits submissions/serves |

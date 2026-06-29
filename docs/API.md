@@ -872,9 +872,11 @@ Submit a batch of serve receipts.
   "serves": [
     {
       "memory_content_hash": "base64-encoded-hash",
-      "serve_key": "serve-key-123",
       "contributor_id": "wevibe1contributor...",
-      "nullifier": "base64-encoded-nullifier"
+      "matched_keywords": ["keyword1", "keyword2"],
+      "serve_key_pubkey": "base64-encoded-ed25519-pubkey",
+      "serve_sig": "base64-encoded-ed25519-signature",
+      "nonce": "base64-encoded-freshness-nonce"
     }
   ]
 }

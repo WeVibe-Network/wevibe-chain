@@ -135,24 +135,25 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 
 ### Serve Module (`x/serve`)
 - **Owned KV prefixes and state objects**
-  - `nullifier/{hash}`: maps serve nullifier to attestation storage key for duplicate prevention and denial->serve linkage.
+  - `fingerprint/{hex}`: dedup presence marker for seen serve fingerprints.
   - `receipt/{org}/{epoch}/{fingerprint}`: `StoredServeReceipt` capturing memory hash, serve key, contributor id, epoch, fingerprint, self-serve flag, model_id, turn_count, and `matched_keywords`.
   - `stats/{org}/{epoch}`: `StoredEpochServeStats` summarizing totals, unique memories, unique serve keys, self-serve counts, and model_breakdown.
   - `contributor/{id}/{epoch}`: `StoredContributorEpochServes` storing per-contributor serve counts, self-serve counts, org coverage, and total_turns.
   - `memcount/{org}/{hash}/{epoch}`, `denycount/{org}/{hash}/{epoch}`, `memfirst/...`, and `keyfirst/...` track per-epoch counts and uniqueness.
   - `denial/{org}/{epoch}/{fingerprint}`: `StoredDenialReceipt` rows for denial events.
+  - `denyfingerprint/{hex}`: dedup presence marker for seen denial fingerprints.
   - `matched_keywords/{org}/{cid_hex}/{epoch}/{keyword}`: set-membership index for per-memory, per-epoch matched keywords.
   - `params`: `Params` bounding batch size, self-serve discount percent, per-memory serve caps, minimum org age, and diminishing return threshold.
 - **Denial batch submission** (CO-225)
   - `MsgSubmitDenialBatch`: org leaders submit denial receipts for memories that produced incorrect or harmful outputs.
-  - Handler validates: org exists, memories are approved, nullifiers are unique per batch, batch size ≤ `max_serves_per_batch`.
+  - Handler validates: org exists, memories are approved, serve fingerprints are unique per batch, batch size ≤ `max_serves_per_batch`.
   - Each entry persists a `StoredDenialReceipt`; `MemoryKeeper` queries denial count via `GetMemoryDenialCountForEpoch`.
   - Denials flow into the memory module's dual-vector decay model as the negative-signal vector.
   - **Event emission** (CO-016): Emits `denial_batch_submitted` event with attributes `{org_id, submitter, epoch, accepted_count, rejected_count, block_height}`. Queryable via CometBFT `tx_search` as `denial_batch_submitted.org_id='<org_id>' AND denial_batch_submitted.submitter='<signer>'`.
 - **Message handlers**
-  - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated nullifiers, validates approved memories through the memory keeper, and determines the `is_self_serve` flag.
+  - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated fingerprints, validates approved memories through the memory keeper, and determines the `is_self_serve` flag.
   - `ServeEntry.matched_keywords` is required and non-empty; each accepted serve writes matched-keyword index entries and persists the same keyword set on `StoredServeReceipt`.
-  - `MsgSubmitDenialBatch` resolves the originating serve via nullifier, inherits `matched_keywords`, rewrites matched-keyword index entries for the denial epoch (parity), increments denial counts, and calls `MemoryKeeper.ApplyDenialDecay`.
+  - `MsgSubmitDenialBatch` resolves the originating serve via `serve_fingerprint`, inherits `matched_keywords`, rewrites matched-keyword index entries for the denial epoch (parity), increments denial counts, and calls `MemoryKeeper.ApplyDenialDecay`.
   - `MsgUpdateParams` updates configuration under governance authority.
 - **Query endpoints** (`/wevibe/serve/v1/...`)
   - `stats/{org_id}/{epoch}` exposes the stored epoch stats.
@@ -240,7 +241,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 
 3. **Serve receipt ingestion**
    1. Serve nodes batch attestations inside `MsgSubmitServeBatch` along with the org id and epoch.
-   2. `ServeKeeper.ProcessServeBatch` enforces `max_serves_per_batch`, consumes serve bandwidth, rejects repeated nullifiers, validates each approved memory, and requires non-empty `matched_keywords` per serve entry.
+   2. `ServeKeeper.ProcessServeBatch` enforces `max_serves_per_batch`, consumes serve bandwidth, rejects repeated fingerprints, validates each approved memory, and requires non-empty `matched_keywords` per serve entry.
    3. For each accepted entry the keeper writes a serve receipt, updates stats, increments per-memory counts, tracks unique serve keys, accumulates per-contributor serve totals, and indexes `matched_keywords/{org}/{cid}/{epoch}/{keyword}`.
    4. Serve callbacks into `MemoryKeeper.ApplyServeBoost` and denial callbacks into `MemoryKeeper.ApplyDenialDecay` both consume `ServeKeeper.GetMatchedKeywordsForEpoch(...)`, so per-keyword decay operations run only on matched keywords while unmatched keywords receive idle decay.
    5. The keeper forwards each accepted serve to `ReputationKeeper.RecordServe`, which increments serve XP, org breadth, and self-serve tallies when active.
@@ -278,9 +279,9 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 5. **Counting and analytics**: Approved counters and Merkle roots produce deterministic supply metrics widely used by the hub and emissions logic.
 
 ### Serves
-1. **Batch ingestion**: Serve batches are accepted only when nullifiers are unique, memories exist, per-memory caps are respected, and `matched_keywords` is non-empty.
+1. **Batch ingestion**: Serve batches are accepted only when serve fingerprints are unique, memories exist, per-memory caps are respected, and `matched_keywords` is non-empty.
 2. **Keyword indexing**: Each accepted serve writes keyword membership to `matched_keywords/{org}/{cid}/{epoch}/{keyword}` and persists the same set on `StoredServeReceipt`.
-3. **Denial parity**: Denials resolve the originating serve receipt by nullifier and re-index the inherited matched keywords for the denial epoch.
+3. **Denial parity**: Denials resolve the originating serve receipt by `serve_fingerprint` and re-index the inherited matched keywords for the denial epoch.
 4. **Statistics**: Accepted events increment total counts, uniqueness trackers, and per-contributor tallies.
 5. **Reputation linkage**: Accepted serves cascade into the reputation keeper, awarding XP and broadening org coverage; these stats feed payout logic through reputation tiers.
 

@@ -772,16 +772,18 @@ wevibed tx serve submit-serve-batch [org_id] [epoch] [serve_json_file_or_json_st
 [
   {
     "memory_content_hash": "0a1b2c...",
-    "serve_key": "serve-key-123",
     "contributor_id": "wevibe1contributor...",
-    "nullifier": "nullifier123..."
+    "matched_keywords": ["keyword1", "keyword2"],
+    "serve_key_pubkey": "base64-encoded-ed25519-pubkey",
+    "serve_sig": "base64-encoded-ed25519-signature",
+    "nonce": "base64-encoded-freshness-nonce"
   }
 ]
 ```
 
 **Example:**
 ```bash
-wevibed tx serve submit-serve-batch my-org 100 '[{"memory_content_hash":"0a1b2c...","serve_key":"key1","contributor_id":"wevibe1abc...","nullifier":"null1..."}]' --from my-key
+wevibed tx serve submit-serve-batch my-org 100 '[{"memory_content_hash":"0a1b2c...","contributor_id":"wevibe1abc...","matched_keywords":["topic-a","topic-b"],"serve_key_pubkey":"base64-pubkey1...","serve_sig":"base64-signature1...","nonce":"base64-nonce1..."}]' --from my-key
 ```
 
 ---

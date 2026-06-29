@@ -680,13 +680,18 @@ Handles serve receipts, deduplication, and statistics.
 message StoredServeReceipt {
   string org_id = 1;
   bytes memory_content_hash = 2;
-  string serve_key = 3;
+  reserved 3;
+  reserved "serve_key";
   string contributor_id = 4;
   uint64 epoch = 5;
-  bytes nullifier = 6;
+  reserved 6;
+  reserved "nullifier";
   bool is_self_serve = 7;
   string model_id = 8;     // Model that produced the session
   uint32 turn_count = 9;   // Number of turns in the session
+  repeated string matched_keywords = 10;  // Query-memory keyword intersection
+  bytes serve_key_pubkey = 11;
+  bytes fingerprint = 12;
 }
 ```
 
@@ -741,11 +746,18 @@ message Params {
 ```protobuf
 message ServeEntry {
   bytes memory_content_hash = 1;
-  string serve_key = 2;
+  reserved 2;
+  reserved "serve_key";
   string contributor_id = 3;
-  bytes nullifier = 4;
+  reserved 4;
+  reserved "nullifier";
   string model_id = 5;    // Model that produced the session
   uint32 turn_count = 6;  // Number of turns in the session
+  string contributor_wallet = 7;
+  repeated string matched_keywords = 8;  // Required, non-empty
+  bytes serve_key_pubkey = 9;
+  bytes serve_sig = 10;
+  bytes nonce = 11;
 }
 ```
 
@@ -773,7 +785,7 @@ message MsgSubmitServeBatchResponse {
 **Validation:**
 - Batch size ≤ max_serves_per_batch
 - Serve bandwidth available
-- Nullifiers not previously used
+- Fingerprints not previously seen (x/serve computes `SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`)
 - Memories are approved
 - Per-memory serve cap not exceeded
 
@@ -1201,8 +1213,8 @@ The emissions module's `AfterEpochEnd` hook performs:
 
 ## Anti-Gaming Measures
 
-### Nullifier Deduplication
-Each serve contains a nullifier; x/serve marks it and rejects any reuse, eliminating replay.
+### Fingerprint Deduplication
+Each serve fingerprint is computed on-chain as `SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`; x/serve marks `fingerprint/<hex>` and rejects any reuse, eliminating replay.
 
 ### Per-Memory Serve Cap
 `max_serves_per_memory_per_epoch` limits repeat serving of the same content.

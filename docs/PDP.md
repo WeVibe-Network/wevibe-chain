@@ -14,7 +14,7 @@ Date: 2026-05-10
 
 WeVibe is a three-layer organizational memory network. WeVibe Chain is the Cosmos SDK appchain that anchors consensus, persistent state, and the custom modules that enforce the protocol. WeVibe Hub is the off-chain Go service that ingests encrypted knowledge from contributors, surfaces it for retrieval, and orchestrates serve receipts from serving agents. WeVibe Dashboard is the web interface administrators use to register organizations, curate memories, configure payout tiers, and monitor treasuries.
 
-Organizations register on WeVibe Chain by burning VIBE (uvibe) via a dynamic pricing curve. Each organization maintains an on-chain treasury that they fund and withdraw through the x/org module. Memory contributors submit commitments that become payable only after an org leader approves them; approval emits ciphertext storage and indexes keywords for off-chain discovery. Serving agents batch the memories they deliver and attest to them through x/serve; the module deduplicates nullifiers, tracks first-serve events, and records per-epoch contributor statistics. Bandwidth limits from x/bandwidth rate-limit pending commitments and serve batches to prevent spam while still allowing overrides for trusted orgs.
+Organizations register on WeVibe Chain by burning VIBE (uvibe) via a dynamic pricing curve. Each organization maintains an on-chain treasury that they fund and withdraw through the x/org module. Memory contributors submit commitments that become payable only after an org leader approves them; approval emits ciphertext storage and indexes keywords for off-chain discovery. Serving agents batch the memories they deliver and attest to them through x/serve; the module deduplicates by chain-computed fingerprints, tracks first-serve events, and records per-epoch contributor statistics. Bandwidth limits from x/bandwidth rate-limit pending commitments and serve batches to prevent spam while still allowing overrides for trusted orgs.
 
 At the end of every `wevibe_epoch`, the x/emissions module mints a daily emission snapshot, scans every org that requires attestations, tallies serve counts per contributor for the epoch, and debits the org’s treasury according to the configured reputation tiers. Reputation data is tracked in x/reputation: every serve updates XP, self-serve counts, and cross-org breadth, and org admins can configure tiers that gate payouts. Once the epoch hook finishes, x/memory builds Merkle roots over the epoch’s approved memories so hubs can prove inclusion to downstream verifiers. Treasury-funded payouts, serve receipt checks, and Merkle proofs are therefore all derived from the on-chain state, while Hub and Dashboard ensure real-world usability.
 
@@ -70,13 +70,15 @@ Pending commitments, approved memories, lifecycle confidence, relationships, val
 ### x/serve (Serve Receipts)
 
 **Owned state:**  
-- `nullifier/<hex>`: single-byte marker for spent nullifiers.  
+- `fingerprint/<hex>`: single-byte presence marker for seen serve fingerprints.  
 - `receipt/<orgID>/<epoch>/<fingerprintHex>`: serialized `StoredServeReceipt`.  
+- `denial/<orgID>/<epoch>/<fingerprintHex>`: serialized `StoredDenialReceipt`.  
+- `denyfingerprint/<hex>`: single-byte presence marker for seen denial fingerprints.  
 - `stats/<orgID>/<epoch>`: `StoredEpochServeStats` tracking totals, unique memories, unique serve keys, and self-serve counts.  
 - `contributor/<contributorID>/<epoch>`: `StoredContributorEpochServes` with serve count, self-serve count, and org set.  
 - `memcount/<orgID>/<contentHashHex>/<epoch>`: Big-endian serve counts per memory per epoch.  
 - `memfirst/<orgID>/<contentHashHex>/<epoch>` and `keyfirst/<orgID>/<serveKey>/<epoch>`: first-serve markers to drive uniqueness metrics.  
-- `params`: `Params` controlling batch size, per-memory caps, and nullifier sizing expectations.
+- `params`: `Params` controlling batch size and per-memory caps.
 
 **Messages:**  
 `MsgSubmitServeBatch`, `MsgUpdateParams`.
@@ -85,10 +87,10 @@ Pending commitments, approved memories, lifecycle confidence, relationships, val
 `OrgKeeper` (org validation if needed), `MemoryKeeper` (approved memory lookups), `BandwidthKeeper` (serve bandwidth), `ReputationKeeper` (per-serve XP).
 
 **Genesis data:**  
-Attestations, epoch stats, and contributor serve summaries can be bootstrapped. Nullifier and counter stores are populated implicitly when attestations are loaded.
+Attestations, epoch stats, and contributor serve summaries can be bootstrapped. Fingerprint and counter stores are populated implicitly when attestations are loaded.
 
 **Notable logic:**  
-`ProcessServeBatch` enforces batch limits, consumes serve bandwidth, rejects duplicate nullifiers, ensures the referenced memory is approved, and enforces `MaxServesPerMemoryPerEpoch`. It populates stats incrementally: first-serve flags update unique counts, and each accepted serve increments contributor and org stats before calling `RecordServe` in x/reputation. Self-serve detection is triggered when `serve_key == contributor_id`; these events accrue separate counters and XP deltas.
+`ProcessServeBatch` enforces batch limits, consumes serve bandwidth, computes the serve fingerprint as `SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`, rejects duplicate fingerprints, ensures the referenced memory is approved, and enforces `MaxServesPerMemoryPerEpoch`. It populates stats incrementally: first-serve flags update unique counts, and each accepted serve increments contributor and org stats before calling `RecordServe` in x/reputation. Self-serve detection is triggered when `serve_key == contributor_id`; these events accrue separate counters and XP deltas. Denial processing follows the same deterministic dedup model using `SHA256(CanonicalDenialBody(org_id, memory_hash, epoch, serve_key_pubkey, serve_fingerprint, nonce=nil))` and links each denial to its originating serve via `serve_fingerprint`.
 
 ### x/bandwidth (Rate Limiting)
 
@@ -245,7 +247,7 @@ These hooks leave the store prepared for hubs to fetch Merkle proofs and for das
 
 ## Anti-Gaming
 
-1. **Nullifier deduplication:** Each serve entry contains a nullifier; x/serve marks it in `nullifier/<hex>` and rejects any reuse, eliminating replay and duplicate payouts.  
+1. **Fingerprint deduplication:** x/serve computes each serve fingerprint as `SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`, marks it in `fingerprint/<hex>`, and rejects any reuse, eliminating replay and duplicate payouts. Denials are deduplicated separately under `denyfingerprint/<hex>` using the canonical denial-body hash that references `serve_fingerprint`.  
 2. **Per-memory serve cap:** `MaxServesPerMemoryPerEpoch` limits repeat serving of the same content within an epoch, blocking straightforward inflation attacks.  
 3. **Bandwidth caps:** Memory submissions and serve batches consume per-epoch quotas. Overrides require explicit governance or admin action, providing friction against spam.  
 4. **Pending commitment limit:** `MaxPendingPerOrg` prevents an org from hoarding unreviewed commitments; contributors need leader participation to progress.  

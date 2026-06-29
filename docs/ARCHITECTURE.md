@@ -407,7 +407,7 @@ This order ensures each keeper's dependencies are constructed before injection.
 ### Serve Receipt Ingestion
 
 1. Serve nodes batch attestations in `MsgSubmitServeBatch`
-2. Serve keeper enforces batch size, consumes bandwidth, rejects nullifier duplicates
+2. Serve keeper enforces batch size, consumes bandwidth, rejects duplicate fingerprints
 3. Validates memories approved, determines self-serve flag
 4. For each accepted entry: writes attestation, updates stats, increments counts
 5. Forwards to `ReputationKeeper.RecordServe` for XP and org breadth
@@ -465,7 +465,7 @@ Standard Cosmos module permissions (staking, mint, distribution, gov, fee_collec
 1. **Batch ingestion**: Accepted or rejected (duplicate, not found, cap exceeded)
 2. **Statistics**: Counts, uniqueness trackers, per-contributor tallies
 3. **Reputation**: Cascades to reputation keeper for XP and org breadth
-4. **Nullifiers**: Guarantees idempotency
+4. **Fingerprints**: Guarantees idempotency (deterministic computed dedup key)
 
 ### Contributor Reputation
 

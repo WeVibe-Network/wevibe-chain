@@ -64,7 +64,7 @@ WeVibe Chain is in active alpha/testnet development. Core modules are wired and 
 |--------|---------|
 | `x/org` | Slot-based organization registry, membership roles, treasury balances, and serving configuration |
 | `x/memory` | Encrypted memory commitments, lifecycle transitions, Earned Trust decay, and epoch Merkle roots |
-| `x/serve` | Serve and denial receipt ingestion, nullifier deduplication, matched-keyword indexing, and epoch stats |
+| `x/serve` | Serve and denial receipt ingestion, fingerprint deduplication, matched-keyword indexing, and epoch stats |
 | `x/emissions` | Emission-pool schedule accounting, per-epoch attribution, and contributor reward ledgers |
 | `x/bandwidth` | Per-org, per-epoch submission/serve rate limits and overrides |
 | `x/reputation` | Contributor XP, serve metrics, and cross-org profile aggregates |
@@ -95,7 +95,7 @@ PENDING → APPROVED → STABLE ←→ DEGRADED ←→ DORMANT
 ### Serve Receipts
 
 Serving agents batch proofs of content delivery. Attestations are:
-- Deduplicated via nullifiers to prevent replay
+- Deduplicated via computed fingerprints to prevent replay
 - Rate-limited per org per epoch
 - Tracked per contributor for reputation and payouts
 
