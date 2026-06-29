@@ -942,7 +942,7 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 	if bz == nil {
 		return &types.OrgConfig{
 			OrgID:                    orgID,
-			ServeAttestationRequired: false,
+			ServeReceiptRequired:     false,
 			ContestStakeVibe:         0,
 			VocabHash:                "",
 			EmbeddingModelID:         "",
@@ -956,7 +956,7 @@ func (k *Keeper) GetOrgConfig(ctx context.Context, orgID string) (*types.OrgConf
 	}
 	return &types.OrgConfig{
 		OrgID:                    stored.OrgId,
-		ServeAttestationRequired: stored.ServeAttestationRequired,
+		ServeReceiptRequired:     stored.ServeReceiptRequired,
 		ContestStakeVibe:         stored.ContestStakeVibe,
 		VocabHash:                stored.VocabHash,
 		EmbeddingModelID:         stored.EmbeddingModelId,
@@ -968,7 +968,7 @@ func (k *Keeper) SetOrgConfig(ctx context.Context, orgID string, cfg *types.OrgC
 	store := k.getStore(ctx)
 	bz, err := proto.Marshal(&types.StoredOrgConfig{
 		OrgId:                    cfg.OrgID,
-		ServeAttestationRequired: cfg.ServeAttestationRequired,
+		ServeReceiptRequired:     cfg.ServeReceiptRequired,
 		ContestStakeVibe:         cfg.ContestStakeVibe,
 		VocabHash:                cfg.VocabHash,
 		EmbeddingModelId:         cfg.EmbeddingModelID,
@@ -1040,8 +1040,8 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 
 	for _, orgConfig := range state.OrgConfigs {
 		bz, err := proto.Marshal(&types.StoredOrgConfig{
-			OrgId:                    orgConfig.OrgID,
-			ServeAttestationRequired: orgConfig.ServeAttestationRequired,
+			OrgId:                orgConfig.OrgID,
+			ServeReceiptRequired: orgConfig.ServeReceiptRequired,
 		})
 		if err != nil {
 			return err
@@ -1115,7 +1115,7 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		}
 		orgConfigs = append(orgConfigs, &types.OrgConfig{
 			OrgID:                    stored.OrgId,
-			ServeAttestationRequired: stored.ServeAttestationRequired,
+			ServeReceiptRequired:     stored.ServeReceiptRequired,
 			ContestStakeVibe:         stored.ContestStakeVibe,
 			MinContributionsPerEpoch: stored.MinContributionsPerEpoch,
 		})

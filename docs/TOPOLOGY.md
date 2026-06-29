@@ -43,7 +43,7 @@ WeVibe Chain exposes two public APIs: Tendermint RPC for block and transaction g
   - `archived_epoch`
 - **Per-serve matched-keyword tracking** (x/serve expansion):
   - `ServeEntry.matched_keywords` is required and non-empty on submit.
-  - `StoredServeAttestation.matched_keywords` persists the originating set.
+  - `StoredServeReceipt.matched_keywords` persists the originating set.
   - `matched_keywords/{org}/{cid}/{epoch}/{keyword}` prefix stores set-union
     membership for memory+epoch keyword matches.
   - `ServeKeeper.GetMatchedKeywordsForEpoch(...)` is consumed by
@@ -73,7 +73,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - `dynprice/`: `StoredDynamicPrice` tracks the adaptive burn price inputs for new registrations.
   - `treasury/{org}`: `StoredTreasury` mirrors each organization treasury balance in string-encoded `uvibe`.
   - `reptier/{org}`: `StoredRepTierConfig` stores ordered payout tiers keyed by reputation bounds.
-  - `orgconfig/{org}`: `StoredOrgConfig` persists runtime toggles (currently `serve_attestation_required`).
+  - `orgconfig/{org}`: `StoredOrgConfig` persists runtime toggles (currently `serve_receipt_required`).
   - `params`: module-level `Params` (fees, quota defaults, burn behavior).
 - **Message handlers**
   - `MsgRegisterOrg` burns the dynamic price through `BankKeeper`, writes `StoredOrg`, auto-adds the leader as a member, and refreshes the dynamic price counter via `updateDynamicPriceOnCreation`.
@@ -136,22 +136,22 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 ### Serve Module (`x/serve`)
 - **Owned KV prefixes and state objects**
   - `nullifier/{hash}`: maps serve nullifier to attestation storage key for duplicate prevention and denial->serve linkage.
-  - `attestation/{org}/{epoch}/{nullifier}`: `StoredServeAttestation` capturing memory hash, serve key, contributor id, epoch, nullifier, self-serve flag, model_id, turn_count, and `matched_keywords`.
+  - `receipt/{org}/{epoch}/{fingerprint}`: `StoredServeReceipt` capturing memory hash, serve key, contributor id, epoch, fingerprint, self-serve flag, model_id, turn_count, and `matched_keywords`.
   - `stats/{org}/{epoch}`: `StoredEpochServeStats` summarizing totals, unique memories, unique serve keys, self-serve counts, and model_breakdown.
   - `contributor/{id}/{epoch}`: `StoredContributorEpochServes` storing per-contributor serve counts, self-serve counts, org coverage, and total_turns.
   - `memcount/{org}/{hash}/{epoch}`, `denycount/{org}/{hash}/{epoch}`, `memfirst/...`, and `keyfirst/...` track per-epoch counts and uniqueness.
-  - `denial/{org}/{epoch}/{nullifier}`: `StoredDenialAttestation` rows for denial events.
+  - `denial/{org}/{epoch}/{fingerprint}`: `StoredDenialReceipt` rows for denial events.
   - `matched_keywords/{org}/{cid_hex}/{epoch}/{keyword}`: set-membership index for per-memory, per-epoch matched keywords.
   - `params`: `Params` bounding batch size, self-serve discount percent, per-memory serve caps, minimum org age, and diminishing return threshold.
 - **Denial batch submission** (CO-225)
-  - `MsgSubmitDenialBatch`: org leaders submit denial attestations for memories that produced incorrect or harmful outputs.
+  - `MsgSubmitDenialBatch`: org leaders submit denial receipts for memories that produced incorrect or harmful outputs.
   - Handler validates: org exists, memories are approved, nullifiers are unique per batch, batch size ≤ `max_serves_per_batch`.
-  - Each entry persists a `StoredDenialAttestation`; `MemoryKeeper` queries denial count via `GetMemoryDenialCountForEpoch`.
+  - Each entry persists a `StoredDenialReceipt`; `MemoryKeeper` queries denial count via `GetMemoryDenialCountForEpoch`.
   - Denials flow into the memory module's dual-vector decay model as the negative-signal vector.
   - **Event emission** (CO-016): Emits `denial_batch_submitted` event with attributes `{org_id, submitter, epoch, accepted_count, rejected_count, block_height}`. Queryable via CometBFT `tx_search` as `denial_batch_submitted.org_id='<org_id>' AND denial_batch_submitted.submitter='<signer>'`.
 - **Message handlers**
   - `MsgSubmitServeBatch` enforces batch size, consumes serve bandwidth, rejects repeated nullifiers, validates approved memories through the memory keeper, and determines the `is_self_serve` flag.
-  - `ServeEntry.matched_keywords` is required and non-empty; each accepted serve writes matched-keyword index entries and persists the same keyword set on `StoredServeAttestation`.
+  - `ServeEntry.matched_keywords` is required and non-empty; each accepted serve writes matched-keyword index entries and persists the same keyword set on `StoredServeReceipt`.
   - `MsgSubmitDenialBatch` resolves the originating serve via nullifier, inherits `matched_keywords`, rewrites matched-keyword index entries for the denial epoch (parity), increments denial counts, and calls `MemoryKeeper.ApplyDenialDecay`.
   - `MsgUpdateParams` updates configuration under governance authority.
 - **Query endpoints** (`/wevibe/serve/v1/...`)
@@ -222,7 +222,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 - **Keeper dependencies**: Depends on `ServeKeeper` (for attestation pulls and denial counting), `OrgKeeper` (for org enumeration, config, and treasury debits), and `MemoryKeeper` (for approved memory counts per contributor). It also touches `math` utilities for payout arithmetic.
 - **Genesis contents**: Emission pool snapshot, daily emissions, reward ledgers, bootstrap credits, work scores, and asymmetric gates.
 - **Epoch hooks**
-  - Registered with `EpochsKeeper.AfterEpochEnd`, it mints daily emissions, iterates orgs that require serve attestations, aggregates contributor serves per org, debits treasuries via `OrgKeeper.DebitTreasury`, and logs aggregate payout metrics.
+  - Registered with `EpochsKeeper.AfterEpochEnd`, it mints daily emissions, iterates orgs that require serve receipts, aggregates contributor serves per org, debits treasuries via `OrgKeeper.DebitTreasury`, and logs aggregate payout metrics.
 
 ## Cross-Module Data Flow
 
@@ -238,10 +238,10 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
    3. An authorized reviewer (typically the leader) calls `MsgApproveMemory`, which verifies leadership with `OrgKeeper.IsLeader`, checks blob size against `max_blob_size_bytes`, migrates the record to `approved/{org}/{hash}`, increments the `count/{org}` counter, and deletes the pending entry.
    4. The approval path logs to the hub, which updates dashboards and triggers downstream proof packaging.
 
-3. **Serve attestation ingestion**
+3. **Serve receipt ingestion**
    1. Serve nodes batch attestations inside `MsgSubmitServeBatch` along with the org id and epoch.
    2. `ServeKeeper.ProcessServeBatch` enforces `max_serves_per_batch`, consumes serve bandwidth, rejects repeated nullifiers, validates each approved memory, and requires non-empty `matched_keywords` per serve entry.
-   3. For each accepted entry the keeper writes a serve attestation, updates stats, increments per-memory counts, tracks unique serve keys, accumulates per-contributor serve totals, and indexes `matched_keywords/{org}/{cid}/{epoch}/{keyword}`.
+   3. For each accepted entry the keeper writes a serve receipt, updates stats, increments per-memory counts, tracks unique serve keys, accumulates per-contributor serve totals, and indexes `matched_keywords/{org}/{cid}/{epoch}/{keyword}`.
    4. Serve callbacks into `MemoryKeeper.ApplyServeBoost` and denial callbacks into `MemoryKeeper.ApplyDenialDecay` both consume `ServeKeeper.GetMatchedKeywordsForEpoch(...)`, so per-keyword decay operations run only on matched keywords while unmatched keywords receive idle decay.
    5. The keeper forwards each accepted serve to `ReputationKeeper.RecordServe`, which increments serve XP, org breadth, and self-serve tallies when active.
    6. Hub listeners subscribe to `/wevibe/serve/v1/stats/{org}/{epoch}` and contributor endpoints to render real-time service metrics.
@@ -249,7 +249,7 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 4. **Epoch payout processing** (CO-225 — pay-per-memory)
    1. At the close of each `wevibe_epoch`, `EmissionsKeeper.AfterEpochEnd` triggers.
    2. It mints the daily emission via `MintDailyEmission`, updating `pool/` and `emission/{epoch}`.
-   3. The keeper iterates all orgs via `OrgKeeper.GetAllOrgs`, reading configs to ensure `serve_attestation_required` is true and treasuries are positive.
+   3. The keeper iterates all orgs via `OrgKeeper.GetAllOrgs`, reading configs to ensure `serve_receipt_required` is true and treasuries are positive.
    4. For each org, it counts **approved memories** per contributor via `MemoryKeeper.GetApprovedCountByContributor` (not serve counts).
    5. Qualification gate: contributor must have `min_contributions_per_epoch` (from org config) or no leader gate is set (`== 0`).
    6. Tier cap: `MaxContributionsPerEpoch` bounds per-contributor memory count; payouts beyond the cap roll to the next tier.
@@ -279,8 +279,8 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
 
 ### Serves
 1. **Batch ingestion**: Serve batches are accepted only when nullifiers are unique, memories exist, per-memory caps are respected, and `matched_keywords` is non-empty.
-2. **Keyword indexing**: Each accepted serve writes keyword membership to `matched_keywords/{org}/{cid}/{epoch}/{keyword}` and persists the same set on `StoredServeAttestation`.
-3. **Denial parity**: Denials resolve the originating serve attestation by nullifier and re-index the inherited matched keywords for the denial epoch.
+2. **Keyword indexing**: Each accepted serve writes keyword membership to `matched_keywords/{org}/{cid}/{epoch}/{keyword}` and persists the same set on `StoredServeReceipt`.
+3. **Denial parity**: Denials resolve the originating serve receipt by nullifier and re-index the inherited matched keywords for the denial epoch.
 4. **Statistics**: Accepted events increment total counts, uniqueness trackers, and per-contributor tallies.
 5. **Reputation linkage**: Accepted serves cascade into the reputation keeper, awarding XP and broadening org coverage; these stats feed payout logic through reputation tiers.
 

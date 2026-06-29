@@ -14,7 +14,7 @@ WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's 
 | Goal | Mechanism | Anti-Gaming |
 |------|-----------|-------------|
 | **Encrypted availability** | On-chain ciphertext storage with per-epoch Merkle roots for data availability proofs | blob size limits prevent storage griefing |
-| **Retrieval pressure** | Automatic confidence decay when no serves, recovery via serve attestations | per-memory serve caps, self-serve detection with reduced XP |
+| **Retrieval pressure** | Automatic confidence decay when no serves, recovery via serve receipts | per-memory serve caps, self-serve detection with reduced XP |
 | **Authoritative curation** | Leader/moderator approvals, relationship effects, manual archival | leader-only rejections prevent arbitrary removal |
 | **Dispute resolution** | Stake-backed contests with escrow/burn mechanics | contest stake prevents frivolous challenges |
 | **Composable economics** | Bandwidth throttling, reputation tracking, epoch payouts via emissions | treasury sufficiency checks prevent negative balances |
@@ -200,7 +200,7 @@ scope_tags: Opaque metadata for filtering (serialized bytes)
 
 ---
 
-## 6. Serve Attestations
+## 6. Serve Receipts
 
 ### 6.1 Deduplication: Nullifiers
 
@@ -234,7 +234,7 @@ is_self_serve = (serve_key == contributor_id)
 
 ### 6.4 Bandwidth Consumption
 
-Serve attestations consume bandwidth under `state/{org}/{epoch}`:
+Serve receipts consume bandwidth under `state/{org}/{epoch}`:
 - `serve_used`: incremented per accepted serve
 - `serve_cap`: per-epoch limit (default: 10,000)
 - Leaders can override via `MsgSetBandwidthOverride`
@@ -259,7 +259,7 @@ Per-epoch caps prevent unbounded submission rates:
 | Type | Default Cap | Overrideable |
 |------|-------------|--------------|
 | Memory submissions | 1,000/epoch | Yes (leader) |
-| Serve attestations | 10,000/epoch | Yes (leader) |
+| Serve receipts | 10,000/epoch | Yes (leader) |
 
 ### 7.2 Override Mechanism
 
@@ -326,11 +326,11 @@ MsgMintDailyEmission (authority):
 
 ### 9.2 Epoch Payout Processing
 
-After minting, `AfterEpochEnd` iterates orgs with `serve_attestation_required=true`:
+After minting, `AfterEpochEnd` iterates orgs with `serve_receipt_required=true`:
 
 ```
 For each org with positive treasury:
-  1. Load serve attestations for epoch
+  1. Load serve receipts for epoch
   2. Aggregate serves per contributor
   3. Fetch org rep tiers (ordered by reputation bounds)
   4. For each contributor:
@@ -491,7 +491,7 @@ MsgSubmitCommitment
     └─► Store pending/{org}/{hash}
 ```
 
-### 12.3 Message Flow: Serve Attestation
+### 12.3 Message Flow: Serve Receipt
 
 ```
 MsgSubmitServeBatch
@@ -523,7 +523,7 @@ AfterEpochEnd (Emissions)
     │
     └─► For each org:
             ├─► OrgKeeper.GetOrgConfig
-            │       (skip if !serve_attestation_required)
+            │       (skip if !serve_receipt_required)
             ├─► OrgKeeper.GetTreasury
             │       (skip if balance == 0)
             ├─► ServeKeeper.GetServeAttestationsForEpoch
@@ -573,8 +573,8 @@ AfterEpochEnd (Emissions)
 | | `validity/{org}:{cid}` | `StoredValidityMetadata` |
 | | `merkle/{org}/{epoch}` | `StoredEpochMerkleRoot` |
 | | `count/{org}` | counter |
-| `x/serve` | `nullifier/{hash}` | marker |
-| | `attestation/{org}/{epoch}/{nullifier}` | `StoredServeAttestation` |
+| `x/serve` | `fingerprint/{hash}` | marker |
+| | `receipt/{org}/{epoch}/{fingerprint}` | `StoredServeReceipt` |
 | | `stats/{org}/{epoch}` | `StoredEpochServeStats` |
 | | `contributor/{id}/{epoch}` | `StoredContributorEpochServes` |
 | | `memcount/{org}/{hash}/{epoch}` | counter |
@@ -610,7 +610,7 @@ AfterEpochEnd (Emissions)
 | | `MsgRelateMemories` / `MsgApproveRelationship` | Create relationship edges |
 | | `MsgContestMemory` / `MsgResolveContest` | Dispute resolution |
 | | `MsgSetValidityBounds` | Set temporal constraints |
-| `x/serve` | `MsgSubmitServeBatch` | Batch serve attestations |
+| `x/serve` | `MsgSubmitServeBatch` | Batch serve receipts |
 | `x/attestation` | `MsgSubmitSessionAttestation` | Submit session metadata |
 | `x/bandwidth` | `MsgSetBandwidthOverride` | Leader-configured caps |
 | `x/reputation` | `MsgUpdateReputation` | Attest memory for contributor |
@@ -664,7 +664,7 @@ AfterEpochEnd (Emissions)
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `default_memory_cap_per_epoch` | 1,000 | Memory submissions |
-| `default_serve_cap_per_epoch` | 10,000 | Serve attestations |
+| `default_serve_cap_per_epoch` | 10,000 | Serve receipts |
 
 ### 15.5 Reputation Module
 

@@ -56,7 +56,7 @@ message StoredMemberRecord {
 
 message StoredOrgConfig {
   string org_id = 1;
-  bool serve_attestation_required = 2;
+  bool serve_receipt_required = 2;
   reserved 3;
   uint64 contest_stake_vibe = 4;
   string vocab_hash = 5;

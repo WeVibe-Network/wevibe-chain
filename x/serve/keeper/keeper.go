@@ -59,19 +59,19 @@ func denialFingerprintKey(fingerprint []byte) []byte {
 	return []byte(fmt.Sprintf("denyfingerprint/%s", types.ContentHashToHex(fingerprint)))
 }
 
-func attestationKey(orgID string, epoch uint64, fingerprint []byte) []byte {
-	return []byte(fmt.Sprintf("attestation/%s/%d/%s", orgID, epoch, types.ContentHashToHex(fingerprint)))
+func receiptKey(orgID string, epoch uint64, fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("receipt/%s/%d/%s", orgID, epoch, types.ContentHashToHex(fingerprint)))
 }
 
-func attestationPrefix(orgID string, epoch uint64) []byte {
-	return []byte(fmt.Sprintf("attestation/%s/%d/", orgID, epoch))
+func receiptPrefix(orgID string, epoch uint64) []byte {
+	return []byte(fmt.Sprintf("receipt/%s/%d/", orgID, epoch))
 }
 
-func denialAttestationKey(orgID string, epoch uint64, fingerprint []byte) []byte {
+func denialReceiptKey(orgID string, epoch uint64, fingerprint []byte) []byte {
 	return []byte(fmt.Sprintf("denial/%s/%d/%s", orgID, epoch, types.ContentHashToHex(fingerprint)))
 }
 
-func denialAttestationPrefix(orgID string, epoch uint64) []byte {
+func denialReceiptPrefix(orgID string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("denial/%s/%d/", orgID, epoch))
 }
 
@@ -155,35 +155,35 @@ func (k *Keeper) HasDenialFingerprint(ctx context.Context, fingerprint []byte) b
 	return has
 }
 
-func (k *Keeper) GetServeAttestationByFingerprint(ctx context.Context, fingerprint []byte) (*types.StoredServeAttestation, bool, error) {
+func (k *Keeper) GetServeReceiptByFingerprint(ctx context.Context, fingerprint []byte) (*types.StoredServeReceipt, bool, error) {
 	store := k.getStore(ctx)
-	attKey, err := store.Get(serveFingerprintKey(fingerprint))
+	receiptStoreKey, err := store.Get(serveFingerprintKey(fingerprint))
 	if err != nil {
-		return nil, false, fmt.Errorf("get serve attestation pointer: %w", err)
+		return nil, false, fmt.Errorf("get serve receipt pointer: %w", err)
 	}
-	if len(attKey) == 0 {
+	if len(receiptStoreKey) == 0 {
 		return nil, false, nil
 	}
 
-	attBz, err := store.Get(attKey)
+	receiptBz, err := store.Get(receiptStoreKey)
 	if err != nil {
-		return nil, false, fmt.Errorf("get serve attestation: %w", err)
+		return nil, false, fmt.Errorf("get serve receipt: %w", err)
 	}
-	if attBz == nil {
+	if receiptBz == nil {
 		return nil, false, nil
 	}
 
-	var stored types.StoredServeAttestation
-	if err := proto.Unmarshal(attBz, &stored); err != nil {
-		return nil, false, fmt.Errorf("unmarshal serve attestation: %w", err)
+	var stored types.StoredServeReceipt
+	if err := proto.Unmarshal(receiptBz, &stored); err != nil {
+		return nil, false, fmt.Errorf("unmarshal serve receipt: %w", err)
 	}
 
 	return &stored, true, nil
 }
 
-func (k *Keeper) StoreDenialAttestation(ctx context.Context, orgID string, epoch uint64, denialFingerprint []byte, entry *types.DenialEntry) error {
+func (k *Keeper) StoreDenialReceipt(ctx context.Context, orgID string, epoch uint64, denialFingerprint []byte, entry *types.DenialEntry) error {
 	store := k.getStore(ctx)
-	att := &types.StoredDenialAttestation{
+	denialReceipt := &types.StoredDenialReceipt{
 		OrgId:            orgID,
 		MemoryHash:       entry.MemoryHash,
 		DenyKey:          hex.EncodeToString(entry.ServeKeyPubkey),
@@ -192,11 +192,11 @@ func (k *Keeper) StoreDenialAttestation(ctx context.Context, orgID string, epoch
 		ServeFingerprint: entry.ServeFingerprint,
 		ServeKeyPubkey:   entry.ServeKeyPubkey,
 	}
-	bz, err := proto.Marshal(att)
+	bz, err := proto.Marshal(denialReceipt)
 	if err != nil {
-		return fmt.Errorf("marshal denial attestation: %w", err)
+		return fmt.Errorf("marshal denial receipt: %w", err)
 	}
-	store.Set(denialAttestationKey(orgID, epoch, denialFingerprint), bz)
+	store.Set(denialReceiptKey(orgID, epoch, denialFingerprint), bz)
 	return nil
 }
 
@@ -256,14 +256,14 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		store := k.getStore(ctx)
 
-		attestation := types.NewServeAttestation(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
-		attBz, err := proto.Marshal(types.ServeAttestationToStored(attestation))
+		receipt := types.NewServeReceipt(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
+		receiptBz, err := proto.Marshal(types.ServeReceiptToStored(receipt))
 		if err != nil {
-			return 0, 0, 0, fmt.Errorf("marshal attestation: %w", err)
+			return 0, 0, 0, fmt.Errorf("marshal receipt: %w", err)
 		}
-		attKey := attestationKey(orgID, epoch, serveFingerprint)
-		store.Set(attKey, attBz)
-		store.Set(serveFingerprintKey(serveFingerprint), attKey)
+		receiptStoreKey := receiptKey(orgID, epoch, serveFingerprint)
+		store.Set(receiptStoreKey, receiptBz)
+		store.Set(serveFingerprintKey(serveFingerprint), receiptStoreKey)
 
 		if err := k.StoreMatchedKeywordsForEpoch(ctx, orgID, serve.MemoryContentHash, epoch, serve.MatchedKeywords); err != nil {
 			return 0, 0, 0, err
@@ -278,7 +278,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 		accepted++
 
 		if err := k.memoryKeeper.ApplyServeBoost(ctx, orgID, serve.MemoryContentHash, epoch); err != nil {
-			// Non-fatal: the serve attestation is primary. The boost is a secondary
+			// Non-fatal: the serve receipt is primary. The boost is a secondary
 			// side effect that may fail if the memory is archived or otherwise
 			// no longer eligible. Match the emissions pattern (payout failures
 			// do not roll back the epoch).
@@ -570,43 +570,43 @@ func (k *Keeper) GetMatchedKeywordsForEpoch(ctx context.Context, orgID, memoryCI
 	return result, nil
 }
 
-func (k *Keeper) GetServeAttestations(ctx context.Context, orgID string, epoch uint64) ([]*types.ServeAttestation, error) {
+func (k *Keeper) GetServeReceipts(ctx context.Context, orgID string, epoch uint64) ([]*types.ServeReceipt, error) {
 	store := k.getStore(ctx)
-	prefix := attestationPrefix(orgID, epoch)
+	prefix := receiptPrefix(orgID, epoch)
 	iter, err := store.Iterator(prefix, nil)
 	if err != nil {
 		return nil, err
 	}
 	defer iter.Close()
 
-	var attestations []*types.ServeAttestation
+	var receipts []*types.ServeReceipt
 	for ; iter.Valid(); iter.Next() {
-		var stored types.StoredServeAttestation
+		var stored types.StoredServeReceipt
 		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
 			continue
 		}
-		sa := types.StoredToServeAttestation(stored)
-		attestations = append(attestations, &sa)
+		sr := types.StoredToServeReceipt(stored)
+		receipts = append(receipts, &sr)
 	}
-	return attestations, nil
+	return receipts, nil
 }
 
 func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) error {
 	store := k.getStore(ctx)
 
-	for _, att := range state.Attestations {
-		attBz, _ := proto.Marshal(types.ServeAttestationToStored(att))
-		attKey := attestationKey(att.OrgID, att.Epoch, att.Fingerprint)
-		store.Set(attKey, attBz)
-		store.Set(serveFingerprintKey(att.Fingerprint), attKey)
-		if len(att.MatchedKeywords) > 0 {
-			if err := k.StoreMatchedKeywordsForEpoch(ctx, att.OrgID, att.ContentHash, att.Epoch, att.MatchedKeywords); err != nil {
+	for _, receipt := range state.ServeReceipts {
+		receiptBz, _ := proto.Marshal(types.ServeReceiptToStored(receipt))
+		receiptStoreKey := receiptKey(receipt.OrgID, receipt.Epoch, receipt.Fingerprint)
+		store.Set(receiptStoreKey, receiptBz)
+		store.Set(serveFingerprintKey(receipt.Fingerprint), receiptStoreKey)
+		if len(receipt.MatchedKeywords) > 0 {
+			if err := k.StoreMatchedKeywordsForEpoch(ctx, receipt.OrgID, receipt.ContentHash, receipt.Epoch, receipt.MatchedKeywords); err != nil {
 				return err
 			}
 		}
 	}
 
-	for _, denial := range state.DenialAttestations {
+	for _, denial := range state.DenialReceipts {
 		if denial == nil {
 			continue
 		}
@@ -614,9 +614,9 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		store.Set(denialFingerprintKey(denialFingerprint), []byte{1})
 		denialBz, err := proto.Marshal(denial)
 		if err != nil {
-			return fmt.Errorf("marshal denial attestation: %w", err)
+			return fmt.Errorf("marshal denial receipt: %w", err)
 		}
-		store.Set(denialAttestationKey(denial.OrgId, denial.Epoch, denialFingerprint), denialBz)
+		store.Set(denialReceiptKey(denial.OrgId, denial.Epoch, denialFingerprint), denialBz)
 		k.IncrementDenialCount(ctx, denial.OrgId, denial.MemoryHash, denial.Epoch)
 		k.updateEpochDenialStats(ctx, denial.OrgId, denial.Epoch)
 	}
@@ -637,23 +637,23 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error) {
 	store := k.getStore(ctx)
 
-	var attestations []*types.ServeAttestation
-	attPrefix := []byte("attestation/")
-	attIter, err := store.Iterator(attPrefix, nil)
+	var receipts []*types.ServeReceipt
+	receiptPrefix := []byte("receipt/")
+	receiptIter, err := store.Iterator(receiptPrefix, nil)
 	if err != nil {
 		return nil, err
 	}
-	defer attIter.Close()
-	for ; attIter.Valid(); attIter.Next() {
-		var stored types.StoredServeAttestation
-		if err := proto.Unmarshal(attIter.Value(), &stored); err != nil {
+	defer receiptIter.Close()
+	for ; receiptIter.Valid(); receiptIter.Next() {
+		var stored types.StoredServeReceipt
+		if err := proto.Unmarshal(receiptIter.Value(), &stored); err != nil {
 			continue
 		}
-		sa := types.StoredToServeAttestation(stored)
-		attestations = append(attestations, &sa)
+		sr := types.StoredToServeReceipt(stored)
+		receipts = append(receipts, &sr)
 	}
 
-	var denialAttestations []*types.StoredDenialAttestation
+	var denialReceipts []*types.StoredDenialReceipt
 	denialPrefix := []byte("denial/")
 	denialIter, err := store.Iterator(denialPrefix, nil)
 	if err != nil {
@@ -661,12 +661,12 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 	}
 	defer denialIter.Close()
 	for ; denialIter.Valid(); denialIter.Next() {
-		var stored types.StoredDenialAttestation
+		var stored types.StoredDenialReceipt
 		if err := proto.Unmarshal(denialIter.Value(), &stored); err != nil {
 			continue
 		}
 		copied := stored
-		denialAttestations = append(denialAttestations, &copied)
+		denialReceipts = append(denialReceipts, &copied)
 	}
 
 	var epochStats []*types.EpochServeStats
@@ -702,10 +702,10 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 	}
 
 	return &types.GenesisState{
-		Attestations:       attestations,
-		DenialAttestations: denialAttestations,
-		EpochStats:         epochStats,
-		ContributorServes:  contributorServes,
+		ServeReceipts:     receipts,
+		DenialReceipts:    denialReceipts,
+		EpochStats:        epochStats,
+		ContributorServes: contributorServes,
 	}, nil
 }
 

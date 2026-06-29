@@ -118,16 +118,16 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 	require.Error(t, (&types.MsgUpdateParams{Authority: ""}).ValidateBasic())
 }
 
-func TestServeAttestation_Validate(t *testing.T) {
-	valid := types.NewServeAttestation("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2, []string{"k"})
+func TestServeReceipt_Validate(t *testing.T) {
+	valid := types.NewServeReceipt("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2, []string{"k"})
 	require.NoError(t, valid.Validate())
 
-	require.Error(t, (&types.ServeAttestation{}).Validate())                                   // empty org
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: []byte{1}}).Validate()) // bad hash
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1)}).Validate()) // empty serve key
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x31)}).Validate())
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: []byte{1}, ContributorID: "c", Fingerprint: fingerprint32(0x32)}).Validate())
-	require.Error(t, (&types.ServeAttestation{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x33), ContributorID: "c", Fingerprint: []byte{1}}).Validate())
+	require.Error(t, (&types.ServeReceipt{}).Validate())                                   // empty org
+	require.Error(t, (&types.ServeReceipt{OrgID: "o", ContentHash: []byte{1}}).Validate()) // bad hash
+	require.Error(t, (&types.ServeReceipt{OrgID: "o", ContentHash: hash32(1)}).Validate()) // empty serve key
+	require.Error(t, (&types.ServeReceipt{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x31)}).Validate())
+	require.Error(t, (&types.ServeReceipt{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: []byte{1}, ContributorID: "c", Fingerprint: fingerprint32(0x32)}).Validate())
+	require.Error(t, (&types.ServeReceipt{OrgID: "o", ContentHash: hash32(1), ServeKey: "s", ServeKeyPubkey: hash32(0x33), ContributorID: "c", Fingerprint: []byte{1}}).Validate())
 }
 
 func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
@@ -138,16 +138,16 @@ func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
 	require.ElementsMatch(t, []string{"org-a", "org-b"}, cs.OrgIDs)
 }
 
-func TestServeAttestation_StoredRoundtrip(t *testing.T) {
-	sa := types.NewServeAttestation("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3, []string{"x", "y"})
-	stored := types.ServeAttestationToStored(sa)
-	back := types.StoredToServeAttestation(*stored)
-	require.Equal(t, sa.OrgID, back.OrgID)
-	require.Equal(t, sa.ContentHash, back.ContentHash)
-	require.Equal(t, sa.IsSelfServe, back.IsSelfServe)
-	require.Equal(t, sa.MatchedKeywords, back.MatchedKeywords)
-	require.Equal(t, sa.ServeKeyPubkey, back.ServeKeyPubkey)
-	require.Equal(t, sa.Fingerprint, back.Fingerprint)
+func TestServeReceipt_StoredRoundtrip(t *testing.T) {
+	sr := types.NewServeReceipt("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3, []string{"x", "y"})
+	stored := types.ServeReceiptToStored(sr)
+	back := types.StoredToServeReceipt(*stored)
+	require.Equal(t, sr.OrgID, back.OrgID)
+	require.Equal(t, sr.ContentHash, back.ContentHash)
+	require.Equal(t, sr.IsSelfServe, back.IsSelfServe)
+	require.Equal(t, sr.MatchedKeywords, back.MatchedKeywords)
+	require.Equal(t, sr.ServeKeyPubkey, back.ServeKeyPubkey)
+	require.Equal(t, sr.Fingerprint, back.Fingerprint)
 }
 
 func TestEpochServeStats_StoredRoundtrip(t *testing.T) {
@@ -190,13 +190,13 @@ func TestContentHashToHex(t *testing.T) {
 
 func TestGenesisJSONRoundtrip(t *testing.T) {
 	gs := types.NewGenesisState(
-		[]*types.ServeAttestation{types.NewServeAttestation("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1, []string{"k"})},
+		[]*types.ServeReceipt{types.NewServeReceipt("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1, []string{"k"})},
 		nil, nil, nil,
 	)
 	bz, err := gs.MarshalJSON()
 	require.NoError(t, err)
 	var decoded types.GenesisState
 	require.NoError(t, decoded.UnmarshalJSON(bz))
-	require.Len(t, decoded.Attestations, 1)
-	require.Equal(t, "org", decoded.Attestations[0].OrgID)
+	require.Len(t, decoded.ServeReceipts, 1)
+	require.Equal(t, "org", decoded.ServeReceipts[0].OrgID)
 }

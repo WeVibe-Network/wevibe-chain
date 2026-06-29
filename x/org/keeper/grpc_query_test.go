@@ -155,7 +155,7 @@ func TestQueryGetOrgConfig_Success(t *testing.T) {
 
 	cfg := &types.OrgConfig{
 		OrgID:                    org.OrgID,
-		ServeAttestationRequired: true,
+		ServeReceiptRequired:     true,
 		MinContributionsPerEpoch: 7,
 		ContestStakeVibe:         123,
 		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
@@ -166,7 +166,7 @@ func TestQueryGetOrgConfig_Success(t *testing.T) {
 	resp, err := qs.GetOrgConfig(ctx, &types.QueryGetOrgConfigRequest{OrgId: org.OrgID})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.True(t, resp.ServeAttestationRequired)
+	require.True(t, resp.ServeReceiptRequired)
 	require.Equal(t, uint64(7), resp.MinContributionsPerEpoch)
 	require.Equal(t, uint64(123), resp.ContestStakeVibe)
 }
@@ -179,7 +179,7 @@ func TestQueryGetOrgConfig_DefaultWhenUnset(t *testing.T) {
 	resp, err := qs.GetOrgConfig(ctx, &types.QueryGetOrgConfigRequest{OrgId: "missing"})
 	require.NoError(t, err)
 	require.NotNil(t, resp)
-	require.False(t, resp.ServeAttestationRequired)
+	require.False(t, resp.ServeReceiptRequired)
 	require.Equal(t, uint64(0), resp.MinContributionsPerEpoch)
 	require.Equal(t, uint64(0), resp.ContestStakeVibe)
 }

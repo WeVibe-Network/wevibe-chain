@@ -105,7 +105,7 @@ func TestMsgSubmitDenialBatch_HappyPath(t *testing.T) {
 	env.mem.approve("org-1", h)
 	originatingServe := serveEntry("org-1", 1, h, "sk", "c1", nonce32(0x05))
 
-	// First create an originating serve attestation (with matched keywords).
+	// First create an originating serve receipt (with matched keywords).
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
 		Serves: []*types.ServeEntry{originatingServe},
@@ -221,7 +221,7 @@ func TestMsgSubmitDenialBatch_RejectsMismatchedMemoryHash(t *testing.T) {
 
 	denial := denialEntry("org-1", 1, other, "sk", serveFingerprint(originatingServe, 1), nonce32(0x08), "bad")
 
-	// Deny with a different memory hash than the originating attestation.
+	// Deny with a different memory hash than the originating receipt.
 	resp, err := srv.SubmitDenialBatch(env.sdkCtx(), &types.MsgSubmitDenialBatch{
 		Signer: "s", OrgId: "org-1", Epoch: 1,
 		Entries: []*types.DenialEntry{denial},

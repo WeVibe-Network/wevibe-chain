@@ -12,11 +12,11 @@ Date: 2026-05-10
 
 ## Protocol Overview
 
-WeVibe is a three-layer organizational memory network. WeVibe Chain is the Cosmos SDK appchain that anchors consensus, persistent state, and the custom modules that enforce the protocol. WeVibe Hub is the off-chain Go service that ingests encrypted knowledge from contributors, surfaces it for retrieval, and orchestrates serve attestations from serving agents. WeVibe Dashboard is the web interface administrators use to register organizations, curate memories, configure payout tiers, and monitor treasuries.
+WeVibe is a three-layer organizational memory network. WeVibe Chain is the Cosmos SDK appchain that anchors consensus, persistent state, and the custom modules that enforce the protocol. WeVibe Hub is the off-chain Go service that ingests encrypted knowledge from contributors, surfaces it for retrieval, and orchestrates serve receipts from serving agents. WeVibe Dashboard is the web interface administrators use to register organizations, curate memories, configure payout tiers, and monitor treasuries.
 
 Organizations register on WeVibe Chain by burning VIBE (uvibe) via a dynamic pricing curve. Each organization maintains an on-chain treasury that they fund and withdraw through the x/org module. Memory contributors submit commitments that become payable only after an org leader approves them; approval emits ciphertext storage and indexes keywords for off-chain discovery. Serving agents batch the memories they deliver and attest to them through x/serve; the module deduplicates nullifiers, tracks first-serve events, and records per-epoch contributor statistics. Bandwidth limits from x/bandwidth rate-limit pending commitments and serve batches to prevent spam while still allowing overrides for trusted orgs.
 
-At the end of every `wevibe_epoch`, the x/emissions module mints a daily emission snapshot, scans every org that requires attestations, tallies serve counts per contributor for the epoch, and debits the org’s treasury according to the configured reputation tiers. Reputation data is tracked in x/reputation: every serve updates XP, self-serve counts, and cross-org breadth, and org admins can configure tiers that gate payouts. Once the epoch hook finishes, x/memory builds Merkle roots over the epoch’s approved memories so hubs can prove inclusion to downstream verifiers. Treasury-funded payouts, serve attestation checks, and Merkle proofs are therefore all derived from the on-chain state, while Hub and Dashboard ensure real-world usability.
+At the end of every `wevibe_epoch`, the x/emissions module mints a daily emission snapshot, scans every org that requires attestations, tallies serve counts per contributor for the epoch, and debits the org’s treasury according to the configured reputation tiers. Reputation data is tracked in x/reputation: every serve updates XP, self-serve counts, and cross-org breadth, and org admins can configure tiers that gate payouts. Once the epoch hook finishes, x/memory builds Merkle roots over the epoch’s approved memories so hubs can prove inclusion to downstream verifiers. Treasury-funded payouts, serve receipt checks, and Merkle proofs are therefore all derived from the on-chain state, while Hub and Dashboard ensure real-world usability.
 
 ## Module Architecture
 
@@ -38,7 +38,7 @@ At the end of every `wevibe_epoch`, the x/emissions module mints a daily emissio
 `BankKeeper` for burns, treasury transfers, and module account balance management.
 
 **Genesis data:**  
-`InitGenesis` loads orgs, members, treasuries, dynamic burn state, rep tiers, and org configs exactly as supplied. Anything omitted falls back to defaults (e.g., no serve attestation requirement). `ExportGenesis` mirrors those collections back out.
+`InitGenesis` loads orgs, members, treasuries, dynamic burn state, rep tiers, and org configs exactly as supplied. Anything omitted falls back to defaults (e.g., no serve receipt requirement). `ExportGenesis` mirrors those collections back out.
 
 **Notable logic:**  
 Registration burns VIBE at the dynamic price computed from `BaseBurnPrice`, compounded percentage increases, and epoch-based decay. Each registration automatically grants the leader membership with the `leader` role. Treasury balances are tracked as strings to preserve arbitrary precision; helper methods parse into `math.Int` before arithmetic. The keeper can debit the treasury directly (`DebitTreasury`) for epoch payouts without routing funds through bank accounts.
@@ -67,11 +67,11 @@ Pending commitments, approved memories, lifecycle confidence, relationships, val
 **Notable logic:**  
 `SubmitCommitment` enforces org existence, consumes memory bandwidth for the submission epoch, and enforces `MaxPendingPerOrg`. Approvals require the signer to be an org leader, promote entries from pending to approved, initialise retrieval confidence from params, and increment the org’s approved count. `AfterEpochEnd` now executes three lifecycle phases in order: (1) `ApplyEpochDecay` adjusts confidence using per-org decay (floored by the protocol minimum) plus serve counts supplied by x/serve, mutating lifecycle state automatically; (2) `CheckEpochExpiry` archives memories whose validity windows expired; (3) `CheckContestExpiry` auto-rejects stale contests and releases or burns escrow. Only after lifecycle maintenance does the keeper compute and store Merkle roots for the epoch. Relationship approvals apply confidence penalties or forced state transitions, and `MsgContestMemory` / `MsgResolveContest` move memories into and out of `CONTESTED` with treasury-settled economics.
 
-### x/serve (Serve Attestations)
+### x/serve (Serve Receipts)
 
 **Owned state:**  
 - `nullifier/<hex>`: single-byte marker for spent nullifiers.  
-- `attestation/<orgID>/<epoch>/<nullifierHex>`: serialized `StoredServeAttestation`.  
+- `receipt/<orgID>/<epoch>/<fingerprintHex>`: serialized `StoredServeReceipt`.  
 - `stats/<orgID>/<epoch>`: `StoredEpochServeStats` tracking totals, unique memories, unique serve keys, and self-serve counts.  
 - `contributor/<contributorID>/<epoch>`: `StoredContributorEpochServes` with serve count, self-serve count, and org set.  
 - `memcount/<orgID>/<contentHashHex>/<epoch>`: Big-endian serve counts per memory per epoch.  
@@ -146,13 +146,13 @@ Activation flag, reputation stats, and contributor org sets can be seeded. If `A
 `MsgMintDailyEmission`, `MsgDistributeOperatorRewards`, `MsgUpdateParams`.
 
 **Keeper dependencies:**  
-`ServeKeeper` (serve attestation lookup) and `OrgKeeper` (treasury balance, config, and rep tiers).
+`ServeKeeper` (serve receipt lookup) and `OrgKeeper` (treasury balance, config, and rep tiers).
 
 **Genesis data:**  
 Emission pool, daily emission history, operator and validator rewards, bootstrap credits, work scores, asymmetric gates, and bootstrap expiry can all be set during genesis. Absent data leaves the module inert until configured via governance.
 
 **Notable logic:**  
-`MintDailyEmission` requires the emission pool to be configured and enforces strictly increasing epochs. It does not transfer newly minted coins; instead it updates the pool accounting and records the emission snapshot. `AfterEpochEnd` orchestrates treasury-funded payouts: iterate orgs, skip those not requiring attestations, gather serve attestations for the current epoch, group them by contributor, fetch the org’s rep tiers, and compute `payoutPerServe * serveCount`. The helper `getPayoutPerServeForContributor` currently passes a placeholder reputation value of zero, making tier order critical (tiers should be ordered low-to-high, and the lowest tier acts as the default). The hook breaks out once the treasury cannot cover the next payout but does not refund partial payments. Total payout statistics are logged for monitoring. The emission pool continues to record operator and validator share proportions even though the hook only debits org treasuries; this ensures compatibility with future operator reward distribution without affecting current payouts.
+`MintDailyEmission` requires the emission pool to be configured and enforces strictly increasing epochs. It does not transfer newly minted coins; instead it updates the pool accounting and records the emission snapshot. `AfterEpochEnd` orchestrates treasury-funded payouts: iterate orgs, skip those not requiring attestations, gather serve receipts for the current epoch, group them by contributor, fetch the org’s rep tiers, and compute `payoutPerServe * serveCount`. The helper `getPayoutPerServeForContributor` currently passes a placeholder reputation value of zero, making tier order critical (tiers should be ordered low-to-high, and the lowest tier acts as the default). The hook breaks out once the treasury cannot cover the next payout but does not refund partial payments. Total payout statistics are logged for monitoring. The emission pool continues to record operator and validator share proportions even though the hook only debits org treasuries; this ensures compatibility with future operator reward distribution without affecting current payouts.
 
 ## Keeper Dependency Graph
 
@@ -165,7 +165,7 @@ Instantiation order from `app/app.go` (lines 323-329):
 5. `ServeKeeper` (depends on `OrgKeeper`, `MemoryKeeper`, `BandwidthKeeper`, and `ReputationKeeper`).  
 6. `EmissionsKeeper` (depends on `ServeKeeper` and `OrgKeeper`).
 
-This order ensures that each keeper’s dependencies have been constructed before injection into the next layer, and it mirrors the data flow from org configuration through memory and serve attestation to epoch payouts.
+This order ensures that each keeper’s dependencies have been constructed before injection into the next layer, and it mirrors the data flow from org configuration through memory and serve receipt to epoch payouts.
 
 ## Epoch Lifecycle
 
@@ -177,7 +177,7 @@ WeVibe Chain configures a single epoch identifier `wevibe_epoch` via `scripts/in
 2. Enumerate organizations: `GetAllOrgs` returns all registered orgs. For each:  
    a. Fetch org config. If `ServeAttestationRequired` is false, the org is skipped.  
    b. Fetch treasury balance using `GetTreasuryBalanceInt`. Zero or negative balances trigger a skip.  
-   c. Load serve attestations for the epoch via `ServeKeeper.GetServeAttestations`. If none, skip.  
+   c. Load serve receipts for the epoch via `ServeKeeper.GetServeReceipts`. If none, skip.  
    d. Load reputation tiers through `GetRepTiers`. The helper `getPayoutPerServeForContributor` iterates tiers in order, comparing the placeholder reputation (currently 0) to tier ranges. The first matching tier supplies the payout rate.  
    e. Aggregate serve counts per contributor, multiply by payout rate, and attempt to debit the org’s treasury for each contributor in turn. If the treasury cannot cover the next payout, the loop breaks and remaining contributors for that org are skipped.  
    f. Counters accumulate per-org totals, number of contributors paid, and aggregate payouts.  
@@ -206,7 +206,7 @@ These hooks leave the store prepared for hubs to fetch Merkle proofs and for das
 | org | MsgFundTreasury | Move funds from the signer into the organization’s treasury balance. |
 | org | MsgWithdrawTreasury | Withdraw treasury funds to a recipient address signed by an org admin. |
 | org | MsgSetRepTiers | Replace the organization’s reputation tiers used for payout calculations. |
-| org | MsgSetOrgConfig | Update the organization’s configuration flags (currently serve attestation requirement). |
+| org | MsgSetOrgConfig | Update the organization’s configuration flags (currently serve receipt requirement). |
 | org | MsgUpdateParams | Governance action to update module parameters such as burn curve settings. |
 | memory | MsgSubmitCommitment | Submit a memory commitment with keywords and contributor ID, consuming bandwidth. |
 | memory | MsgApproveMemory | Leader-only approval that promotes a commitment, seeds retrieval confidence, and records lifecycle state. |
@@ -219,7 +219,7 @@ These hooks leave the store prepared for hubs to fetch Merkle proofs and for das
 | memory | MsgSetValidityBounds | Attach validity windows and scope tags to a memory for automatic expiry management. |
 | memory | MsgArchiveMemory | Leader-initiated archival of a memory without contest. |
 | memory | MsgUpdateParams | Governance update for memory parameters (pending limits, blob size, confidence thresholds, decay floor, contest window). |
-| serve | MsgSubmitServeBatch | Submit a batch of serve attestations for an org and epoch; returns acceptance counts. |
+| serve | MsgSubmitServeBatch | Submit a batch of serve receipts for an org and epoch; returns acceptance counts. |
 | serve | MsgUpdateParams | Governance update for serve parameters (batch caps, per-memory caps, etc.). |
 | bandwidth | MsgSetBandwidthOverride | Set org-specific memory and serve caps for future epochs. |
 | bandwidth | MsgUpdateParams | Governance update for default bandwidth caps and administrative authority. |

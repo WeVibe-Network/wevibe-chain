@@ -11,7 +11,7 @@ import (
 
 type ServeKeeper interface {
 	GetEpochServeStats(ctx context.Context, orgID string, epoch uint64) (*serveTypes.EpochServeStats, error)
-	GetServeAttestations(ctx context.Context, orgID string, epoch uint64) ([]*serveTypes.ServeAttestation, error)
+	GetServeReceipts(ctx context.Context, orgID string, epoch uint64) ([]*serveTypes.ServeReceipt, error)
 }
 
 type MemoryKeeper interface {

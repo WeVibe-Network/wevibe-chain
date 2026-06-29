@@ -231,7 +231,7 @@ Number of epochs a contest remains open before auto-rejection. After this period
 
 ## Serve Module
 
-Serve attestation handling and rate limiting.
+Serve receipt handling and rate limiting.
 
 ### Parameter Schema
 
@@ -252,7 +252,7 @@ Serve attestation handling and rate limiting.
 **Type:** uint32  
 **Default:** 100
 
-Maximum number of serve attestations per `SubmitServeBatch` transaction. Batches exceeding this are rejected.
+Maximum number of serve receipts per `SubmitServeBatch` transaction. Batches exceeding this are rejected.
 
 #### self_serve_discount_percent
 
@@ -273,7 +273,7 @@ Maximum serves recorded per memory per epoch. Prevents repeat-serving inflation.
 **Type:** uint64  
 **Default:** 7
 
-Minimum organization age (in epochs) before serve attestations are accepted. Prevents spam from newly created orgs.
+Minimum organization age (in epochs) before serve receipts are accepted. Prevents spam from newly created orgs.
 
 #### diminishing_returns_threshold
 
@@ -311,7 +311,7 @@ Default maximum memory submissions per organization per epoch. Leaders can overr
 **Type:** uint64  
 **Default:** 10,000
 
-Default maximum serve attestations per organization per epoch. Leaders can override via `MsgSetBandwidthOverride`.
+Default maximum serve receipts per organization per epoch. Leaders can override via `MsgSetBandwidthOverride`.
 
 ---
 
@@ -390,14 +390,14 @@ Maximum quality value accepted in `MsgUpdateReputation`. Higher values are cappe
 **Type:** uint64  
 **Default:** 1
 
-Experience points awarded per valid serve attestation. Accumulates in contributor XP.
+Experience points awarded per valid serve receipt. Accumulates in contributor XP.
 
 #### self_serve_xp_per_serve
 
 **Type:** uint64  
 **Default:** 0
 
-Experience points awarded per self-serve attestation. Set to 0 to discourage self-serving behavior.
+Experience points awarded per self-serve receipt. Set to 0 to discourage self-serving behavior.
 
 ---
 
@@ -519,7 +519,7 @@ Organizations can configure certain parameters per-org via `MsgSetOrgConfig`:
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `serve_attestation_required` | bool | Whether org requires serve attestations for payouts |
+| `serve_receipt_required` | bool | Whether org requires serve receipts for payouts |
 | `decay_rate_bps` | uint64 | Organization-specific decay rate (overrides module minimum) |
 | `contest_stake_vibe` | uint64 | Stake amount required to contest a memory |
 

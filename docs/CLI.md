@@ -633,14 +633,14 @@ wevibed tx org set-org-config [org_id] [flags] [flags]
 **Flags:**
 | Flag | Type | Description |
 |------|------|-------------|
-| `--serve-attestation-required` | bool | Require serve attestations |
+| `--serve-receipt-required` | bool | Require serve receipts |
 | `--decay-rate-bps` | uint | Decay rate in basis points |
 | `--contest-stake-vibe` | uint | Contest stake amount |
 
 **Example:**
 ```bash
 wevibed tx org set-org-config my-org \
-  --serve-attestation-required=true \
+  --serve-receipt-required=true \
   --decay-rate-bps=100 \
   --from my-key
 ```
@@ -761,7 +761,7 @@ wevibed tx memory purge-expired [org_id] [flags]
 
 #### wevibed tx serve submit-serve-batch
 
-Submit serve attestations.
+Submit serve receipts.
 
 ```bash
 wevibed tx serve submit-serve-batch [org_id] [epoch] [serve_json_file_or_json_string] [flags]

@@ -78,7 +78,7 @@ func (q *queryServer) GetOrgConfig(ctx context.Context, req *types.QueryGetOrgCo
 		return nil, err
 	}
 	return &types.QueryGetOrgConfigResponse{
-		ServeAttestationRequired: cfg.ServeAttestationRequired,
+		ServeReceiptRequired:     cfg.ServeReceiptRequired,
 		MinContributionsPerEpoch: cfg.MinContributionsPerEpoch,
 		ContestStakeVibe:         cfg.ContestStakeVibe,
 	}, nil

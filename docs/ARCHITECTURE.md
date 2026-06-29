@@ -45,7 +45,7 @@ The org module manages organization registration, membership, and treasuries.
 | `dynprice/` | `StoredDynamicPrice` | Dynamic burn price inputs for new registrations |
 | `treasury/{org}` | `StoredTreasury` | Organization treasury balance in string-encoded `uvibe` |
 | `reptier/{org}` | `StoredRepTierConfig` | Ordered payout tiers keyed by reputation bounds |
-| `orgconfig/{org}` | `StoredOrgConfig` | Runtime toggles (serve_attestation_required, decay_rate_bps, contest_stake_vibe) |
+| `orgconfig/{org}` | `StoredOrgConfig` | Runtime toggles (serve_receipt_required, decay_rate_bps, contest_stake_vibe) |
 | `params` | `Params` | Module-level fees, quota defaults, burn behavior |
 
 #### Messages
@@ -58,7 +58,7 @@ The org module manages organization registration, membership, and treasuries.
 | `MsgFundTreasury` | Add funds from signer to org treasury |
 | `MsgWithdrawTreasury` | Remove funds from org treasury to recipient |
 | `MsgSetRepTiers` | Configure payout tiers for org |
-| `MsgSetOrgConfig` | Set org configuration (serve attestation required, decay rate, contest stake) |
+| `MsgSetOrgConfig` | Set org configuration (serve receipt required, decay rate, contest stake) |
 | `MsgGrantTrialAllowance` | Grant fee grant for trial submissions |
 | `MsgUpdateParams` | Governance parameter update |
 
@@ -171,14 +171,14 @@ The memory module manages organizational memory commitments with lifecycle state
 
 ### Serve Module (`x/serve`)
 
-The serve module handles serve attestations and deduplication.
+The serve module handles serve receipts and deduplication.
 
 #### State Objects
 
 | Prefix | Type | Description |
 |--------|------|-------------|
-| `nullifier/{hash}` | marker | Set membership guard for deduplication |
-| `attestation/{org}/{epoch}/{nullifier}` | `StoredServeAttestation` | Memory hash, serve key, contributor, epoch, nullifier, self-serve flag, model_id, turn_count |
+| `fingerprint/{hash}` | marker | Set membership guard for deduplication |
+| `receipt/{org}/{epoch}/{fingerprint}` | `StoredServeReceipt` | Memory hash, serve key, contributor, epoch, fingerprint, self-serve flag, model_id, turn_count |
 | `stats/{org}/{epoch}` | `StoredEpochServeStats` | Totals, unique memories, unique serve keys, self-serve counts, model_breakdown |
 | `contributor/{id}/{epoch}` | `StoredContributorEpochServes` | Per-contributor serve counts, self-serve counts, org coverage, total_turns |
 | `memcount/{org}/{hash}/{epoch}` | counter | Per-memory serve count per epoch |
@@ -190,7 +190,7 @@ The serve module handles serve attestations and deduplication.
 
 | Message | Description |
 |---------|-------------|
-| `MsgSubmitServeBatch` | Submit batch of serve attestations for org and epoch |
+| `MsgSubmitServeBatch` | Submit batch of serve receipts for org and epoch |
 | `MsgUpdateParams` | Governance parameter update |
 
 #### Query Endpoints
@@ -366,7 +366,7 @@ The emissions module handles daily minting and epoch payout distribution.
 
 #### Keeper Dependencies
 
-- `ServeKeeper` — Serve attestation lookup
+- `ServeKeeper` — Serve receipt lookup
 - `OrgKeeper` — Treasury balance, config, rep tiers
 
 ---
@@ -404,7 +404,7 @@ This order ensures each keeper's dependencies are constructed before injection.
 4. Blob size validated, record promoted to approved, counter incremented
 5. Hub updates dashboards and triggers proof packaging
 
-### Serve Attestation Ingestion
+### Serve Receipt Ingestion
 
 1. Serve nodes batch attestations in `MsgSubmitServeBatch`
 2. Serve keeper enforces batch size, consumes bandwidth, rejects nullifier duplicates
@@ -417,7 +417,7 @@ This order ensures each keeper's dependencies are constructed before injection.
 
 1. `EmissionsKeeper.AfterEpochEnd` triggers after `wevibe_epoch` ends
 2. Mints daily emission, updates pool
-3. Iterates orgs with `serve_attestation_required=true` and positive treasury
+3. Iterates orgs with `serve_receipt_required=true` and positive treasury
 4. Aggregates contributor serves, fetches rep tiers
 5. Debits treasury per contributor based on tier payout rates
 6. Loop breaks when treasury insufficient

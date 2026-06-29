@@ -13,7 +13,7 @@
 
 ---
 
-WeVibe Chain is WeVibe Network's sovereign Cosmos SDK + CometBFT appchain. It is the source of truth for encrypted organizational memory, membership and role state, serve attestations, contributor reputation aggregates, and VIBE economic state.
+WeVibe Chain is WeVibe Network's sovereign Cosmos SDK + CometBFT appchain. It is the source of truth for encrypted organizational memory, membership and role state, serve receipts, contributor reputation aggregates, and VIBE economic state.
 
 ## Overview
 
@@ -21,7 +21,7 @@ WeVibe Chain couples the staking, governance, bank, epochs, and distribution fou
 
 - **Organization Slots & Membership** — Registration, role management, and treasuries
 - **Memory Curation** — Encrypted commitments with lifecycle and epoch hooks
-- **Serve & Denial Attestations** — Delivery/denial evidence, deduplication, and per-epoch stats
+- **Serve & Denial Receipts** — Delivery/denial evidence, deduplication, and per-epoch stats
 - **Bandwidth Throttling** — Per-org rate limiting for submission and serve traffic
 - **Reputation Tracking** — Contributor XP, serve stats, and cross-org profiles
 - **Emission Accounting** — Fixed-schedule pool math and contributor reward accrual
@@ -64,7 +64,7 @@ WeVibe Chain is in active alpha/testnet development. Core modules are wired and 
 |--------|---------|
 | `x/org` | Slot-based organization registry, membership roles, treasury balances, and serving configuration |
 | `x/memory` | Encrypted memory commitments, lifecycle transitions, Earned Trust decay, and epoch Merkle roots |
-| `x/serve` | Serve and denial attestation ingestion, nullifier deduplication, matched-keyword indexing, and epoch stats |
+| `x/serve` | Serve and denial receipt ingestion, nullifier deduplication, matched-keyword indexing, and epoch stats |
 | `x/emissions` | Emission-pool schedule accounting, per-epoch attribution, and contributor reward ledgers |
 | `x/bandwidth` | Per-org, per-epoch submission/serve rate limits and overrides |
 | `x/reputation` | Contributor XP, serve metrics, and cross-org profile aggregates |
@@ -92,7 +92,7 @@ PENDING → APPROVED → STABLE ←→ DEGRADED ←→ DORMANT
             REJECTED (upheld contest)
 ```
 
-### Serve Attestations
+### Serve Receipts
 
 Serving agents batch proofs of content delivery. Attestations are:
 - Deduplicated via nullifiers to prevent replay

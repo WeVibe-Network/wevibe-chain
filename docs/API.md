@@ -45,7 +45,7 @@ Bandwidth limits are enforced per-organization per-epoch:
 | Limit Type | Default | Override Available |
 |------------|---------|-------------------|
 | Memory submissions | 1000/epoch | Yes (leader) |
-| Serve attestations | 10000/epoch | Yes (leader) |
+| Serve receipts | 10000/epoch | Yes (leader) |
 
 Query endpoints are not rate-limited but abuse may result in service suspension.
 
@@ -225,7 +225,7 @@ Update organization configuration.
 {
   "signer": "wevibe1leader...",
   "org_id": "my-org",
-  "serve_attestation_required": true,
+  "serve_receipt_required": true,
   "decay_rate_bps": 100,
   "contest_stake_vibe": "100000"
 }
@@ -372,7 +372,7 @@ Get organization configuration.
 **Response:**
 ```json
 {
-  "serve_attestation_required": true,
+  "serve_receipt_required": true,
   "decay_rate_bps": "100",
   "contest_stake_vibe": "100000"
 }
@@ -859,7 +859,7 @@ Get memory module parameters.
 
 #### MsgSubmitServeBatch
 
-Submit a batch of serve attestations.
+Submit a batch of serve receipts.
 
 **REST:** `POST /wevibe/serve/v1/tx/submit_serve_batch`
 

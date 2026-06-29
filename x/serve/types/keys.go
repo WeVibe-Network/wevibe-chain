@@ -21,7 +21,7 @@ const (
 	ServeSigLen    = 64
 )
 
-type ServeAttestation struct {
+type ServeReceipt struct {
 	OrgID           string
 	ContentHash     []byte
 	ServeKey        string
@@ -35,8 +35,8 @@ type ServeAttestation struct {
 	MatchedKeywords []string
 }
 
-func NewServeAttestation(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32, matchedKeywords []string) *ServeAttestation {
-	return &ServeAttestation{
+func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32, matchedKeywords []string) *ServeReceipt {
+	return &ServeReceipt{
 		OrgID:           orgID,
 		ContentHash:     contentHash,
 		ServeKey:        serveKey,
@@ -51,23 +51,23 @@ func NewServeAttestation(orgID string, contentHash []byte, serveKey string, serv
 	}
 }
 
-func (sa *ServeAttestation) Validate() error {
-	if sa.OrgID == "" {
+func (sr *ServeReceipt) Validate() error {
+	if sr.OrgID == "" {
 		return ErrInvalidOrgID
 	}
-	if len(sa.ContentHash) != ContentHashLen {
+	if len(sr.ContentHash) != ContentHashLen {
 		return ErrInvalidContentHash
 	}
-	if sa.ServeKey == "" {
+	if sr.ServeKey == "" {
 		return ErrInvalidServeKey
 	}
-	if sa.ContributorID == "" {
+	if sr.ContributorID == "" {
 		return ErrInvalidContributor
 	}
-	if len(sa.ServeKeyPubkey) != ServePubKeyLen {
+	if len(sr.ServeKeyPubkey) != ServePubKeyLen {
 		return ErrInvalidServeKeyPubkey
 	}
-	if len(sa.Fingerprint) != FingerprintLen {
+	if len(sr.Fingerprint) != FingerprintLen {
 		return ErrInvalidServeFingerprint
 	}
 	return nil
@@ -126,23 +126,23 @@ func (cs *ContributorEpochServes) AddOrgID(orgID string) {
 	cs.OrgIDs = append(cs.OrgIDs, orgID)
 }
 
-func ServeAttestationToStored(sa *ServeAttestation) *StoredServeAttestation {
-	return &StoredServeAttestation{
-		OrgId:             sa.OrgID,
-		MemoryContentHash: sa.ContentHash,
-		ContributorId:     sa.ContributorID,
-		Epoch:             sa.Epoch,
-		IsSelfServe:       sa.IsSelfServe,
-		ModelId:           sa.ModelID,
-		TurnCount:         sa.TurnCount,
-		MatchedKeywords:   sa.MatchedKeywords,
-		ServeKeyPubkey:    sa.ServeKeyPubkey,
-		Fingerprint:       sa.Fingerprint,
+func ServeReceiptToStored(sr *ServeReceipt) *StoredServeReceipt {
+	return &StoredServeReceipt{
+		OrgId:             sr.OrgID,
+		MemoryContentHash: sr.ContentHash,
+		ContributorId:     sr.ContributorID,
+		Epoch:             sr.Epoch,
+		IsSelfServe:       sr.IsSelfServe,
+		ModelId:           sr.ModelID,
+		TurnCount:         sr.TurnCount,
+		MatchedKeywords:   sr.MatchedKeywords,
+		ServeKeyPubkey:    sr.ServeKeyPubkey,
+		Fingerprint:       sr.Fingerprint,
 	}
 }
 
-func StoredToServeAttestation(stored StoredServeAttestation) ServeAttestation {
-	return ServeAttestation{
+func StoredToServeReceipt(stored StoredServeReceipt) ServeReceipt {
+	return ServeReceipt{
 		OrgID:           stored.OrgId,
 		ContentHash:     stored.MemoryContentHash,
 		ServeKey:        hex.EncodeToString(stored.ServeKeyPubkey),

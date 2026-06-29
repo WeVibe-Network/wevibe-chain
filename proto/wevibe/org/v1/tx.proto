@@ -101,7 +101,7 @@ message MsgSetOrgConfig {
   option (cosmos.msg.v1.signer) = "signer";
   string signer = 1;
   string org_id = 2;
-  bool serve_attestation_required = 3;
+  bool serve_receipt_required = 3;
   uint64 min_contributions_per_epoch = 4;
   uint64 contest_stake_vibe = 5;
   string vocab_hash = 6;

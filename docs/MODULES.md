@@ -74,7 +74,7 @@ message RepTier {
 ```protobuf
 message StoredOrgConfig {
   string org_id = 1;
-  bool serve_attestation_required = 2;
+  bool serve_receipt_required = 2;
   uint64 decay_rate_bps = 3;      // Basis points per epoch when no serves
   uint64 contest_stake_vibe = 4;  // Stake amount for memory contests
 }
@@ -199,7 +199,7 @@ Updates organization configuration.
 message MsgSetOrgConfig {
   string signer = 1;
   string org_id = 2;
-  bool serve_attestation_required = 3;
+  bool serve_receipt_required = 3;
   uint64 decay_rate_bps = 4;
   uint64 contest_stake_vibe = 5;
 }
@@ -671,13 +671,13 @@ The memory module's `AfterEpochEnd` hook performs:
 
 ## Serve Module (`x/serve`)
 
-Handles serve attestations, deduplication, and statistics.
+Handles serve receipts, deduplication, and statistics.
 
 ### State Objects
 
-#### StoredServeAttestation
+#### StoredServeReceipt
 ```protobuf
-message StoredServeAttestation {
+message StoredServeReceipt {
   string org_id = 1;
   bytes memory_content_hash = 2;
   string serve_key = 3;
@@ -750,7 +750,7 @@ message ServeEntry {
 ```
 
 #### MsgSubmitServeBatch
-Submit a batch of serve attestations.
+Submit a batch of serve receipts.
 
 ```protobuf
 message MsgSubmitServeBatch {
@@ -924,7 +924,7 @@ Two keeper methods store hashes now and will verify later:
 
 ## Bandwidth Module (`x/bandwidth`)
 
-Provides per-org rate limiting for memory submissions and serve attestations.
+Provides per-org rate limiting for memory submissions and serve receipts.
 
 ### State Objects
 
@@ -1186,9 +1186,9 @@ message MsgDistributeOperatorRewards {
 The emissions module's `AfterEpochEnd` hook performs:
 
 1. **Mint Daily Emission**: Updates pool accounting, records epoch snapshot
-2. **Process Org Payouts**: For each org with `serve_attestation_required=true`:
+2. **Process Org Payouts**: For each org with `serve_receipt_required=true`:
    - Skip if treasury balance is zero
-   - Load serve attestations for epoch
+   - Load serve receipts for epoch
    - Aggregate serves per contributor
    - Fetch org rep tiers
    - Compute payout per contributor based on tier

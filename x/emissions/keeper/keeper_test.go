@@ -729,14 +729,14 @@ func TestSDKStoreCommitPersist(t *testing.T) {
 }
 
 type mockServeKeeper struct {
-	attestations map[string][]*serveTypes.ServeAttestation
+	attestations map[string][]*serveTypes.ServeReceipt
 }
 
 func (m *mockServeKeeper) GetEpochServeStats(ctx context.Context, orgID string, epoch uint64) (*serveTypes.EpochServeStats, error) {
 	return nil, nil
 }
 
-func (m *mockServeKeeper) GetServeAttestations(ctx context.Context, orgID string, epoch uint64) ([]*serveTypes.ServeAttestation, error) {
+func (m *mockServeKeeper) GetServeReceipts(ctx context.Context, orgID string, epoch uint64) ([]*serveTypes.ServeReceipt, error) {
 	key := fmt.Sprintf("%s_%d", orgID, epoch)
 	return m.attestations[key], nil
 }
@@ -785,7 +785,7 @@ func (m *mockOrgKeeper) GetAllOrgs(ctx context.Context) ([]*orgTypes.Org, error)
 func (m *mockOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgTypes.OrgConfig, error) {
 	cfg, ok := m.configs[orgID]
 	if !ok {
-		return &orgTypes.OrgConfig{OrgID: orgID, ServeAttestationRequired: false}, nil
+		return &orgTypes.OrgConfig{OrgID: orgID, ServeReceiptRequired: false}, nil
 	}
 	return cfg, nil
 }
@@ -793,7 +793,7 @@ func (m *mockOrgKeeper) GetOrgConfig(ctx context.Context, orgID string) (*orgTyp
 func TestDistributePayout_NoOrgs(t *testing.T) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
-	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeAttestation)}
+	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeReceipt)}
 	memoryKeeper := &mockMemoryKeeper{approvedByContributor: make(map[string]map[string]uint64)}
 	orgKeeper := newMockOrgKeeper()
 	reputationKeeper := newMockReputationKeeper()
@@ -816,7 +816,7 @@ func TestDistributePayout_NoOrgs(t *testing.T) {
 func TestDistributePayout_OneContributor(t *testing.T) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
-	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeAttestation)}
+	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeReceipt)}
 	memoryKeeper := &mockMemoryKeeper{
 		approvedByContributor: map[string]map[string]uint64{
 			"org1_1": {"contrib1": 1},
@@ -824,7 +824,7 @@ func TestDistributePayout_OneContributor(t *testing.T) {
 	}
 	orgKeeper := newMockOrgKeeper()
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
-	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: true, MinContributionsPerEpoch: 1}
+	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeReceiptRequired: true, MinContributionsPerEpoch: 1}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
@@ -857,7 +857,7 @@ func TestDistributePayout_OneContributor(t *testing.T) {
 func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
-	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeAttestation)}
+	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeReceipt)}
 	memoryKeeper := &mockMemoryKeeper{
 		approvedByContributor: map[string]map[string]uint64{
 			"org1_1": {
@@ -868,7 +868,7 @@ func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 	}
 	orgKeeper := newMockOrgKeeper()
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
-	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: true, MinContributionsPerEpoch: 1}
+	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeReceiptRequired: true, MinContributionsPerEpoch: 1}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(150)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())
@@ -900,7 +900,7 @@ func TestDistributePayout_TreasuryExhausted(t *testing.T) {
 func TestDistributePayout_ServeAttestationNotRequired(t *testing.T) {
 	storeService, _ := testkeeper.NewTestStoreService(t, emissionsStoreKey)
 	logger := testkeeper.NewTestLogger()
-	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeAttestation)}
+	serveKeeper := &mockServeKeeper{attestations: make(map[string][]*serveTypes.ServeReceipt)}
 	memoryKeeper := &mockMemoryKeeper{
 		approvedByContributor: map[string]map[string]uint64{
 			"org1_1": {"contrib1": 1},
@@ -908,7 +908,7 @@ func TestDistributePayout_ServeAttestationNotRequired(t *testing.T) {
 	}
 	orgKeeper := newMockOrgKeeper()
 	orgKeeper.orgs = []*orgTypes.Org{{OrgID: "org1"}}
-	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeAttestationRequired: false}
+	orgKeeper.configs["org1"] = &orgTypes.OrgConfig{OrgID: "org1", ServeReceiptRequired: false}
 	orgKeeper.treasuryBal["org1"] = math.NewInt(1000000)
 
 	k := keeper.NewKeeper(storeService, logger, "cosmos10d07y265gmmuvt4z0w9aw880jnsr700j6zn9ry", serveKeeper, memoryKeeper, orgKeeper, newMockReputationKeeper())

@@ -99,7 +99,7 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 	var rejected uint64
 	var rejectedDupFingerprint uint64
 	var rejectedInvalidSignature uint64
-	var rejectedNoAttestation uint64
+	var rejectedNoReceipt uint64
 	var rejectedNoKeywords uint64
 	var rejectedHashMismatch uint64
 	var rejectedServeKeyMismatch uint64
@@ -127,26 +127,26 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			continue
 		}
 
-		originatingAttestation, found, err := s.keeper.GetServeAttestationByFingerprint(ctx, entry.ServeFingerprint)
+		originatingReceipt, found, err := s.keeper.GetServeReceiptByFingerprint(ctx, entry.ServeFingerprint)
 		if err != nil {
 			return nil, err
 		}
 		if !found {
 			rejected++
-			rejectedNoAttestation++
+			rejectedNoReceipt++
 			continue
 		}
-		if len(originatingAttestation.MatchedKeywords) == 0 {
+		if len(originatingReceipt.MatchedKeywords) == 0 {
 			rejected++
 			rejectedNoKeywords++
 			continue
 		}
-		if !bytes.Equal(entry.MemoryHash, originatingAttestation.MemoryContentHash) {
+		if !bytes.Equal(entry.MemoryHash, originatingReceipt.MemoryContentHash) {
 			rejected++
 			rejectedHashMismatch++
 			continue
 		}
-		if !bytes.Equal(entry.ServeKeyPubkey, originatingAttestation.ServeKeyPubkey) {
+		if !bytes.Equal(entry.ServeKeyPubkey, originatingReceipt.ServeKeyPubkey) {
 			rejected++
 			rejectedServeKeyMismatch++
 			continue
@@ -159,28 +159,28 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 		}
 
 		store.Set(denialFingerprintKey(denialFingerprint), []byte{1})
-		s.keeper.IncrementDenialCount(ctx, msg.OrgId, originatingAttestation.MemoryContentHash, msg.Epoch)
+		s.keeper.IncrementDenialCount(ctx, msg.OrgId, originatingReceipt.MemoryContentHash, msg.Epoch)
 		s.keeper.updateEpochDenialStats(ctx, msg.OrgId, msg.Epoch)
-		if err := s.keeper.StoreDenialAttestation(ctx, msg.OrgId, msg.Epoch, denialFingerprint, entry); err != nil {
+		if err := s.keeper.StoreDenialReceipt(ctx, msg.OrgId, msg.Epoch, denialFingerprint, entry); err != nil {
 			return nil, err
 		}
-		cidHex := types.ContentHashToHex(originatingAttestation.MemoryContentHash)
-		for _, keyword := range originatingAttestation.MatchedKeywords {
+		cidHex := types.ContentHashToHex(originatingReceipt.MemoryContentHash)
+		for _, keyword := range originatingReceipt.MatchedKeywords {
 			if keyword == "" {
-				return nil, fmt.Errorf("originating attestation has empty matched keyword")
+				return nil, fmt.Errorf("originating receipt has empty matched keyword")
 			}
 			store.Set(matchedKeywordKey(msg.OrgId, cidHex, msg.Epoch, keyword), []byte{0x01})
 		}
 		accepted++
 
-		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, originatingAttestation.MemoryContentHash, msg.Epoch); err != nil {
-			// Non-fatal: the denial attestation is primary. The decay is a
+		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, originatingReceipt.MemoryContentHash, msg.Epoch); err != nil {
+			// Non-fatal: the denial receipt is primary. The decay is a
 			// secondary side effect that may fail if the memory is already
 			// archived. Match the emissions pattern (payout failures do not
 			// roll back the epoch).
 			s.keeper.logger.Warn("ApplyDenialDecay failed",
 				"org", msg.OrgId,
-				"hash", types.ContentHashToHex(originatingAttestation.MemoryContentHash),
+				"hash", types.ContentHashToHex(originatingReceipt.MemoryContentHash),
 				"err", err,
 			)
 		}
@@ -190,7 +190,7 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	s.keeper.logger.Info(fmt.Sprintf(
 		msg.OrgId, msg.Epoch, len(msg.Entries), accepted, rejected,
-		rejectedDupFingerprint, rejectedInvalidSignature, rejectedNoAttestation, rejectedNoKeywords, rejectedHashMismatch, rejectedServeKeyMismatch, rejectedNoMemory,
+		rejectedDupFingerprint, rejectedInvalidSignature, rejectedNoReceipt, rejectedNoKeywords, rejectedHashMismatch, rejectedServeKeyMismatch, rejectedNoMemory,
 	))
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDenialBatchSubmitted,

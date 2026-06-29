@@ -50,7 +50,7 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 				{
 					RpcMethod: "SubmitServeBatch",
 					Use:       "submit-batch [org-id] [epoch]",
-					Short:     "Submit a batch of serve attestations",
+					Short:     "Submit a batch of serve receipts",
 					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
 						{ProtoField: "org_id"},
 						{ProtoField: "epoch"},
@@ -59,7 +59,7 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 				{
 					RpcMethod: "SubmitDenialBatch",
 					Use:       "submit-denials [org-id] [epoch]",
-					Short:     "Submit a batch of denial attestations",
+					Short:     "Submit a batch of denial receipts",
 					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
 						{ProtoField: "org_id"},
 						{ProtoField: "epoch"},

@@ -782,10 +782,10 @@ func TestSetOrgConfig(t *testing.T) {
 	}
 
 	cfg := &types.OrgConfig{
-		OrgID:                    org.OrgID,
-		ServeAttestationRequired: true,
-		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
-		EmbeddingModelID:         "text-embedding-3-large",
+		OrgID:                org.OrgID,
+		ServeReceiptRequired: true,
+		VocabHash:            "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+		EmbeddingModelID:     "text-embedding-3-large",
 	}
 
 	err = k.SetOrgConfig(ctx, org.OrgID, cfg)
@@ -797,7 +797,7 @@ func TestSetOrgConfig(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOrgConfig failed: %v", err)
 	}
-	require.True(t, retrieved.ServeAttestationRequired)
+	require.True(t, retrieved.ServeReceiptRequired)
 	require.Equal(t, cfg.VocabHash, retrieved.VocabHash)
 	require.Equal(t, cfg.EmbeddingModelID, retrieved.EmbeddingModelID)
 }
@@ -854,10 +854,10 @@ func TestGenesisRoundTrip_Extended(t *testing.T) {
 		},
 		OrgConfigs: []*types.OrgConfig{
 			{
-				OrgID:                    "org1",
-				ServeAttestationRequired: true,
-				VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
-				EmbeddingModelID:         "text-embedding-3-large",
+				OrgID:                "org1",
+				ServeReceiptRequired: true,
+				VocabHash:            "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
+				EmbeddingModelID:     "text-embedding-3-large",
 			},
 		},
 	}

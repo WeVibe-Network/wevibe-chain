@@ -410,7 +410,7 @@ func TestMsgSetOrgConfig_Success(t *testing.T) {
 	setOrgConfigMsg := &types.MsgSetOrgConfig{
 		Signer:                   validLeader,
 		OrgId:                    orgID,
-		ServeAttestationRequired: true,
+		ServeReceiptRequired:     true,
 		VocabHash:                "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff",
 		EmbeddingModelId:         "text-embedding-3-large",
 		MinContributionsPerEpoch: 10,

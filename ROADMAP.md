@@ -4,7 +4,7 @@ This roadmap tracks the current public implementation status and planned milesto
 
 ## Purpose
 
-WeVibe Chain is WeVibe's sovereign Cosmos SDK + CometBFT appchain. It is the network's source of truth for encrypted organization memory, membership and roles, serve and denial attestations, contributor reputation aggregates, and VIBE economic state.
+WeVibe Chain is WeVibe's sovereign Cosmos SDK + CometBFT appchain. It is the network's source of truth for encrypted organization memory, membership and roles, serve and denial receipts, contributor reputation aggregates, and VIBE economic state.
 
 Validators replicate encrypted memory state, but do not have plaintext visibility in the standard memory flow.
 

@@ -3,18 +3,18 @@ package types
 import "encoding/json"
 
 type GenesisState struct {
-	Attestations       []*ServeAttestation        `json:"attestations"`
-	DenialAttestations []*StoredDenialAttestation `json:"denial_attestations"`
-	EpochStats         []*EpochServeStats         `json:"epoch_stats"`
-	ContributorServes  []*ContributorEpochServes  `json:"contributor_serves"`
+	ServeReceipts     []*ServeReceipt           `json:"serve_receipts"`
+	DenialReceipts    []*StoredDenialReceipt    `json:"denial_receipts"`
+	EpochStats        []*EpochServeStats        `json:"epoch_stats"`
+	ContributorServes []*ContributorEpochServes `json:"contributor_serves"`
 }
 
-func NewGenesisState(attestations []*ServeAttestation, denialAttestations []*StoredDenialAttestation, epochStats []*EpochServeStats, contributorServes []*ContributorEpochServes) *GenesisState {
+func NewGenesisState(serveReceipts []*ServeReceipt, denialReceipts []*StoredDenialReceipt, epochStats []*EpochServeStats, contributorServes []*ContributorEpochServes) *GenesisState {
 	return &GenesisState{
-		Attestations:       attestations,
-		DenialAttestations: denialAttestations,
-		EpochStats:         epochStats,
-		ContributorServes:  contributorServes,
+		ServeReceipts:     serveReceipts,
+		DenialReceipts:    denialReceipts,
+		EpochStats:        epochStats,
+		ContributorServes: contributorServes,
 	}
 }
 

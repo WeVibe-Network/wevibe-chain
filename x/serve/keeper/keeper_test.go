@@ -495,9 +495,9 @@ func TestGetContributorEpochServes_NotFound(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrContributorNotFound)
 }
 
-func TestGetServeAttestationByFingerprint_NotFound(t *testing.T) {
+func TestGetServeReceiptByFingerprint_NotFound(t *testing.T) {
 	env := setupKeeper(t)
-	_, found, err := env.k.GetServeAttestationByFingerprint(env.ctx, hash32(0xEE))
+	_, found, err := env.k.GetServeReceiptByFingerprint(env.ctx, hash32(0xEE))
 	require.NoError(t, err)
 	require.False(t, found)
 }
@@ -520,7 +520,7 @@ func TestGenesisRoundtrip(t *testing.T) {
 
 	exported, err := env.k.ExportGenesis(env.ctx)
 	require.NoError(t, err)
-	require.Len(t, exported.Attestations, 1)
+	require.Len(t, exported.ServeReceipts, 1)
 	require.Len(t, exported.EpochStats, 1)
 	require.Len(t, exported.ContributorServes, 1)
 
@@ -529,7 +529,7 @@ func TestGenesisRoundtrip(t *testing.T) {
 	require.NoError(t, err)
 	var decoded types.GenesisState
 	require.NoError(t, decoded.UnmarshalJSON(bz))
-	require.Len(t, decoded.Attestations, 1)
+	require.Len(t, decoded.ServeReceipts, 1)
 
 	// Import into a fresh keeper and verify state restored.
 	env2 := setupKeeper(t)
@@ -541,13 +541,13 @@ func TestGenesisRoundtrip(t *testing.T) {
 	require.Equal(t, uint64(1), stats.TotalServes)
 }
 
-func TestGenesisInit_DenialAttestations(t *testing.T) {
+func TestGenesisInit_DenialReceipts(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0xF2)
 	servePub, _ := serveKeypair("serve-denial-genesis")
 	serveFingerprint := hash32(0x11)
 	gs := &types.GenesisState{
-		DenialAttestations: []*types.StoredDenialAttestation{
+		DenialReceipts: []*types.StoredDenialReceipt{
 			{OrgId: "org-1", MemoryHash: h, DenyKey: "dk", Reason: "spam", Epoch: 3, ServeFingerprint: serveFingerprint, ServeKeyPubkey: servePub},
 		},
 	}
@@ -561,7 +561,7 @@ func TestGenesisInit_DenialAttestations(t *testing.T) {
 	require.Equal(t, uint64(1), denials)
 }
 
-func TestGetServeAttestations_ListByOrgEpoch(t *testing.T) {
+func TestGetServeReceipts_ListByOrgEpoch(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0xF3)
 	env.mem.approve("org-1", h)
@@ -574,12 +574,12 @@ func TestGetServeAttestations_ListByOrgEpoch(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	atts, err := env.k.GetServeAttestations(env.ctx, "org-1", 4)
+	receipts, err := env.k.GetServeReceipts(env.ctx, "org-1", 4)
 	require.NoError(t, err)
-	require.Len(t, atts, 3)
+	require.Len(t, receipts, 3)
 
 	// Different epoch returns none.
-	none, err := env.k.GetServeAttestations(env.ctx, "org-1", 5)
+	none, err := env.k.GetServeReceipts(env.ctx, "org-1", 5)
 	require.NoError(t, err)
 	require.Len(t, none, 0)
 }

@@ -151,7 +151,7 @@ func NewMemberRecord(orgID, pubkey, role, x25519Pubkey string) *MemberRecord {
 
 type OrgConfig struct {
 	OrgID                    string `json:"org_id"`
-	ServeAttestationRequired bool   `json:"serve_attestation_required"`
+	ServeReceiptRequired     bool   `json:"serve_receipt_required"`
 	ContestStakeVibe         uint64 `json:"contest_stake_vibe"`
 	VocabHash                string `json:"vocab_hash"`
 	EmbeddingModelID         string `json:"embedding_model_id"`
@@ -161,7 +161,7 @@ type OrgConfig struct {
 func orgConfigToStored(cfg *OrgConfig) *StoredOrgConfig {
 	return &StoredOrgConfig{
 		OrgId:                    cfg.OrgID,
-		ServeAttestationRequired: cfg.ServeAttestationRequired,
+		ServeReceiptRequired:     cfg.ServeReceiptRequired,
 		ContestStakeVibe:         cfg.ContestStakeVibe,
 		VocabHash:                cfg.VocabHash,
 		EmbeddingModelId:         cfg.EmbeddingModelID,
@@ -172,7 +172,7 @@ func orgConfigToStored(cfg *OrgConfig) *StoredOrgConfig {
 func storedToOrgConfig(stored StoredOrgConfig) OrgConfig {
 	return OrgConfig{
 		OrgID:                    stored.OrgId,
-		ServeAttestationRequired: stored.ServeAttestationRequired,
+		ServeReceiptRequired:     stored.ServeReceiptRequired,
 		ContestStakeVibe:         stored.ContestStakeVibe,
 		VocabHash:                stored.VocabHash,
 		EmbeddingModelID:         stored.EmbeddingModelId,
