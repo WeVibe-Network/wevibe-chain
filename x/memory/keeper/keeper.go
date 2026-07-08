@@ -392,6 +392,7 @@ func (k *Keeper) ApproveMemory(
 		WrappedDekHash:     wrappedDekHash,
 		ContributorSig:     contributorSig,
 		MemoryType:         memoryType,
+		McVersion:          pending.McVersion,
 	}
 
 	bz, err = proto.Marshal(memoryToStored(approved))
@@ -796,6 +797,7 @@ func pendingToStored(pc *types.PendingCommitment) *types.StoredPendingCommitment
 		SubmittedAtHeight:  pc.SubmittedAt,
 		MemoryType:         pc.MemoryType,
 		ContributorAddress: pc.ContributorAddress,
+		McVersion:          pc.McVersion,
 	}
 }
 
@@ -806,6 +808,7 @@ func storedToPending(stored types.StoredPendingCommitment) types.PendingCommitme
 		Keywords:           stored.Keywords,
 		Contributor:        stored.ContributorId,
 		ContributorAddress: stored.ContributorAddress,
+		McVersion:          stored.McVersion,
 		Epoch:              stored.Epoch,
 		SubmittedAt:        stored.SubmittedAtHeight,
 		MemoryType:         stored.MemoryType,
@@ -836,6 +839,7 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		ServeCountTotal:        con.ServeCountTotal,
 		DenialCountTotal:       con.DenialCountTotal,
 		ArchivedEpoch:          con.ArchivedEpoch,
+		McVersion:              con.McVersion,
 	}
 }
 
@@ -863,5 +867,6 @@ func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment 
 		ServeCountTotal:    stored.ServeCountTotal,
 		DenialCountTotal:   stored.DenialCountTotal,
 		ArchivedEpoch:      stored.ArchivedEpoch,
+		McVersion:          stored.McVersion,
 	}
 }

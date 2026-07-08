@@ -219,6 +219,48 @@ func TestApproveMemory_CarriesContributorAddress(t *testing.T) {
 	}
 }
 
+func TestApproveMemory_CarriesMcVersion(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("12345678901234567890123456789012")
+	commitment := newPendingCommitment(
+		"test-org",
+		contentHash,
+		[]string{"keyword1", "keyword2"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	commitment.McVersion = 1
+	if err := k.SubmitCommitment(ctx, commitment); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	// fields survive on the pending record
+	pending, err := k.GetPendingCommitment(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetPendingCommitment failed: %v", err)
+	}
+	if pending.McVersion != 1 {
+		t.Errorf("mc_version lost on pending: got %d, want 1", pending.McVersion)
+	}
+
+	encryptedBlob := []byte("encrypted blob data")
+	if err := approveMemory(k, ctx, "test-org", contentHash, encryptedBlob, "leader-pubkey", nil); err != nil {
+		t.Fatalf("ApproveMemory failed: %v", err)
+	}
+
+	// fields carry through to the committed record
+	approved, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if approved.McVersion != 1 {
+		t.Errorf("McVersion mismatch on approved: got %d, want %d", approved.McVersion, 1)
+	}
+}
+
 func TestApproveMemory(t *testing.T) {
 	k, _, _ := makeTestKeeper(t)
 	ctx := context.Background()

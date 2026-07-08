@@ -75,6 +75,7 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 		msg.MemoryType,
 	)
 	commitment.ContributorAddress = msg.ContributorWallet
+	commitment.McVersion = msg.McVersion
 	if err := m.keeper.SubmitCommitment(ctx, commitment); err != nil {
 		return nil, err
 	}

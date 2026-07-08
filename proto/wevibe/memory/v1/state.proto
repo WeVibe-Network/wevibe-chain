@@ -43,6 +43,8 @@ message StoredPendingCommitment {
   uint64 submitted_at_height = 6;
   MemoryType memory_type = 7;
   string contributor_address = 8;
+  // MC-1 chain-leg: Memory Contract schema version.
+  uint32 mc_version = 11;
 }
 
 message StoredMemoryCommitment {
@@ -69,6 +71,8 @@ message StoredMemoryCommitment {
   uint64 denial_count_total = 21;
   uint64 archived_epoch = 22;
   string contributor_address = 23;
+  // MC-1 chain-leg: Memory Contract schema version.
+  uint32 mc_version = 26;
 }
 
 message StoredMemoryRelationship {

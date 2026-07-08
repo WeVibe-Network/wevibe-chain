@@ -24,6 +24,8 @@ message MsgSubmitCommitment {
   string contributor_id = 5;
   string contributor_wallet = 6;
   MemoryType memory_type = 7;
+  // MC-1 chain-leg: Memory Contract schema version.
+  uint32 mc_version = 10;
 }
 
 message MsgSubmitCommitmentResponse {}
@@ -42,6 +44,8 @@ message MsgApproveMemory {
   bytes salt = 10;
   bytes ciphertext_hash = 11;
   bytes contributor_sig = 12;
+  // MC-1 chain-leg: Memory Contract schema version.
+  uint32 mc_version = 15;
 }
 
 message MsgApproveMemoryResponse {}

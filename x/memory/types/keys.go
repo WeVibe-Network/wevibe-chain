@@ -31,6 +31,7 @@ type PendingCommitment struct {
 	Epoch              uint64
 	SubmittedAt        uint64
 	MemoryType         MemoryType
+	McVersion          uint32
 }
 
 func NewPendingCommitment(orgID string, contentHash []byte, keywords []*KeywordWeight, contributor string, epoch, submittedAt uint64, memoryType MemoryType) *PendingCommitment {
@@ -89,6 +90,7 @@ type MemoryCommitment struct {
 	ServeCountTotal    uint64
 	DenialCountTotal   uint64
 	ArchivedEpoch      uint64
+	McVersion          uint32
 }
 
 func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
@@ -145,86 +147,6 @@ func NewEpochMerkleRoot(orgID string, epoch uint64, merkleRoot []byte, memoryCou
 		Epoch:       epoch,
 		MerkleRoot:  merkleRoot,
 		MemoryCount: memoryCount,
-	}
-}
-
-func pendingToStored(pc *PendingCommitment) *StoredPendingCommitment {
-	return &StoredPendingCommitment{
-		OrgId:              pc.OrgID,
-		ContentHash:        pc.ContentHash,
-		Keywords:           pc.Keywords,
-		ContributorId:      pc.Contributor,
-		Epoch:              pc.Epoch,
-		SubmittedAtHeight:  pc.SubmittedAt,
-		MemoryType:         pc.MemoryType,
-		ContributorAddress: pc.ContributorAddress,
-	}
-}
-
-func storedToPending(stored StoredPendingCommitment) PendingCommitment {
-	return PendingCommitment{
-		OrgID:              stored.OrgId,
-		ContentHash:        stored.ContentHash,
-		Keywords:           stored.Keywords,
-		Contributor:        stored.ContributorId,
-		ContributorAddress: stored.ContributorAddress,
-		Epoch:              stored.Epoch,
-		SubmittedAt:        stored.SubmittedAtHeight,
-		MemoryType:         stored.MemoryType,
-	}
-}
-
-func memoryToStored(mc *MemoryCommitment) *StoredMemoryCommitment {
-	return &StoredMemoryCommitment{
-		OrgId:                  mc.OrgID,
-		ContentHash:            mc.ContentHash,
-		EncryptedBlob:          mc.EncryptedBlob,
-		Keywords:               mc.Keywords,
-		ContributorPubkey:      mc.Contributor,
-		ContributorAddress:     mc.ContributorAddress,
-		Epoch:                  mc.Epoch,
-		CommittedAtHeight:      mc.CommittedAtHeight,
-		CommittingLeaderPubkey: mc.CommittingLeader,
-		State:                  mc.State,
-		LastActiveEpoch:        mc.LastActiveEpoch,
-		WrappedDekEnc:          mc.WrappedDekEnc,
-		PlaintextHash:          mc.PlaintextHash,
-		Salt:                   mc.Salt,
-		CiphertextHash:         mc.CiphertextHash,
-		WrappedDekHash:         mc.WrappedDekHash,
-		ContributorSig:         mc.ContributorSig,
-		MemoryType:             mc.MemoryType,
-		ApprovedAtEpoch:        mc.ApprovedAtEpoch,
-		ServeCountTotal:        mc.ServeCountTotal,
-		DenialCountTotal:       mc.DenialCountTotal,
-		ArchivedEpoch:          mc.ArchivedEpoch,
-	}
-}
-
-func storedToMemory(stored StoredMemoryCommitment) MemoryCommitment {
-	return MemoryCommitment{
-		OrgID:              stored.OrgId,
-		ContentHash:        stored.ContentHash,
-		EncryptedBlob:      stored.EncryptedBlob,
-		Keywords:           stored.Keywords,
-		Contributor:        stored.ContributorPubkey,
-		ContributorAddress: stored.ContributorAddress,
-		Epoch:              stored.Epoch,
-		CommittedAtHeight:  stored.CommittedAtHeight,
-		CommittingLeader:   stored.CommittingLeaderPubkey,
-		State:              stored.State,
-		LastActiveEpoch:    stored.LastActiveEpoch,
-		WrappedDekEnc:      stored.WrappedDekEnc,
-		PlaintextHash:      stored.PlaintextHash,
-		Salt:               stored.Salt,
-		CiphertextHash:     stored.CiphertextHash,
-		WrappedDekHash:     stored.WrappedDekHash,
-		ContributorSig:     stored.ContributorSig,
-		MemoryType:         stored.MemoryType,
-		ApprovedAtEpoch:    stored.ApprovedAtEpoch,
-		ServeCountTotal:    stored.ServeCountTotal,
-		DenialCountTotal:   stored.DenialCountTotal,
-		ArchivedEpoch:      stored.ArchivedEpoch,
 	}
 }
 
