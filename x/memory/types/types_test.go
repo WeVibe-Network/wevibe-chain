@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -27,12 +28,35 @@ func TestMsgSubmitCommitment_ValidateBasic(t *testing.T) {
 		wantErr error
 	}{
 		{
-			name: "valid",
+			name: "valid legacy unattested",
 			msg: &types.MsgSubmitCommitment{
 				Signer:        "signer",
 				OrgId:         "org1",
 				ContentHash:   validHash(),
 				ContributorId: "contributor",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "valid self declared provenance",
+			msg: &types.MsgSubmitCommitment{
+				Signer:          "signer",
+				OrgId:           "org1",
+				ContentHash:     validHash(),
+				ContributorId:   "contributor",
+				ProducerModelId: "openai/gpt-5.2",
+			},
+			wantErr: nil,
+		},
+		{
+			name: "valid canonical provenance",
+			msg: &types.MsgSubmitCommitment{
+				Signer:                 "signer",
+				OrgId:                  "org1",
+				ContentHash:            validHash(),
+				ContributorId:          "contributor",
+				ProducerModelId:        "openai/gpt-5.2",
+				AttestationSessionHash: bytes.Repeat([]byte{0x01}, types.ContentHashLen),
 			},
 			wantErr: nil,
 		},
@@ -95,6 +119,51 @@ func TestMsgSubmitCommitment_ValidateBasic(t *testing.T) {
 				ContributorId: "",
 			},
 			wantErr: types.ErrInvalidContributor,
+		},
+		{
+			name: "attestation session hash wrong length",
+			msg: &types.MsgSubmitCommitment{
+				Signer:                 "signer",
+				OrgId:                  "org1",
+				ContentHash:            validHash(),
+				ContributorId:          "contributor",
+				ProducerModelId:        "openai/gpt-5.2",
+				AttestationSessionHash: bytes.Repeat([]byte{0x02}, 16),
+			},
+			wantErr: errSentinel,
+		},
+		{
+			name: "attestation session hash set without producer model id",
+			msg: &types.MsgSubmitCommitment{
+				Signer:                 "signer",
+				OrgId:                  "org1",
+				ContentHash:            validHash(),
+				ContributorId:          "contributor",
+				AttestationSessionHash: bytes.Repeat([]byte{0x03}, types.ContentHashLen),
+			},
+			wantErr: errSentinel,
+		},
+		{
+			name: "producer model id too long",
+			msg: &types.MsgSubmitCommitment{
+				Signer:          "signer",
+				OrgId:           "org1",
+				ContentHash:     validHash(),
+				ContributorId:   "contributor",
+				ProducerModelId: strings.Repeat("a", types.MaxProducerModelIdLen+1),
+			},
+			wantErr: errSentinel,
+		},
+		{
+			name: "producer model id whitespace only",
+			msg: &types.MsgSubmitCommitment{
+				Signer:          "signer",
+				OrgId:           "org1",
+				ContentHash:     validHash(),
+				ContributorId:   "contributor",
+				ProducerModelId: "   \t",
+			},
+			wantErr: errSentinel,
 		},
 	}
 
@@ -753,6 +822,24 @@ func TestNewMemoryCommitment(t *testing.T) {
 	require.Equal(t, uint64(5), mc.LastActiveEpoch)
 	require.Equal(t, types.MemoryType_MEMORY_TYPE_MEMORY, mc.MemoryType)
 	require.Equal(t, uint64(5), mc.ApprovedAtEpoch)
+}
+
+func TestDeriveProvenanceStatus(t *testing.T) {
+	modelID := "openai/gpt-5.2"
+	sessionHash := bytes.Repeat([]byte{0x22}, types.ContentHashLen)
+
+	require.Equal(t, types.ProvenanceUnattested, types.DeriveProvenanceStatus("", nil))
+	require.Equal(t, types.ProvenanceSelfDeclared, types.DeriveProvenanceStatus(modelID, nil))
+	require.Equal(t, types.ProvenanceSessionReferenced, types.DeriveProvenanceStatus(modelID, sessionHash))
+
+	// Honest semantics: there is no "VERIFIED" status in this on-chain helper.
+	require.NotEqual(t, types.ProvenanceStatus("VERIFIED"), types.ProvenanceUnattested)
+	require.NotEqual(t, types.ProvenanceStatus("VERIFIED"), types.ProvenanceSelfDeclared)
+	require.NotEqual(t, types.ProvenanceStatus("VERIFIED"), types.ProvenanceSessionReferenced)
+
+	modelOnlyMemory := &types.MemoryCommitment{ProducerModelId: modelID}
+	require.Equal(t, types.ProvenanceSelfDeclared, modelOnlyMemory.ProvenanceStatus())
+	require.NotEqual(t, types.ProvenanceSessionReferenced, modelOnlyMemory.ProvenanceStatus())
 }
 
 func TestNewEpochMerkleRoot(t *testing.T) {

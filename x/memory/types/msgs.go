@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"strings"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 )
@@ -18,6 +19,22 @@ func (m *MsgSubmitCommitment) ValidateBasic() error {
 	}
 	if m.ContributorId == "" {
 		return ErrInvalidContributor
+	}
+	if m.ProducerModelId != "" {
+		if len(m.ProducerModelId) > MaxProducerModelIdLen {
+			return fmt.Errorf("producer_model_id must be <= %d characters", MaxProducerModelIdLen)
+		}
+		if strings.TrimSpace(m.ProducerModelId) == "" {
+			return fmt.Errorf("producer_model_id cannot be whitespace")
+		}
+	}
+	if len(m.AttestationSessionHash) > 0 {
+		if len(m.AttestationSessionHash) != 32 {
+			return fmt.Errorf("attestation_session_hash must be exactly 32 bytes when set")
+		}
+		if m.ProducerModelId == "" {
+			return fmt.Errorf("producer_model_id is required when attestation_session_hash is set")
+		}
 	}
 	return nil
 }

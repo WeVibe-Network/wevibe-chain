@@ -43,6 +43,10 @@ message StoredPendingCommitment {
   uint64 submitted_at_height = 6;
   MemoryType memory_type = 7;
   string contributor_address = 8;
+  // D-PRODUCER-MODEL-PROVENANCE: immutable canonical producer-model identity (FACT, not policy).
+  string producer_model_id = 24;
+  // Reference to the source session's StoredSessionAttestation envelope, keyed (org_id, session_hash) in x/attestation. Empty = unattested/legacy.
+  bytes attestation_session_hash = 25;
   // MC-1 chain-leg: Memory Contract schema version.
   uint32 mc_version = 11;
 }
@@ -71,6 +75,10 @@ message StoredMemoryCommitment {
   uint64 denial_count_total = 21;
   uint64 archived_epoch = 22;
   string contributor_address = 23;
+  // D-PRODUCER-MODEL-PROVENANCE: immutable canonical producer-model identity (FACT, not policy).
+  string producer_model_id = 24;
+  // Reference to the source session's StoredSessionAttestation envelope, keyed (org_id, session_hash) in x/attestation. Empty = unattested/legacy.
+  bytes attestation_session_hash = 25;
   // MC-1 chain-leg: Memory Contract schema version.
   uint32 mc_version = 26;
 }

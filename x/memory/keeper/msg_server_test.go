@@ -240,6 +240,137 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 	}
 }
 
+func TestMsgSubmitCommitment_EmitsProvenanceEventAttributes(t *testing.T) {
+	srv, _, _, ctx := makeTestMsgServer(t)
+
+	attestationSessionHash := []byte("1234567890abcdef1234567890abcdef")
+	msg := &types.MsgSubmitCommitment{
+		Signer:                 "leader-pubkey",
+		OrgId:                  "test-org",
+		ContentHash:            []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
+		Keywords:               keywordsToKeywordWeights([]string{"kw1"}),
+		ContributorId:          "contributor",
+		MemoryType:             types.MemoryType_MEMORY_TYPE_MEMORY,
+		ProducerModelId:        "openai/gpt-5.2",
+		AttestationSessionHash: attestationSessionHash,
+	}
+
+	_, err := srv.SubmitCommitment(ctx, msg)
+	if err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	events := sdk.UnwrapSDKContext(ctx).EventManager().Events()
+	var submittedEvent *sdk.Event
+	for i := range events {
+		if events[i].Type == types.EventTypeCommitmentSubmitted {
+			submittedEvent = &events[i]
+			break
+		}
+	}
+	if submittedEvent == nil {
+		t.Fatalf("expected %q event to be emitted", types.EventTypeCommitmentSubmitted)
+	}
+
+	producerAttr, found := submittedEvent.GetAttribute(types.AttributeKeyProducerModelId)
+	if !found {
+		t.Fatalf("expected %q event attribute", types.AttributeKeyProducerModelId)
+	}
+	if producerAttr.Value != msg.ProducerModelId {
+		t.Fatalf("producer_model_id attribute mismatch: got %q, want %q", producerAttr.Value, msg.ProducerModelId)
+	}
+
+	hashAttr, found := submittedEvent.GetAttribute(types.AttributeKeyAttestationSessionHash)
+	if !found {
+		t.Fatalf("expected %q event attribute", types.AttributeKeyAttestationSessionHash)
+	}
+	if hashAttr.Value != types.ContentHashToHex(attestationSessionHash) {
+		t.Fatalf("attestation_session_hash attribute mismatch: got %q, want %q", hashAttr.Value, types.ContentHashToHex(attestationSessionHash))
+	}
+}
+
+func TestMsgSubmitCommitment_EmitsUnattestedFallbackEventAttributes(t *testing.T) {
+	srv, _, _, ctx := makeTestMsgServer(t)
+
+	msg := &types.MsgSubmitCommitment{
+		Signer:        "leader-pubkey",
+		OrgId:         "test-org",
+		ContentHash:   []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
+		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		ContributorId: "contributor",
+		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
+	}
+
+	_, err := srv.SubmitCommitment(ctx, msg)
+	if err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	events := sdk.UnwrapSDKContext(ctx).EventManager().Events()
+	var submittedEvent *sdk.Event
+	for i := range events {
+		if events[i].Type == types.EventTypeCommitmentSubmitted {
+			submittedEvent = &events[i]
+			break
+		}
+	}
+	if submittedEvent == nil {
+		t.Fatalf("expected %q event to be emitted", types.EventTypeCommitmentSubmitted)
+	}
+
+	producerAttr, found := submittedEvent.GetAttribute(types.AttributeKeyProducerModelId)
+	if !found {
+		t.Fatalf("expected %q event attribute", types.AttributeKeyProducerModelId)
+	}
+	if producerAttr.Value != "unattested" {
+		t.Fatalf("producer_model_id fallback mismatch: got %q, want %q", producerAttr.Value, "unattested")
+	}
+
+	hashAttr, found := submittedEvent.GetAttribute(types.AttributeKeyAttestationSessionHash)
+	if !found {
+		t.Fatalf("expected %q event attribute", types.AttributeKeyAttestationSessionHash)
+	}
+	if hashAttr.Value != "none" {
+		t.Fatalf("attestation_session_hash fallback mismatch: got %q, want %q", hashAttr.Value, "none")
+	}
+}
+
+func TestMsgSubmitCommitment_MalformedProvenanceRejectedBeforePersistence(t *testing.T) {
+	srv, k, _, ctx := makeTestMsgServer(t)
+
+	contentHash := []byte("cccccccccccccccccccccccccccccccc")
+	msg := &types.MsgSubmitCommitment{
+		Signer:                 "leader-pubkey",
+		OrgId:                  "test-org",
+		ContentHash:            contentHash,
+		Keywords:               keywordsToKeywordWeights([]string{"kw1"}),
+		ContributorId:          "contributor",
+		MemoryType:             types.MemoryType_MEMORY_TYPE_MEMORY,
+		ProducerModelId:        "openai/gpt-5.2",
+		AttestationSessionHash: []byte("1234567890abcdef"),
+	}
+
+	_, err := srv.SubmitCommitment(ctx, msg)
+	if err == nil {
+		t.Fatal("expected malformed provenance to be rejected")
+	}
+	if !strings.Contains(err.Error(), "attestation_session_hash must be exactly 32 bytes when set") {
+		t.Fatalf("unexpected error for malformed provenance: %v", err)
+	}
+
+	_, err = k.GetPendingCommitment(ctx, "test-org", contentHash)
+	if err != types.ErrCommitmentNotFound {
+		t.Fatalf("expected malformed submit to persist nothing, got: %v", err)
+	}
+
+	events := sdk.UnwrapSDKContext(ctx).EventManager().Events()
+	for _, event := range events {
+		if event.Type == types.EventTypeCommitmentSubmitted {
+			t.Fatalf("unexpected %q event for malformed provenance submit", types.EventTypeCommitmentSubmitted)
+		}
+	}
+}
+
 func TestMsgSubmitCommitment_RequiresContributionCapability(t *testing.T) {
 	tests := []struct {
 		name          string

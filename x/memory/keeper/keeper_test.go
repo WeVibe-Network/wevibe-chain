@@ -261,6 +261,93 @@ func TestApproveMemory_CarriesMcVersion(t *testing.T) {
 	}
 }
 
+func TestApproveMemory_CarriesProvenance(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	attestationSessionHash := []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb")
+	commitment := newPendingCommitment(
+		"test-org",
+		contentHash,
+		[]string{"keyword1", "keyword2"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	commitment.ProducerModelId = "openai/gpt-5.2"
+	commitment.AttestationSessionHash = attestationSessionHash
+	if err := k.SubmitCommitment(ctx, commitment); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	pending, err := k.GetPendingCommitment(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetPendingCommitment failed: %v", err)
+	}
+	if pending.ProducerModelId != commitment.ProducerModelId {
+		t.Fatalf("pending producer_model_id mismatch: got %q, want %q", pending.ProducerModelId, commitment.ProducerModelId)
+	}
+	if string(pending.AttestationSessionHash) != string(attestationSessionHash) {
+		t.Fatalf("pending attestation_session_hash mismatch: got %x, want %x", pending.AttestationSessionHash, attestationSessionHash)
+	}
+
+	encryptedBlob := []byte("encrypted blob data")
+	if err := approveMemory(k, ctx, "test-org", contentHash, encryptedBlob, "leader-pubkey", nil); err != nil {
+		t.Fatalf("ApproveMemory failed: %v", err)
+	}
+
+	approved, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if approved.ProducerModelId != commitment.ProducerModelId {
+		t.Fatalf("approved producer_model_id mismatch: got %q, want %q", approved.ProducerModelId, commitment.ProducerModelId)
+	}
+	if string(approved.AttestationSessionHash) != string(attestationSessionHash) {
+		t.Fatalf("approved attestation_session_hash mismatch: got %x, want %x", approved.AttestationSessionHash, attestationSessionHash)
+	}
+	if approved.ProvenanceStatus() != types.ProvenanceSessionReferenced {
+		t.Fatalf("approved provenance status mismatch: got %q, want %q", approved.ProvenanceStatus(), types.ProvenanceSessionReferenced)
+	}
+}
+
+func TestApproveMemory_LegacyProvenanceUnattested(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	contentHash := []byte("cccccccccccccccccccccccccccccccc")
+	commitment := newPendingCommitment(
+		"test-org",
+		contentHash,
+		[]string{"keyword1", "keyword2"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	if err := k.SubmitCommitment(ctx, commitment); err != nil {
+		t.Fatalf("SubmitCommitment failed: %v", err)
+	}
+
+	if err := approveMemory(k, ctx, "test-org", contentHash, []byte("encrypted blob data"), "leader-pubkey", nil); err != nil {
+		t.Fatalf("ApproveMemory failed: %v", err)
+	}
+
+	approved, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
+	if err != nil {
+		t.Fatalf("GetApprovedMemory failed: %v", err)
+	}
+	if approved.ProducerModelId != "" {
+		t.Fatalf("expected empty producer_model_id for legacy memory, got %q", approved.ProducerModelId)
+	}
+	if len(approved.AttestationSessionHash) != 0 {
+		t.Fatalf("expected empty attestation_session_hash for legacy memory, got %x", approved.AttestationSessionHash)
+	}
+	if approved.ProvenanceStatus() != types.ProvenanceUnattested {
+		t.Fatalf("legacy provenance status mismatch: got %q, want %q", approved.ProvenanceStatus(), types.ProvenanceUnattested)
+	}
+}
+
 func TestApproveMemory(t *testing.T) {
 	k, _, _ := makeTestKeeper(t)
 	ctx := context.Background()
@@ -545,6 +632,104 @@ func TestInitGenesisExportGenesis(t *testing.T) {
 	}
 	if len(genesis.MemoryCommitments) != len(genesis2.MemoryCommitments) {
 		t.Errorf("approved count mismatch: got %d, want %d", len(genesis2.MemoryCommitments), len(genesis.MemoryCommitments))
+	}
+}
+
+func TestInitGenesisExportGenesis_CarriesProvenance(t *testing.T) {
+	k, _, _ := makeTestKeeper(t)
+	ctx := context.Background()
+
+	pendingHash := []byte("dddddddddddddddddddddddddddddddd")
+	pendingCommitment := newPendingCommitment(
+		"test-org",
+		pendingHash,
+		[]string{"pending-kw"},
+		"contributor-pubkey",
+		1,
+		100,
+	)
+	pendingCommitment.ProducerModelId = "model-pending"
+	pendingCommitment.AttestationSessionHash = []byte("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+	if err := k.SubmitCommitment(ctx, pendingCommitment); err != nil {
+		t.Fatalf("SubmitCommitment (pending) failed: %v", err)
+	}
+
+	approvedHash := []byte("ffffffffffffffffffffffffffffffff")
+	approvedCommitment := newPendingCommitment(
+		"test-org",
+		approvedHash,
+		[]string{"approved-kw"},
+		"contributor-pubkey",
+		2,
+		101,
+	)
+	approvedCommitment.ProducerModelId = "model-approved"
+	approvedCommitment.AttestationSessionHash = []byte("99999999999999999999999999999999")
+	if err := k.SubmitCommitment(ctx, approvedCommitment); err != nil {
+		t.Fatalf("SubmitCommitment (approved path) failed: %v", err)
+	}
+	if err := approveMemory(k, ctx, "test-org", approvedHash, []byte("blob"), "leader-pubkey", nil); err != nil {
+		t.Fatalf("ApproveMemory failed: %v", err)
+	}
+
+	genesis, err := k.ExportGenesis(ctx)
+	if err != nil {
+		t.Fatalf("ExportGenesis failed: %v", err)
+	}
+
+	k2, _, _ := makeTestKeeper(t)
+	ctx2 := context.Background()
+	if err := k2.InitGenesis(ctx2, genesis); err != nil {
+		t.Fatalf("InitGenesis failed: %v", err)
+	}
+
+	genesis2, err := k2.ExportGenesis(ctx2)
+	if err != nil {
+		t.Fatalf("ExportGenesis after InitGenesis failed: %v", err)
+	}
+
+	pendingHashHex := types.ContentHashToHex(pendingHash)
+	pendingFound := false
+	for _, pc := range genesis2.PendingCommitments {
+		if types.ContentHashToHex(pc.ContentHash) != pendingHashHex {
+			continue
+		}
+		pendingFound = true
+		if pc.ProducerModelId != pendingCommitment.ProducerModelId {
+			t.Fatalf("pending producer_model_id mismatch after genesis round-trip: got %q, want %q", pc.ProducerModelId, pendingCommitment.ProducerModelId)
+		}
+		if string(pc.AttestationSessionHash) != string(pendingCommitment.AttestationSessionHash) {
+			t.Fatalf("pending attestation_session_hash mismatch after genesis round-trip: got %x, want %x", pc.AttestationSessionHash, pendingCommitment.AttestationSessionHash)
+		}
+		if types.DeriveProvenanceStatus(pc.ProducerModelId, pc.AttestationSessionHash) != types.ProvenanceSessionReferenced {
+			t.Fatalf("pending provenance status mismatch after genesis round-trip: got %q, want %q", types.DeriveProvenanceStatus(pc.ProducerModelId, pc.AttestationSessionHash), types.ProvenanceSessionReferenced)
+		}
+		break
+	}
+	if !pendingFound {
+		t.Fatalf("pending commitment not found after genesis round-trip")
+	}
+
+	approvedHashHex := types.ContentHashToHex(approvedHash)
+	approvedFound := false
+	for _, mc := range genesis2.MemoryCommitments {
+		if types.ContentHashToHex(mc.ContentHash) != approvedHashHex {
+			continue
+		}
+		approvedFound = true
+		if mc.ProducerModelId != approvedCommitment.ProducerModelId {
+			t.Fatalf("approved producer_model_id mismatch after genesis round-trip: got %q, want %q", mc.ProducerModelId, approvedCommitment.ProducerModelId)
+		}
+		if string(mc.AttestationSessionHash) != string(approvedCommitment.AttestationSessionHash) {
+			t.Fatalf("approved attestation_session_hash mismatch after genesis round-trip: got %x, want %x", mc.AttestationSessionHash, approvedCommitment.AttestationSessionHash)
+		}
+		if mc.ProvenanceStatus() != types.ProvenanceSessionReferenced {
+			t.Fatalf("approved provenance status mismatch after genesis round-trip: got %q, want %q", mc.ProvenanceStatus(), types.ProvenanceSessionReferenced)
+		}
+		break
+	}
+	if !approvedFound {
+		t.Fatalf("approved commitment not found after genesis round-trip")
 	}
 }
 

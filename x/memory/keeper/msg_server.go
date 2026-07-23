@@ -76,8 +76,19 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 	)
 	commitment.ContributorAddress = msg.ContributorWallet
 	commitment.McVersion = msg.McVersion
+	commitment.ProducerModelId = msg.ProducerModelId
+	commitment.AttestationSessionHash = msg.AttestationSessionHash
 	if err := m.keeper.SubmitCommitment(ctx, commitment); err != nil {
 		return nil, err
+	}
+
+	producerModelIDAttr := msg.ProducerModelId
+	if producerModelIDAttr == "" {
+		producerModelIDAttr = "unattested"
+	}
+	attestationSessionHashAttr := "none"
+	if len(msg.AttestationSessionHash) > 0 {
+		attestationSessionHashAttr = types.ContentHashToHex(msg.AttestationSessionHash)
 	}
 
 	// Emit commitment_submitted event — previously dead code, now wired (CO-016)
@@ -86,6 +97,8 @@ func (m *msgServer) SubmitCommitment(ctx context.Context, msg *types.MsgSubmitCo
 		types.EventTypeCommitmentSubmitted,
 		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
 		sdk.NewAttribute(types.AttributeKeyContributor, msg.ContributorId),
+		sdk.NewAttribute(types.AttributeKeyProducerModelId, producerModelIDAttr),
+		sdk.NewAttribute(types.AttributeKeyAttestationSessionHash, attestationSessionHashAttr),
 		sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
 	))
 

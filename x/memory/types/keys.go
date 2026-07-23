@@ -19,19 +19,40 @@ var (
 )
 
 const (
-	ContentHashLen = 32
+	ContentHashLen        = 32
+	MaxProducerModelIdLen = 128
 )
 
+type ProvenanceStatus string
+
+const (
+	ProvenanceUnattested        ProvenanceStatus = "UNATTESTED"
+	ProvenanceSelfDeclared      ProvenanceStatus = "SELF_DECLARED"
+	ProvenanceSessionReferenced ProvenanceStatus = "SESSION_REFERENCED"
+)
+
+func DeriveProvenanceStatus(producerModelID string, attestationSessionHash []byte) ProvenanceStatus {
+	if producerModelID == "" && len(attestationSessionHash) == 0 {
+		return ProvenanceUnattested
+	}
+	if len(attestationSessionHash) == 0 {
+		return ProvenanceSelfDeclared
+	}
+	return ProvenanceSessionReferenced
+}
+
 type PendingCommitment struct {
-	OrgID              string
-	ContentHash        []byte
-	Keywords           []*KeywordWeight
-	Contributor        string
-	ContributorAddress string
-	Epoch              uint64
-	SubmittedAt        uint64
-	MemoryType         MemoryType
-	McVersion          uint32
+	OrgID                  string
+	ContentHash            []byte
+	Keywords               []*KeywordWeight
+	Contributor            string
+	ContributorAddress     string
+	ProducerModelId        string
+	AttestationSessionHash []byte
+	Epoch                  uint64
+	SubmittedAt            uint64
+	MemoryType             MemoryType
+	McVersion              uint32
 }
 
 func NewPendingCommitment(orgID string, contentHash []byte, keywords []*KeywordWeight, contributor string, epoch, submittedAt uint64, memoryType MemoryType) *PendingCommitment {
@@ -68,29 +89,38 @@ func (pc *PendingCommitment) Validate() error {
 }
 
 type MemoryCommitment struct {
-	OrgID              string
-	ContentHash        []byte
-	EncryptedBlob      []byte
-	Keywords           []*KeywordWeight
-	Contributor        string
-	ContributorAddress string
-	Epoch              uint64
-	CommittedAtHeight  uint64
-	CommittingLeader   string
-	State              MemoryState
-	LastActiveEpoch    uint64
-	WrappedDekEnc      []byte
-	PlaintextHash      []byte
-	Salt               []byte
-	CiphertextHash     []byte
-	WrappedDekHash     []byte
-	ContributorSig     []byte
-	MemoryType         MemoryType
-	ApprovedAtEpoch    uint64
-	ServeCountTotal    uint64
-	DenialCountTotal   uint64
-	ArchivedEpoch      uint64
-	McVersion          uint32
+	OrgID                  string
+	ContentHash            []byte
+	EncryptedBlob          []byte
+	Keywords               []*KeywordWeight
+	Contributor            string
+	ContributorAddress     string
+	ProducerModelId        string
+	AttestationSessionHash []byte
+	Epoch                  uint64
+	CommittedAtHeight      uint64
+	CommittingLeader       string
+	State                  MemoryState
+	LastActiveEpoch        uint64
+	WrappedDekEnc          []byte
+	PlaintextHash          []byte
+	Salt                   []byte
+	CiphertextHash         []byte
+	WrappedDekHash         []byte
+	ContributorSig         []byte
+	MemoryType             MemoryType
+	ApprovedAtEpoch        uint64
+	ServeCountTotal        uint64
+	DenialCountTotal       uint64
+	ArchivedEpoch          uint64
+	McVersion              uint32
+}
+
+func (mc *MemoryCommitment) ProvenanceStatus() ProvenanceStatus {
+	if mc == nil {
+		return ProvenanceUnattested
+	}
+	return DeriveProvenanceStatus(mc.ProducerModelId, mc.AttestationSessionHash)
 }
 
 func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {

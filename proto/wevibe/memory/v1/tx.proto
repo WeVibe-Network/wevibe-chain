@@ -24,6 +24,10 @@ message MsgSubmitCommitment {
   string contributor_id = 5;
   string contributor_wallet = 6;
   MemoryType memory_type = 7;
+  // D-PRODUCER-MODEL-PROVENANCE: canonical producer-model identity for this memory's source session.
+  string producer_model_id = 16;
+  // 32-byte session hash referencing the source session attestation envelope (x/attestation); empty = unattested/self-declared.
+  bytes attestation_session_hash = 17;
   // MC-1 chain-leg: Memory Contract schema version.
   uint32 mc_version = 10;
 }

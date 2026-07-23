@@ -25,9 +25,9 @@ func queryTestServer(t *testing.T) (types.QueryServer, *Keeper, context.Context)
 }
 
 // seedApprovedMemory stores an approved (committed) memory and returns its CID.
-func seedApprovedMemory(t *testing.T, k *Keeper, ctx context.Context, orgID string, contentHash []byte) string {
+func seedApprovedMemory(t *testing.T, k *Keeper, ctx context.Context, orgID string, contentHash []byte, options ...memoryFixtureOption) string {
 	t.Helper()
-	return storeMemory(t, k, ctx, orgID, contentHash, types.MemoryState_MEMORY_STATE_COMMITTED)
+	return storeMemoryWithKeywords(t, k, ctx, orgID, contentHash, types.MemoryState_MEMORY_STATE_COMMITTED, 0, options...)
 }
 
 // -----------------------------------------------------------------------------
@@ -38,7 +38,12 @@ func TestQueryGetMemory_Success(t *testing.T) {
 	qs, k, ctx := queryTestServer(t)
 
 	contentHash := []byte("12345678901234567890123456789012")
-	seedApprovedMemory(t, k, ctx, "test-org", contentHash)
+	producerModelID := "openai/gpt-5.2"
+	attestationSessionHash := []byte("11111111111111111111111111111111")
+	seedApprovedMemory(t, k, ctx, "test-org", contentHash, func(memory *types.MemoryCommitment) {
+		memory.ProducerModelId = producerModelID
+		memory.AttestationSessionHash = attestationSessionHash
+	})
 
 	resp, err := qs.GetMemory(ctx, &types.QueryGetMemoryRequest{
 		OrgId:       "test-org",
@@ -50,6 +55,8 @@ func TestQueryGetMemory_Success(t *testing.T) {
 	require.Equal(t, "test-org", resp.Memory.OrgId)
 	require.Equal(t, contentHash, resp.Memory.ContentHash)
 	require.Equal(t, types.MemoryState_MEMORY_STATE_COMMITTED, resp.Memory.State)
+	require.Equal(t, producerModelID, resp.Memory.ProducerModelId)
+	require.Equal(t, attestationSessionHash, resp.Memory.AttestationSessionHash)
 }
 
 func TestQueryGetMemory_NotFound(t *testing.T) {
@@ -298,7 +305,12 @@ func TestQueryGetMemoriesBatch_Success(t *testing.T) {
 
 	hashFound := []byte("11111111111111111111111111111111")
 	hashMissing := []byte("22222222222222222222222222222222")
-	seedApprovedMemory(t, k, ctx, "test-org", hashFound)
+	producerModelID := "anthropic/claude-3.5-sonnet"
+	attestationSessionHash := []byte("33333333333333333333333333333333")
+	seedApprovedMemory(t, k, ctx, "test-org", hashFound, func(memory *types.MemoryCommitment) {
+		memory.ProducerModelId = producerModelID
+		memory.AttestationSessionHash = attestationSessionHash
+	})
 
 	resp, err := qs.GetMemoriesBatch(ctx, &types.QueryGetMemoriesBatchRequest{
 		OrgId:         "test-org",
@@ -308,6 +320,8 @@ func TestQueryGetMemoriesBatch_Success(t *testing.T) {
 	require.NotNil(t, resp)
 	require.Len(t, resp.Memories, 1)
 	require.Equal(t, hashFound, resp.Memories[0].ContentHash)
+	require.Equal(t, producerModelID, resp.Memories[0].ProducerModelId)
+	require.Equal(t, attestationSessionHash, resp.Memories[0].AttestationSessionHash)
 	require.Len(t, resp.NotFound, 1)
 	require.Equal(t, hashMissing, resp.NotFound[0])
 }
