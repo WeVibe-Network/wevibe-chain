@@ -45,7 +45,7 @@ The org module manages organization registration, membership, and treasuries.
 | `dynprice/` | `StoredDynamicPrice` | Dynamic burn price inputs for new registrations |
 | `treasury/{org}` | `StoredTreasury` | Organization treasury balance in string-encoded `uvibe` |
 | `reptier/{org}` | `StoredRepTierConfig` | Ordered payout tiers keyed by reputation bounds |
-| `orgconfig/{org}` | `StoredOrgConfig` | Runtime toggles (serve_receipt_required, decay_rate_bps, contest_stake_vibe) |
+| `orgconfig/{org}` | `StoredOrgConfig` | Runtime toggles (serve_receipt_required, legacy decay_rate_bps field, contest_stake_vibe) |
 | `params` | `Params` | Module-level fees, quota defaults, burn behavior |
 
 #### Messages
@@ -58,7 +58,7 @@ The org module manages organization registration, membership, and treasuries.
 | `MsgFundTreasury` | Add funds from signer to org treasury |
 | `MsgWithdrawTreasury` | Remove funds from org treasury to recipient |
 | `MsgSetRepTiers` | Configure payout tiers for org |
-| `MsgSetOrgConfig` | Set org configuration (serve receipt required, decay rate, contest stake) |
+| `MsgSetOrgConfig` | Set org configuration (serve receipt requirement, legacy decay field, contest stake) |
 | `MsgGrantTrialAllowance` | Grant fee grant for trial submissions |
 | `MsgUpdateParams` | Governance parameter update |
 
@@ -96,7 +96,7 @@ The memory module manages organizational memory commitments with lifecycle state
 | `validity/{org}:{cid}` | `StoredValidityMetadata` | Validity windows and scope tags |
 | `merkle/{org}/{epoch}` | `StoredEpochMerkleRoot` | Cached Merkle root plus memory count |
 | `count/{org}` | counter | Approved memory count per org |
-| `params` | `Params` | Queue sizes, blob size, confidence thresholds, decay floor, contest window |
+| `params` | `Params` | Queue sizes, blob size, flat keyword cap, contest window |
 
 #### Memory States
 
@@ -165,7 +165,7 @@ The memory module manages organizational memory commitments with lifecycle state
 - `OrgKeeper` — Membership, leadership, config
 - `BandwidthKeeper` — Consumption accounting
 - `BankKeeper` — Contest escrow
-- `ServeKeeper` — Serve counts for confidence decay (injected via setter)
+- No recall-standing keeper dependency; standing is computed at the edge from x/serve events and anchored policy versions.
 
 ---
 

@@ -4,37 +4,131 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"encoding/hex"
-	"sort"
+	"fmt"
 	"strconv"
 	"strings"
 )
 
 // CanonicalServeBody encodes the exact serve signing preimage:
 //
-//	wevibe-serve-v1
+//	wevibe-serve-v2
 //	<org_id>
 //	<hex(memory_content_hash)>
 //	<epoch>
 //	<hex(serve_key_pubkey)>
-//	<matched_keywords_sorted_joined_by_comma>
 //	<hex(nonce)>
 //
+// v1→v2 (RECALL-PIVOT joint amendment 2026-07-29): matched keywords left the signed preimage — the keyword gate rejected 24/24 legitimate serves (RECALL-PIVOT-SPEC §3.1 E1).
+//
 // Fields are joined with a single '\n' and no trailing newline.
-func CanonicalServeBody(orgID string, memoryHash []byte, epoch uint64, serveKeyPubkey []byte, matchedKeywords []string, nonce []byte) []byte {
-	keywords := append([]string(nil), matchedKeywords...)
-	sort.Strings(keywords)
-
+func CanonicalServeBody(orgID string, memoryHash []byte, epoch uint64, serveKeyPubkey []byte, nonce []byte) []byte {
 	lines := []string{
-		"wevibe-serve-v1",
+		"wevibe-serve-v2",
 		orgID,
 		hex.EncodeToString(memoryHash),
 		strconv.FormatUint(epoch, 10),
 		hex.EncodeToString(serveKeyPubkey),
-		strings.Join(keywords, ","),
 		hex.EncodeToString(nonce),
 	}
 
 	return []byte(strings.Join(lines, "\n"))
+}
+
+// CanonicalEventBody encodes the exact consumer-signed E3/E6/E7/E8 event preimage:
+//
+//	wevibe-event-v1
+//	<type token>
+//	<org_id>
+//	<hex(memory_content_hash)>
+//	<epoch>
+//	<hex(signer_pubkey)>
+//	<type-specific lines…>
+//	<hex(nonce)>
+//
+// Fields are joined with a single '\n' and no trailing newline.
+func CanonicalEventBody(eventType EventType, orgID string, memoryHash []byte, epoch uint64, signerPubkey []byte, nonce []byte, entry *EventEntry) ([]byte, error) {
+	if entry == nil {
+		return nil, fmt.Errorf("event entry body is required")
+	}
+
+	token, specific, err := canonicalEventSpecificLines(eventType, entry)
+	if err != nil {
+		return nil, err
+	}
+
+	lines := []string{
+		"wevibe-event-v1",
+		token,
+		orgID,
+		hex.EncodeToString(memoryHash),
+		strconv.FormatUint(epoch, 10),
+		hex.EncodeToString(signerPubkey),
+	}
+	lines = append(lines, specific...)
+	lines = append(lines, hex.EncodeToString(nonce))
+
+	return []byte(strings.Join(lines, "\n")), nil
+}
+
+func canonicalEventSpecificLines(eventType EventType, entry *EventEntry) (string, []string, error) {
+	switch eventType {
+	case EventType_EVENT_TYPE_OUTCOME:
+		body := entry.GetOutcome()
+		if body == nil {
+			return "", nil, fmt.Errorf("outcome event body is required")
+		}
+		return "outcome", []string{
+			hex.EncodeToString(body.EpisodeRef),
+			"worked=" + strconv.FormatBool(body.Worked),
+			hex.EncodeToString(body.EvidenceRef),
+		}, nil
+	case EventType_EVENT_TYPE_VALIDITY_PREDICATE:
+		body := entry.GetValidityPredicate()
+		if body == nil {
+			return "", nil, fmt.Errorf("validity_predicate event body is required")
+		}
+		result, err := predicateResultToken(body.Result)
+		if err != nil {
+			return "", nil, err
+		}
+		return "validity_predicate", []string{
+			hex.EncodeToString(body.PredicateId),
+			"result=" + result,
+			hex.EncodeToString(body.EvidenceRef),
+		}, nil
+	case EventType_EVENT_TYPE_COST_TO_DISCOVER:
+		body := entry.GetCostToDiscover()
+		if body == nil {
+			return "", nil, fmt.Errorf("cost_to_discover event body is required")
+		}
+		return "cost_to_discover", []string{
+			"cycles=" + strconv.FormatUint(body.Cycles, 10),
+			"tool_calls=" + strconv.FormatUint(body.ToolCalls, 10),
+			"attempts_to_green=" + strconv.FormatUint(uint64(body.AttemptsToGreen), 10),
+			hex.EncodeToString(body.EvidenceRef),
+		}, nil
+	case EventType_EVENT_TYPE_CONVERGENCE:
+		body := entry.GetConvergence()
+		if body == nil {
+			return "", nil, fmt.Errorf("convergence event body is required")
+		}
+		return "convergence", []string{hex.EncodeToString(body.ConvergenceRef)}, nil
+	default:
+		return "", nil, ErrInvalidEventType
+	}
+}
+
+func predicateResultToken(result PredicateResult) (string, error) {
+	switch result {
+	case PredicateResult_PREDICATE_RESULT_PASS:
+		return "pass", nil
+	case PredicateResult_PREDICATE_RESULT_FAIL:
+		return "fail", nil
+	case PredicateResult_PREDICATE_RESULT_ABSENT:
+		return "absent", nil
+	default:
+		return "", fmt.Errorf("predicate result must be pass, fail, or absent")
+	}
 }
 
 // CanonicalDenialBody encodes the exact denial signing preimage:
@@ -81,6 +175,12 @@ func ComputeServeFingerprint(memoryHash, servePubkey []byte, epoch uint64) []byt
 // SHA256(CanonicalDenialBody(..., nonce=nil)).
 func ComputeDenialFingerprint(orgID string, memoryHash []byte, epoch uint64, servePubkey []byte, serveFingerprint []byte) []byte {
 	body := CanonicalDenialBody(orgID, memoryHash, epoch, servePubkey, serveFingerprint, nil)
+	sum := sha256.Sum256(body)
+	return append([]byte(nil), sum[:]...)
+}
+
+// ComputeEventFingerprint returns SHA256(CanonicalEventBody(...)).
+func ComputeEventFingerprint(body []byte) []byte {
 	sum := sha256.Sum256(body)
 	return append([]byte(nil), sum[:]...)
 }

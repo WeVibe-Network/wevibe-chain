@@ -324,6 +324,286 @@ func (m *QueryGetMemoryServeCountResponse) GetCount() uint64 {
 	return 0
 }
 
+type QueryListEventsRequest struct {
+	OrgId string `protobuf:"bytes,1,opt,name=org_id,json=orgId,proto3" json:"org_id,omitempty"`
+	Epoch uint64 `protobuf:"varint,2,opt,name=epoch,proto3" json:"epoch,omitempty"`
+}
+
+func (m *QueryListEventsRequest) Reset()         { *m = QueryListEventsRequest{} }
+func (m *QueryListEventsRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryListEventsRequest) ProtoMessage()    {}
+func (*QueryListEventsRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{6}
+}
+func (m *QueryListEventsRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryListEventsRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryListEventsRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryListEventsRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryListEventsRequest.Merge(m, src)
+}
+func (m *QueryListEventsRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryListEventsRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryListEventsRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryListEventsRequest proto.InternalMessageInfo
+
+func (m *QueryListEventsRequest) GetOrgId() string {
+	if m != nil {
+		return m.OrgId
+	}
+	return ""
+}
+
+func (m *QueryListEventsRequest) GetEpoch() uint64 {
+	if m != nil {
+		return m.Epoch
+	}
+	return 0
+}
+
+type QueryListEventsResponse struct {
+	Events []*StoredEvent `protobuf:"bytes,1,rep,name=events,proto3" json:"events,omitempty"`
+}
+
+func (m *QueryListEventsResponse) Reset()         { *m = QueryListEventsResponse{} }
+func (m *QueryListEventsResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryListEventsResponse) ProtoMessage()    {}
+func (*QueryListEventsResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{7}
+}
+func (m *QueryListEventsResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryListEventsResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryListEventsResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryListEventsResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryListEventsResponse.Merge(m, src)
+}
+func (m *QueryListEventsResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryListEventsResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryListEventsResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryListEventsResponse proto.InternalMessageInfo
+
+func (m *QueryListEventsResponse) GetEvents() []*StoredEvent {
+	if m != nil {
+		return m.Events
+	}
+	return nil
+}
+
+type QueryGetPolicyAnchorRequest struct {
+	PolicyVersion string `protobuf:"bytes,1,opt,name=policy_version,json=policyVersion,proto3" json:"policy_version,omitempty"`
+}
+
+func (m *QueryGetPolicyAnchorRequest) Reset()         { *m = QueryGetPolicyAnchorRequest{} }
+func (m *QueryGetPolicyAnchorRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetPolicyAnchorRequest) ProtoMessage()    {}
+func (*QueryGetPolicyAnchorRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{8}
+}
+func (m *QueryGetPolicyAnchorRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetPolicyAnchorRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetPolicyAnchorRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetPolicyAnchorRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetPolicyAnchorRequest.Merge(m, src)
+}
+func (m *QueryGetPolicyAnchorRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetPolicyAnchorRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetPolicyAnchorRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetPolicyAnchorRequest proto.InternalMessageInfo
+
+func (m *QueryGetPolicyAnchorRequest) GetPolicyVersion() string {
+	if m != nil {
+		return m.PolicyVersion
+	}
+	return ""
+}
+
+type QueryGetPolicyAnchorResponse struct {
+	Anchor *StoredPolicyAnchor `protobuf:"bytes,1,opt,name=anchor,proto3" json:"anchor,omitempty"`
+	Found  bool                `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
+}
+
+func (m *QueryGetPolicyAnchorResponse) Reset()         { *m = QueryGetPolicyAnchorResponse{} }
+func (m *QueryGetPolicyAnchorResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetPolicyAnchorResponse) ProtoMessage()    {}
+func (*QueryGetPolicyAnchorResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{9}
+}
+func (m *QueryGetPolicyAnchorResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetPolicyAnchorResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetPolicyAnchorResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetPolicyAnchorResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetPolicyAnchorResponse.Merge(m, src)
+}
+func (m *QueryGetPolicyAnchorResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetPolicyAnchorResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetPolicyAnchorResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetPolicyAnchorResponse proto.InternalMessageInfo
+
+func (m *QueryGetPolicyAnchorResponse) GetAnchor() *StoredPolicyAnchor {
+	if m != nil {
+		return m.Anchor
+	}
+	return nil
+}
+
+func (m *QueryGetPolicyAnchorResponse) GetFound() bool {
+	if m != nil {
+		return m.Found
+	}
+	return false
+}
+
+type QueryGetLatestPolicyAnchorRequest struct {
+}
+
+func (m *QueryGetLatestPolicyAnchorRequest) Reset()         { *m = QueryGetLatestPolicyAnchorRequest{} }
+func (m *QueryGetLatestPolicyAnchorRequest) String() string { return proto.CompactTextString(m) }
+func (*QueryGetLatestPolicyAnchorRequest) ProtoMessage()    {}
+func (*QueryGetLatestPolicyAnchorRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{10}
+}
+func (m *QueryGetLatestPolicyAnchorRequest) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetLatestPolicyAnchorRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetLatestPolicyAnchorRequest.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetLatestPolicyAnchorRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetLatestPolicyAnchorRequest.Merge(m, src)
+}
+func (m *QueryGetLatestPolicyAnchorRequest) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetLatestPolicyAnchorRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetLatestPolicyAnchorRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetLatestPolicyAnchorRequest proto.InternalMessageInfo
+
+type QueryGetLatestPolicyAnchorResponse struct {
+	Anchor *StoredPolicyAnchor `protobuf:"bytes,1,opt,name=anchor,proto3" json:"anchor,omitempty"`
+	Found  bool                `protobuf:"varint,2,opt,name=found,proto3" json:"found,omitempty"`
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) Reset()         { *m = QueryGetLatestPolicyAnchorResponse{} }
+func (m *QueryGetLatestPolicyAnchorResponse) String() string { return proto.CompactTextString(m) }
+func (*QueryGetLatestPolicyAnchorResponse) ProtoMessage()    {}
+func (*QueryGetLatestPolicyAnchorResponse) Descriptor() ([]byte, []int) {
+	return fileDescriptor_c6d1e1dc71a779a5, []int{11}
+}
+func (m *QueryGetLatestPolicyAnchorResponse) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *QueryGetLatestPolicyAnchorResponse) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_QueryGetLatestPolicyAnchorResponse.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *QueryGetLatestPolicyAnchorResponse) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_QueryGetLatestPolicyAnchorResponse.Merge(m, src)
+}
+func (m *QueryGetLatestPolicyAnchorResponse) XXX_Size() int {
+	return m.Size()
+}
+func (m *QueryGetLatestPolicyAnchorResponse) XXX_DiscardUnknown() {
+	xxx_messageInfo_QueryGetLatestPolicyAnchorResponse.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_QueryGetLatestPolicyAnchorResponse proto.InternalMessageInfo
+
+func (m *QueryGetLatestPolicyAnchorResponse) GetAnchor() *StoredPolicyAnchor {
+	if m != nil {
+		return m.Anchor
+	}
+	return nil
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) GetFound() bool {
+	if m != nil {
+		return m.Found
+	}
+	return false
+}
+
 type QueryParamsRequest struct {
 }
 
@@ -331,7 +611,7 @@ func (m *QueryParamsRequest) Reset()         { *m = QueryParamsRequest{} }
 func (m *QueryParamsRequest) String() string { return proto.CompactTextString(m) }
 func (*QueryParamsRequest) ProtoMessage()    {}
 func (*QueryParamsRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c6d1e1dc71a779a5, []int{6}
+	return fileDescriptor_c6d1e1dc71a779a5, []int{12}
 }
 func (m *QueryParamsRequest) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -368,7 +648,7 @@ func (m *QueryParamsResponse) Reset()         { *m = QueryParamsResponse{} }
 func (m *QueryParamsResponse) String() string { return proto.CompactTextString(m) }
 func (*QueryParamsResponse) ProtoMessage()    {}
 func (*QueryParamsResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_c6d1e1dc71a779a5, []int{7}
+	return fileDescriptor_c6d1e1dc71a779a5, []int{13}
 }
 func (m *QueryParamsResponse) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -411,6 +691,12 @@ func init() {
 	proto.RegisterType((*QueryGetContributorServesResponse)(nil), "wevibe.serve.v1.QueryGetContributorServesResponse")
 	proto.RegisterType((*QueryGetMemoryServeCountRequest)(nil), "wevibe.serve.v1.QueryGetMemoryServeCountRequest")
 	proto.RegisterType((*QueryGetMemoryServeCountResponse)(nil), "wevibe.serve.v1.QueryGetMemoryServeCountResponse")
+	proto.RegisterType((*QueryListEventsRequest)(nil), "wevibe.serve.v1.QueryListEventsRequest")
+	proto.RegisterType((*QueryListEventsResponse)(nil), "wevibe.serve.v1.QueryListEventsResponse")
+	proto.RegisterType((*QueryGetPolicyAnchorRequest)(nil), "wevibe.serve.v1.QueryGetPolicyAnchorRequest")
+	proto.RegisterType((*QueryGetPolicyAnchorResponse)(nil), "wevibe.serve.v1.QueryGetPolicyAnchorResponse")
+	proto.RegisterType((*QueryGetLatestPolicyAnchorRequest)(nil), "wevibe.serve.v1.QueryGetLatestPolicyAnchorRequest")
+	proto.RegisterType((*QueryGetLatestPolicyAnchorResponse)(nil), "wevibe.serve.v1.QueryGetLatestPolicyAnchorResponse")
 	proto.RegisterType((*QueryParamsRequest)(nil), "wevibe.serve.v1.QueryParamsRequest")
 	proto.RegisterType((*QueryParamsResponse)(nil), "wevibe.serve.v1.QueryParamsResponse")
 }
@@ -418,45 +704,59 @@ func init() {
 func init() { proto.RegisterFile("wevibe/serve/v1/query.proto", fileDescriptor_c6d1e1dc71a779a5) }
 
 var fileDescriptor_c6d1e1dc71a779a5 = []byte{
-	// 593 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x94, 0x54, 0xdd, 0x6e, 0xd3, 0x30,
-	0x18, 0x6d, 0xc6, 0x52, 0x09, 0x6f, 0x80, 0xe4, 0x15, 0x6d, 0x84, 0x29, 0xeb, 0xc2, 0xdf, 0xb8,
-	0x58, 0x4c, 0x0b, 0x68, 0x20, 0x81, 0x90, 0x98, 0xc6, 0xcf, 0xc5, 0x10, 0xa4, 0x77, 0xdc, 0x54,
-	0x6e, 0x6b, 0xb5, 0x01, 0x1a, 0xa7, 0xb6, 0xdb, 0x51, 0x55, 0xbb, 0xe1, 0x09, 0x90, 0x78, 0x06,
-	0x24, 0xde, 0x01, 0x1e, 0x80, 0xcb, 0x49, 0xdc, 0x70, 0x89, 0x5a, 0x1e, 0x04, 0xc5, 0x76, 0x49,
-	0xda, 0x24, 0x85, 0x5d, 0xda, 0xdf, 0x77, 0xbe, 0xef, 0x9c, 0x93, 0x13, 0x83, 0xcb, 0x47, 0x64,
-	0xe0, 0x37, 0x08, 0xe2, 0x84, 0x0d, 0x08, 0x1a, 0x54, 0x50, 0xaf, 0x4f, 0xd8, 0xd0, 0x0d, 0x19,
-	0x15, 0x14, 0x5e, 0x50, 0x45, 0x57, 0x16, 0xdd, 0x41, 0xc5, 0xda, 0x6c, 0x53, 0xda, 0x7e, 0x47,
-	0x10, 0x0e, 0x7d, 0x84, 0x83, 0x80, 0x0a, 0x2c, 0x7c, 0x1a, 0x70, 0xd5, 0x6e, 0x6d, 0xce, 0xcf,
-	0x0a, 0x31, 0xc3, 0xdd, 0x69, 0x35, 0xb5, 0x89, 0x0b, 0x2c, 0x88, 0x2a, 0x3a, 0x87, 0xc0, 0x7e,
-	0x15, 0x2d, 0x7e, 0x4a, 0xc4, 0x41, 0x48, 0x9b, 0x9d, 0x5a, 0xd4, 0x54, 0x13, 0x58, 0x70, 0x8f,
-	0xf4, 0xfa, 0x84, 0x0b, 0x78, 0x11, 0x14, 0x29, 0x6b, 0xd7, 0xfd, 0xd6, 0x86, 0x51, 0x36, 0x76,
-	0xce, 0x7a, 0x26, 0x65, 0xed, 0xe7, 0x2d, 0x58, 0x02, 0x26, 0x89, 0x00, 0x1b, 0x4b, 0x65, 0x63,
-	0x67, 0xd9, 0x53, 0x07, 0xa7, 0x0e, 0xb6, 0x72, 0xc7, 0xf1, 0x90, 0x06, 0x9c, 0xc0, 0x07, 0xc0,
-	0x8c, 0x08, 0x70, 0x39, 0x6e, 0xa5, 0x7a, 0xdd, 0x9d, 0xd3, 0xea, 0xd6, 0x04, 0x65, 0xa4, 0x35,
-	0x0f, 0x57, 0x20, 0xa7, 0x0e, 0xca, 0xd3, 0x05, 0xfb, 0x34, 0x10, 0xcc, 0x6f, 0xf4, 0x05, 0x65,
-	0xb2, 0xef, 0x2f, 0xe3, 0x6b, 0xe0, 0x7c, 0x33, 0xae, 0xc5, 0xcc, 0xcf, 0x25, 0x6e, 0x73, 0x15,
-	0xbc, 0x01, 0xdb, 0x0b, 0x16, 0x68, 0x0d, 0x07, 0xa0, 0x28, 0xe9, 0x4e, 0x45, 0xec, 0xe6, 0x88,
-	0x48, 0x4c, 0x88, 0xf5, 0x70, 0x4f, 0x83, 0x9d, 0x5e, 0xec, 0xd6, 0x21, 0xe9, 0x52, 0x36, 0x94,
-	0xf5, 0x7d, 0xda, 0x0f, 0xc4, 0x3f, 0xdc, 0xdf, 0x06, 0xab, 0x91, 0x18, 0x12, 0x88, 0x7a, 0x07,
-	0x73, 0x25, 0x61, 0xd5, 0x5b, 0xd1, 0x77, 0xcf, 0x30, 0xef, 0xc4, 0xf2, 0xce, 0x24, 0xe5, 0xdd,
-	0x8b, 0xfd, 0x4b, 0xaf, 0xd4, 0xea, 0x4a, 0xc0, 0x6c, 0x46, 0x17, 0x72, 0xe5, 0xb2, 0xa7, 0x0e,
-	0x4e, 0x09, 0x40, 0x89, 0x7c, 0x29, 0xb3, 0xa5, 0xf9, 0x39, 0x4f, 0xc0, 0xda, 0xcc, 0xad, 0x1e,
-	0x81, 0x40, 0x51, 0x65, 0x50, 0x1b, 0xb4, 0x9e, 0x32, 0x48, 0x03, 0x74, 0x5b, 0xf5, 0xb3, 0x09,
-	0x4c, 0x39, 0x08, 0x7e, 0x31, 0x00, 0x4c, 0xc7, 0x07, 0xa2, 0xd4, 0x84, 0xc5, 0xb9, 0xb5, 0x6e,
-	0xfd, 0x3f, 0x40, 0x91, 0x76, 0xd0, 0x87, 0x1f, 0xbf, 0x3f, 0x2d, 0xdd, 0x84, 0x37, 0x50, 0xd6,
-	0x1f, 0xc3, 0xd1, 0x48, 0x7d, 0x89, 0x63, 0x34, 0x92, 0x5e, 0x1e, 0xc3, 0x6f, 0x06, 0x28, 0x65,
-	0xe5, 0x04, 0x56, 0x72, 0x77, 0xe7, 0x85, 0xd6, 0xaa, 0x9e, 0x06, 0xa2, 0x09, 0x3f, 0x94, 0x84,
-	0xf7, 0xe0, 0xdd, 0x14, 0xe1, 0x44, 0xd2, 0xd1, 0x68, 0xf6, 0x67, 0x88, 0xe9, 0x7f, 0x35, 0xc0,
-	0x5a, 0x46, 0x0e, 0x60, 0xbe, 0x73, 0x39, 0x29, 0xb5, 0x2a, 0xa7, 0x40, 0x68, 0xee, 0x8f, 0x24,
-	0xf7, 0xfb, 0x70, 0x2f, 0xc5, 0xbd, 0x2b, 0x21, 0x09, 0xb7, 0x93, 0x49, 0x8f, 0xd9, 0x0b, 0x50,
-	0x54, 0x19, 0x82, 0x57, 0xb2, 0xb7, 0xcf, 0x04, 0xd5, 0xba, 0xba, 0xb8, 0x49, 0xb3, 0xda, 0x92,
-	0xac, 0x2e, 0xc1, 0x75, 0x94, 0xfd, 0xa4, 0x3e, 0x7e, 0xf1, 0x7d, 0x6c, 0x1b, 0x27, 0x63, 0xdb,
-	0xf8, 0x35, 0xb6, 0x8d, 0x8f, 0x13, 0xbb, 0x70, 0x32, 0xb1, 0x0b, 0x3f, 0x27, 0x76, 0xe1, 0xf5,
-	0x9d, 0xb6, 0x2f, 0x3a, 0xfd, 0x86, 0xdb, 0xa4, 0x5d, 0x0d, 0xde, 0x0d, 0x88, 0x38, 0xa2, 0xec,
-	0xed, 0xf4, 0xd8, 0xec, 0x60, 0x3f, 0x40, 0xef, 0xf5, 0x4c, 0x31, 0x0c, 0x09, 0x6f, 0x14, 0xe5,
-	0x33, 0x7c, 0xfb, 0x4f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x34, 0x85, 0x09, 0xa5, 0x0f, 0x06, 0x00,
-	0x00,
+	// 825 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x96, 0x5f, 0x4f, 0x13, 0x4d,
+	0x14, 0xc6, 0x59, 0xa0, 0xcd, 0xcb, 0x81, 0xf7, 0x25, 0x19, 0xca, 0x0b, 0x2e, 0x4d, 0x81, 0x45,
+	0xa4, 0x1a, 0xdb, 0xa1, 0x05, 0x83, 0x46, 0x8d, 0x51, 0xac, 0x7f, 0x12, 0x50, 0x5c, 0x12, 0x2f,
+	0xbc, 0x69, 0xb6, 0xed, 0xd8, 0xae, 0xd2, 0x9d, 0x76, 0x67, 0x5a, 0x6c, 0x1a, 0x6e, 0xfc, 0x04,
+	0x1a, 0xe3, 0x67, 0xd0, 0x3b, 0x3f, 0x80, 0x7e, 0x00, 0x2f, 0x49, 0xbc, 0xf1, 0xd2, 0x80, 0x1f,
+	0xc4, 0xec, 0xec, 0xd4, 0x6d, 0xbb, 0xbb, 0x05, 0x4c, 0xbc, 0x9c, 0x99, 0xf3, 0x9c, 0xf3, 0x3b,
+	0x87, 0xb3, 0x0f, 0x85, 0xb9, 0x7d, 0xd2, 0x34, 0x0b, 0x04, 0x33, 0x62, 0x37, 0x09, 0x6e, 0x66,
+	0x70, 0xbd, 0x41, 0xec, 0x56, 0xba, 0x66, 0x53, 0x4e, 0xd1, 0xa4, 0xfb, 0x98, 0x16, 0x8f, 0xe9,
+	0x66, 0x46, 0x8d, 0x97, 0x29, 0x2d, 0xef, 0x11, 0x6c, 0xd4, 0x4c, 0x6c, 0x58, 0x16, 0xe5, 0x06,
+	0x37, 0xa9, 0xc5, 0xdc, 0x70, 0xd5, 0x97, 0x8b, 0x34, 0x89, 0xc5, 0xe5, 0x63, 0xbc, 0xff, 0xb1,
+	0x66, 0xd8, 0x46, 0x35, 0x54, 0xca, 0xb8, 0xc1, 0x89, 0xfb, 0xa8, 0x6d, 0x43, 0xe2, 0x89, 0x43,
+	0x75, 0x9f, 0xf0, 0x5c, 0x8d, 0x16, 0x2b, 0xbb, 0x4e, 0xd0, 0x2e, 0x37, 0x38, 0xd3, 0x49, 0xbd,
+	0x41, 0x18, 0x47, 0xd3, 0x10, 0xa5, 0x76, 0x39, 0x6f, 0x96, 0x66, 0x95, 0x05, 0x25, 0x39, 0xa6,
+	0x47, 0xa8, 0x5d, 0x7e, 0x58, 0x42, 0x31, 0x88, 0x10, 0x47, 0x30, 0x3b, 0xbc, 0xa0, 0x24, 0x47,
+	0x75, 0xf7, 0xa0, 0xe5, 0x61, 0x3e, 0x34, 0x1d, 0xab, 0x51, 0x8b, 0x11, 0x74, 0x03, 0x22, 0x0e,
+	0x00, 0x13, 0xe9, 0xc6, 0xb3, 0x17, 0xd2, 0x7d, 0x83, 0x48, 0xef, 0x72, 0x6a, 0x93, 0x52, 0xbf,
+	0xdc, 0x15, 0x69, 0x79, 0x58, 0xe8, 0x14, 0xd8, 0xa4, 0x16, 0xb7, 0xcd, 0x42, 0x83, 0x53, 0x5b,
+	0xc4, 0xfd, 0x26, 0x5e, 0x86, 0xff, 0x8a, 0xde, 0x9b, 0x47, 0xfe, 0x6f, 0xd7, 0x6d, 0x68, 0x07,
+	0x2f, 0x60, 0x71, 0x40, 0x01, 0xd9, 0x43, 0x0e, 0xa2, 0x02, 0xb7, 0xd3, 0x44, 0x2a, 0xa4, 0x89,
+	0xae, 0x0c, 0x5e, 0x3f, 0x4c, 0x97, 0x62, 0xad, 0xee, 0x4d, 0x6b, 0x9b, 0x54, 0xa9, 0xdd, 0x12,
+	0xef, 0x9b, 0xb4, 0x61, 0xf1, 0x13, 0xa6, 0xbf, 0x08, 0x13, 0x4e, 0x33, 0xc4, 0xe2, 0xf9, 0x8a,
+	0xc1, 0xdc, 0x16, 0x26, 0xf4, 0x71, 0x79, 0xf7, 0xc0, 0x60, 0x15, 0xaf, 0xbd, 0x91, 0xee, 0xf6,
+	0xae, 0x7a, 0xf3, 0xf3, 0x97, 0x94, 0xdd, 0xc5, 0x20, 0x52, 0x74, 0x2e, 0x44, 0xc9, 0x51, 0xdd,
+	0x3d, 0x68, 0x39, 0xf8, 0x5f, 0x28, 0xb7, 0x4c, 0xc6, 0x73, 0xce, 0xf2, 0xfd, 0xd9, 0x86, 0x3c,
+	0x86, 0x19, 0x5f, 0x1a, 0x59, 0x77, 0x1d, 0xa2, 0x62, 0xab, 0x9d, 0xa9, 0x8e, 0x24, 0xc7, 0xb3,
+	0xf1, 0xb0, 0xd5, 0x70, 0x82, 0x74, 0x19, 0xab, 0xdd, 0x85, 0xb9, 0x4e, 0x47, 0x3b, 0x74, 0xcf,
+	0x2c, 0xb6, 0x6e, 0x5b, 0xc5, 0x0a, 0xb5, 0xbb, 0x96, 0xa1, 0x26, 0xae, 0xf3, 0x4d, 0x62, 0x33,
+	0x93, 0x5a, 0x9d, 0x65, 0x70, 0x6f, 0x9f, 0xba, 0x97, 0x5a, 0x1d, 0xe2, 0xc1, 0x59, 0x24, 0xdb,
+	0x75, 0x88, 0x1a, 0xe2, 0x46, 0xfe, 0xc5, 0x97, 0x42, 0xd8, 0x7a, 0xc4, 0x52, 0xe2, 0x4c, 0xe2,
+	0x39, 0x6d, 0x58, 0x25, 0x31, 0x89, 0x7f, 0x74, 0xf7, 0xa0, 0x2d, 0x79, 0x9b, 0xb6, 0x65, 0x70,
+	0xc2, 0x82, 0xf0, 0xb5, 0x7d, 0xd0, 0x06, 0x05, 0xfd, 0x3d, 0xba, 0x18, 0x20, 0x51, 0x78, 0x47,
+	0x58, 0x49, 0x07, 0xe7, 0x1e, 0x4c, 0xf5, 0xdc, 0xca, 0xfa, 0x18, 0xa2, 0xae, 0xe5, 0xc8, 0xfa,
+	0x33, 0xbe, 0xfa, 0x52, 0x20, 0xc3, 0xb2, 0xef, 0xc7, 0x20, 0x22, 0x12, 0xa1, 0x8f, 0x0a, 0x20,
+	0xbf, 0x5b, 0x20, 0xec, 0xcb, 0x30, 0xd8, 0xa6, 0xd4, 0xd5, 0xd3, 0x0b, 0x5c, 0x68, 0x0d, 0xbf,
+	0xfe, 0xf6, 0xf3, 0xdd, 0xf0, 0x45, 0xb4, 0x82, 0x83, 0x0c, 0x92, 0xe1, 0xb6, 0xbb, 0xd4, 0x07,
+	0xb8, 0x2d, 0x36, 0xf7, 0x00, 0x7d, 0x51, 0x20, 0x16, 0x64, 0x0b, 0x28, 0x13, 0x5a, 0x3b, 0xcc,
+	0xa3, 0xd4, 0xec, 0x59, 0x24, 0x12, 0xf8, 0xa6, 0x00, 0xde, 0x40, 0x57, 0x7c, 0xc0, 0x5d, 0xc6,
+	0x86, 0xdb, 0xbd, 0xde, 0xe7, 0xe1, 0x7f, 0x56, 0x60, 0x2a, 0xe0, 0xb3, 0x47, 0xe1, 0x93, 0x0b,
+	0x31, 0x25, 0x35, 0x73, 0x06, 0x85, 0x64, 0xbf, 0x25, 0xd8, 0xaf, 0xa1, 0x0d, 0x1f, 0x7b, 0x55,
+	0x48, 0xba, 0xa6, 0xdd, 0x6d, 0x6c, 0x1e, 0xfd, 0x5b, 0x05, 0xc0, 0xf3, 0x0c, 0xb4, 0x12, 0x8c,
+	0xe0, 0x33, 0x27, 0x35, 0x79, 0x72, 0xa0, 0x44, 0x5c, 0x15, 0x88, 0x97, 0x50, 0x12, 0x07, 0xfe,
+	0xaf, 0x0d, 0x58, 0x88, 0x0f, 0x0a, 0x4c, 0xf6, 0x19, 0x06, 0xba, 0x1c, 0x3a, 0x9b, 0x80, 0xcf,
+	0x5b, 0x4d, 0x9d, 0x32, 0x5a, 0x22, 0x6e, 0x08, 0xc4, 0x0c, 0xc2, 0x3e, 0x44, 0xe9, 0x71, 0xee,
+	0x27, 0x8d, 0xdb, 0xbd, 0x96, 0x77, 0x80, 0x3e, 0x29, 0x30, 0x1d, 0x68, 0x21, 0x28, 0x7c, 0x11,
+	0x43, 0x4d, 0x49, 0x5d, 0x3b, 0x93, 0x46, 0xb2, 0xa7, 0x04, 0xfb, 0x0a, 0x5a, 0x1e, 0xcc, 0x9e,
+	0xdf, 0x13, 0x29, 0x10, 0x87, 0xa8, 0xeb, 0x19, 0x68, 0x29, 0xb8, 0x5a, 0x8f, 0x31, 0xa9, 0xe7,
+	0x07, 0x07, 0x49, 0x86, 0x79, 0xc1, 0x70, 0x0e, 0xcd, 0xe0, 0xe0, 0x5f, 0x4c, 0x77, 0x1e, 0x7d,
+	0x3d, 0x4a, 0x28, 0x87, 0x47, 0x09, 0xe5, 0xc7, 0x51, 0x42, 0x79, 0x73, 0x9c, 0x18, 0x3a, 0x3c,
+	0x4e, 0x0c, 0x7d, 0x3f, 0x4e, 0x0c, 0x3d, 0x5b, 0x2f, 0x9b, 0xbc, 0xd2, 0x28, 0xa4, 0x8b, 0xb4,
+	0x2a, 0xc5, 0x29, 0x8b, 0xf0, 0x7d, 0x6a, 0xbf, 0xec, 0x1c, 0x8b, 0x15, 0xc3, 0xb4, 0xf0, 0x2b,
+	0x99, 0x93, 0xb7, 0x6a, 0x84, 0x15, 0xa2, 0xe2, 0x57, 0xd6, 0xda, 0xaf, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x8f, 0xa0, 0x53, 0x68, 0x0b, 0x0a, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -474,6 +774,9 @@ type QueryClient interface {
 	GetEpochServeStats(ctx context.Context, in *QueryGetEpochServeStatsRequest, opts ...grpc.CallOption) (*QueryGetEpochServeStatsResponse, error)
 	GetContributorServes(ctx context.Context, in *QueryGetContributorServesRequest, opts ...grpc.CallOption) (*QueryGetContributorServesResponse, error)
 	GetMemoryServeCount(ctx context.Context, in *QueryGetMemoryServeCountRequest, opts ...grpc.CallOption) (*QueryGetMemoryServeCountResponse, error)
+	ListEvents(ctx context.Context, in *QueryListEventsRequest, opts ...grpc.CallOption) (*QueryListEventsResponse, error)
+	GetPolicyAnchor(ctx context.Context, in *QueryGetPolicyAnchorRequest, opts ...grpc.CallOption) (*QueryGetPolicyAnchorResponse, error)
+	GetLatestPolicyAnchor(ctx context.Context, in *QueryGetLatestPolicyAnchorRequest, opts ...grpc.CallOption) (*QueryGetLatestPolicyAnchorResponse, error)
 	Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error)
 }
 
@@ -512,6 +815,33 @@ func (c *queryClient) GetMemoryServeCount(ctx context.Context, in *QueryGetMemor
 	return out, nil
 }
 
+func (c *queryClient) ListEvents(ctx context.Context, in *QueryListEventsRequest, opts ...grpc.CallOption) (*QueryListEventsResponse, error) {
+	out := new(QueryListEventsResponse)
+	err := c.cc.Invoke(ctx, "/wevibe.serve.v1.Query/ListEvents", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) GetPolicyAnchor(ctx context.Context, in *QueryGetPolicyAnchorRequest, opts ...grpc.CallOption) (*QueryGetPolicyAnchorResponse, error) {
+	out := new(QueryGetPolicyAnchorResponse)
+	err := c.cc.Invoke(ctx, "/wevibe.serve.v1.Query/GetPolicyAnchor", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *queryClient) GetLatestPolicyAnchor(ctx context.Context, in *QueryGetLatestPolicyAnchorRequest, opts ...grpc.CallOption) (*QueryGetLatestPolicyAnchorResponse, error) {
+	out := new(QueryGetLatestPolicyAnchorResponse)
+	err := c.cc.Invoke(ctx, "/wevibe.serve.v1.Query/GetLatestPolicyAnchor", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *queryClient) Params(ctx context.Context, in *QueryParamsRequest, opts ...grpc.CallOption) (*QueryParamsResponse, error) {
 	out := new(QueryParamsResponse)
 	err := c.cc.Invoke(ctx, "/wevibe.serve.v1.Query/Params", in, out, opts...)
@@ -526,6 +856,9 @@ type QueryServer interface {
 	GetEpochServeStats(context.Context, *QueryGetEpochServeStatsRequest) (*QueryGetEpochServeStatsResponse, error)
 	GetContributorServes(context.Context, *QueryGetContributorServesRequest) (*QueryGetContributorServesResponse, error)
 	GetMemoryServeCount(context.Context, *QueryGetMemoryServeCountRequest) (*QueryGetMemoryServeCountResponse, error)
+	ListEvents(context.Context, *QueryListEventsRequest) (*QueryListEventsResponse, error)
+	GetPolicyAnchor(context.Context, *QueryGetPolicyAnchorRequest) (*QueryGetPolicyAnchorResponse, error)
+	GetLatestPolicyAnchor(context.Context, *QueryGetLatestPolicyAnchorRequest) (*QueryGetLatestPolicyAnchorResponse, error)
 	Params(context.Context, *QueryParamsRequest) (*QueryParamsResponse, error)
 }
 
@@ -541,6 +874,15 @@ func (*UnimplementedQueryServer) GetContributorServes(ctx context.Context, req *
 }
 func (*UnimplementedQueryServer) GetMemoryServeCount(ctx context.Context, req *QueryGetMemoryServeCountRequest) (*QueryGetMemoryServeCountResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetMemoryServeCount not implemented")
+}
+func (*UnimplementedQueryServer) ListEvents(ctx context.Context, req *QueryListEventsRequest) (*QueryListEventsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListEvents not implemented")
+}
+func (*UnimplementedQueryServer) GetPolicyAnchor(ctx context.Context, req *QueryGetPolicyAnchorRequest) (*QueryGetPolicyAnchorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetPolicyAnchor not implemented")
+}
+func (*UnimplementedQueryServer) GetLatestPolicyAnchor(ctx context.Context, req *QueryGetLatestPolicyAnchorRequest) (*QueryGetLatestPolicyAnchorResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetLatestPolicyAnchor not implemented")
 }
 func (*UnimplementedQueryServer) Params(ctx context.Context, req *QueryParamsRequest) (*QueryParamsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Params not implemented")
@@ -604,6 +946,60 @@ func _Query_GetMemoryServeCount_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Query_ListEvents_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryListEventsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).ListEvents(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wevibe.serve.v1.Query/ListEvents",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).ListEvents(ctx, req.(*QueryListEventsRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_GetPolicyAnchor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetPolicyAnchorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetPolicyAnchor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wevibe.serve.v1.Query/GetPolicyAnchor",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetPolicyAnchor(ctx, req.(*QueryGetPolicyAnchorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _Query_GetLatestPolicyAnchor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(QueryGetLatestPolicyAnchorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(QueryServer).GetLatestPolicyAnchor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/wevibe.serve.v1.Query/GetLatestPolicyAnchor",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(QueryServer).GetLatestPolicyAnchor(ctx, req.(*QueryGetLatestPolicyAnchorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _Query_Params_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(QueryParamsRequest)
 	if err := dec(in); err != nil {
@@ -638,6 +1034,18 @@ var _Query_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMemoryServeCount",
 			Handler:    _Query_GetMemoryServeCount_Handler,
+		},
+		{
+			MethodName: "ListEvents",
+			Handler:    _Query_ListEvents_Handler,
+		},
+		{
+			MethodName: "GetPolicyAnchor",
+			Handler:    _Query_GetPolicyAnchor_Handler,
+		},
+		{
+			MethodName: "GetLatestPolicyAnchor",
+			Handler:    _Query_GetLatestPolicyAnchor_Handler,
 		},
 		{
 			MethodName: "Params",
@@ -858,6 +1266,221 @@ func (m *QueryGetMemoryServeCountResponse) MarshalToSizedBuffer(dAtA []byte) (in
 	return len(dAtA) - i, nil
 }
 
+func (m *QueryListEventsRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryListEventsRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryListEventsRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Epoch != 0 {
+		i = encodeVarintQuery(dAtA, i, uint64(m.Epoch))
+		i--
+		dAtA[i] = 0x10
+	}
+	if len(m.OrgId) > 0 {
+		i -= len(m.OrgId)
+		copy(dAtA[i:], m.OrgId)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.OrgId)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryListEventsResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryListEventsResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryListEventsResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Events) > 0 {
+		for iNdEx := len(m.Events) - 1; iNdEx >= 0; iNdEx-- {
+			{
+				size, err := m.Events[iNdEx].MarshalToSizedBuffer(dAtA[:i])
+				if err != nil {
+					return 0, err
+				}
+				i -= size
+				i = encodeVarintQuery(dAtA, i, uint64(size))
+			}
+			i--
+			dAtA[i] = 0xa
+		}
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetPolicyAnchorRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetPolicyAnchorRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetPolicyAnchorRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.PolicyVersion) > 0 {
+		i -= len(m.PolicyVersion)
+		copy(dAtA[i:], m.PolicyVersion)
+		i = encodeVarintQuery(dAtA, i, uint64(len(m.PolicyVersion)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetPolicyAnchorResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetPolicyAnchorResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetPolicyAnchorResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Found {
+		i--
+		if m.Found {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Anchor != nil {
+		{
+			size, err := m.Anchor.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetLatestPolicyAnchorRequest) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetLatestPolicyAnchorRequest) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetLatestPolicyAnchorRequest) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	return len(dAtA) - i, nil
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if m.Found {
+		i--
+		if m.Found {
+			dAtA[i] = 1
+		} else {
+			dAtA[i] = 0
+		}
+		i--
+		dAtA[i] = 0x10
+	}
+	if m.Anchor != nil {
+		{
+			size, err := m.Anchor.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintQuery(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *QueryParamsRequest) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -1013,6 +1636,91 @@ func (m *QueryGetMemoryServeCountResponse) Size() (n int) {
 	_ = l
 	if m.Count != 0 {
 		n += 1 + sovQuery(uint64(m.Count))
+	}
+	return n
+}
+
+func (m *QueryListEventsRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.OrgId)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Epoch != 0 {
+		n += 1 + sovQuery(uint64(m.Epoch))
+	}
+	return n
+}
+
+func (m *QueryListEventsResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if len(m.Events) > 0 {
+		for _, e := range m.Events {
+			l = e.Size()
+			n += 1 + l + sovQuery(uint64(l))
+		}
+	}
+	return n
+}
+
+func (m *QueryGetPolicyAnchorRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.PolicyVersion)
+	if l > 0 {
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	return n
+}
+
+func (m *QueryGetPolicyAnchorResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Anchor != nil {
+		l = m.Anchor.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Found {
+		n += 2
+	}
+	return n
+}
+
+func (m *QueryGetLatestPolicyAnchorRequest) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	return n
+}
+
+func (m *QueryGetLatestPolicyAnchorResponse) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	if m.Anchor != nil {
+		l = m.Anchor.Size()
+		n += 1 + l + sovQuery(uint64(l))
+	}
+	if m.Found {
+		n += 2
 	}
 	return n
 }
@@ -1602,6 +2310,535 @@ func (m *QueryGetMemoryServeCountResponse) Unmarshal(dAtA []byte) error {
 					break
 				}
 			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryListEventsRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryListEventsRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryListEventsRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field OrgId", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.OrgId = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Epoch", wireType)
+			}
+			m.Epoch = 0
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				m.Epoch |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryListEventsResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryListEventsResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryListEventsResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Events", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Events = append(m.Events, &StoredEvent{})
+			if err := m.Events[len(m.Events)-1].Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetPolicyAnchorRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetPolicyAnchorRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetPolicyAnchorRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field PolicyVersion", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.PolicyVersion = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetPolicyAnchorResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetPolicyAnchorResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetPolicyAnchorResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Anchor", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Anchor == nil {
+				m.Anchor = &StoredPolicyAnchor{}
+			}
+			if err := m.Anchor.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Found", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Found = bool(v != 0)
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetLatestPolicyAnchorRequest) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetLatestPolicyAnchorRequest: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetLatestPolicyAnchorRequest: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		default:
+			iNdEx = preIndex
+			skippy, err := skipQuery(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *QueryGetLatestPolicyAnchorResponse) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowQuery
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: QueryGetLatestPolicyAnchorResponse: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: QueryGetLatestPolicyAnchorResponse: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Anchor", wireType)
+			}
+			var msglen int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				msglen |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			if msglen < 0 {
+				return ErrInvalidLengthQuery
+			}
+			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthQuery
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			if m.Anchor == nil {
+				m.Anchor = &StoredPolicyAnchor{}
+			}
+			if err := m.Anchor.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			iNdEx = postIndex
+		case 2:
+			if wireType != 0 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Found", wireType)
+			}
+			var v int
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowQuery
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				v |= int(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			m.Found = bool(v != 0)
 		default:
 			iNdEx = preIndex
 			skippy, err := skipQuery(dAtA[iNdEx:])

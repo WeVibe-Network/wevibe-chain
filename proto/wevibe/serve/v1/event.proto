@@ -1,0 +1,109 @@
+syntax = "proto3";
+package wevibe.serve.v1;
+
+option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
+
+// RECALL-PIVOT event log (RECALL-PIVOT-SPEC §3). Events are immutable,
+// append-only, content-free, consumer-signed observations with provenance.
+// BOUNDARY RULE (§3.2): no verdicts, weights, standing, scores, trust values,
+// archive flags, derived judgments, or content may ever appear in an event.
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  // E1 — recorded via serve receipts / StoredServeReceipt.
+  EVENT_TYPE_SERVE = 1;
+  // E2 — recorded via denial receipts / StoredDenialReceipt.
+  EVENT_TYPE_BLOCK = 2;
+  // E3 use-leg, load-bearing.
+  EVENT_TYPE_OUTCOME = 3;
+  // E4 PARKED — schema slot only, activation deferred pending supersession.
+  EVENT_TYPE_CONTEST = 4;
+  // E5 PARKED — pending ROADMAP economics decision.
+  EVENT_TYPE_SPONSORSHIP = 5;
+  EVENT_TYPE_VALIDITY_PREDICATE = 6;
+  EVENT_TYPE_COST_TO_DISCOVER = 7;
+  EVENT_TYPE_CONVERGENCE = 8;
+}
+
+enum PredicateResult {
+  PREDICATE_RESULT_UNSPECIFIED = 0;
+  PREDICATE_RESULT_PASS = 1;
+  PREDICATE_RESULT_FAIL = 2;
+  // Fail-closed — a timed-out/failed predicate records ABSENCE, never an inferred result.
+  PREDICATE_RESULT_ABSENT = 3;
+}
+
+message OutcomeEventBody {
+  // Fingerprint of session identity + need reference — content-free.
+  bytes episode_ref = 1;
+  // Raw observed fact bound to evidence — never a verdict.
+  bool worked = 2;
+  // GSTV-sealed pattern reference.
+  bytes evidence_ref = 3;
+}
+
+message ValidityPredicateEventBody {
+  // Hash.
+  bytes predicate_id = 1;
+  PredicateResult result = 2;
+  bytes evidence_ref = 3;
+}
+
+message CostToDiscoverEventBody {
+  uint64 cycles = 1;
+  uint64 tool_calls = 2;
+  uint32 attempts_to_green = 3;
+  bytes evidence_ref = 4;
+}
+
+message ConvergenceEventBody {
+  // Independent rediscovery evidence reference.
+  bytes convergence_ref = 1;
+}
+
+message EventEntry {
+  EventType event_type = 1;
+  bytes memory_content_hash = 2;
+  // Consumer per-org serve key, ed25519 — D-SERVE-CONSUMER-SIGNED lineage.
+  bytes signer_pubkey = 3;
+  bytes nonce = 4;
+  // Ed25519 over CanonicalEventBody.
+  bytes signature = 5;
+  oneof body {
+    OutcomeEventBody outcome = 10;
+    ValidityPredicateEventBody validity_predicate = 11;
+    CostToDiscoverEventBody cost_to_discover = 12;
+    ConvergenceEventBody convergence = 13;
+  }
+  reserved 14, 15;
+  reserved "contest", "sponsorship";
+}
+
+message StoredEvent {
+  string org_id = 1;
+  uint64 epoch = 2;
+  EventType event_type = 3;
+  bytes memory_content_hash = 4;
+  bytes signer_pubkey = 5;
+  bytes nonce = 6;
+  bytes signature = 7;
+  // Sha256(CanonicalEventBody) — dedup key.
+  bytes fingerprint = 8;
+  oneof body {
+    OutcomeEventBody outcome = 10;
+    ValidityPredicateEventBody validity_predicate = 11;
+    CostToDiscoverEventBody cost_to_discover = 12;
+    ConvergenceEventBody convergence = 13;
+  }
+  reserved 14, 15;
+  reserved "contest", "sponsorship";
+}
+
+message StoredPolicyAnchor {
+  // Published edge-policy version identifier — standing is NEVER written on-chain;
+  // it is recomputed at the edge as f(events, policy_version).
+  string policy_version = 1;
+  // Sha256 of the published policy artifact.
+  bytes policy_hash = 2;
+  uint64 anchored_at_epoch = 3;
+  int64 anchored_at_height = 4;
+}

@@ -20,10 +20,12 @@ message MsgSubmitCommitment {
   string signer = 1;
   string org_id = 2;
   bytes content_hash = 3;
-  repeated KeywordWeight keywords = 4;
+  reserved 4;
   string contributor_id = 5;
   string contributor_wallet = 6;
   MemoryType memory_type = 7;
+  // Flat label metadata — never weighted, never gating; RECALL-PIVOT joint amendment.
+  repeated string keywords = 8;
   // D-PRODUCER-MODEL-PROVENANCE: canonical producer-model identity for this memory's source session.
   string producer_model_id = 16;
   // 32-byte session hash referencing the source session attestation envelope (x/attestation); empty = unattested/self-declared.

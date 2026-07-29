@@ -1,5 +1,12 @@
 # WeVibe Chain Protocol Design Paper (Sprint 23)
 
+> **⚠ HISTORICAL SNAPSHOT — SUPERSEDED (2026-07-29 recall-pivot joint amendment).** This paper predates
+> the recall pivot: all decay/confidence/lifecycle-mutation mechanics described below (e.g.
+> `ApplyEpochDecay`, retrieval-confidence adjustment) have LEFT consensus entirely. The chain now stores
+> immutable, content-free, consumer-signed EVENTS only; standing is computed at the edge as
+> `f(events, policy_version)` with the policy-version hash anchored on-chain. See `docs/TOPOLOGY.md` and
+> `RECALL-PIVOT-SPEC.md` (workspace root) for current reality. Retained unedited as historical record.
+
 Version: 3.0  
 Sprint: 23  
 Date: 2026-05-10

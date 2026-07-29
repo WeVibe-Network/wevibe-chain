@@ -8,8 +8,8 @@ message Params {
   uint64 pending_retention_epochs = 2;
   uint64 max_blob_size_bytes = 3;
   uint32 max_keywords_per_memory = 4;
-  uint64 retrieval_threshold_bps = 5;
-  reserved 6, 7, 8, 11, 12, 13, 14;
+  // Decay constants left consensus with the RECALL-PIVOT joint amendment (2026-07-29) — they migrate to the versioned edge policy (see StoredPolicyAnchor in x/serve). Record of the expunged pivot.
+  reserved 5, 6, 7, 8, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26;
   reserved
     "stable_threshold_bps",
     "degraded_threshold_bps",
@@ -17,19 +17,20 @@ message Params {
     "idle_decay_rate_bps",
     "denial_decay_bps",
     "serve_boost_bps",
-    "max_serve_boost_per_epoch";
-  uint64 initial_confidence_bps = 9;
+    "max_serve_boost_per_epoch",
+    "retrieval_threshold_bps",
+    "initial_confidence_bps",
+    "grace_epochs",
+    "serve_d_bps",
+    "denial_d_bps",
+    "idle_d_bps",
+    "serve_floor_bps",
+    "denial_floor_bps",
+    "idle_protect_bps",
+    "idle_untrusted_bps",
+    "trust_min_serves",
+    "trust_max_rate_bps",
+    "idle_traffic_ref_bps_per_mem",
+    "idle_traffic_floor_bps";
   uint64 contest_window_epochs = 10;
-  uint64 grace_epochs = 15;
-  uint64 serve_d_bps = 16;
-  uint64 denial_d_bps = 17;
-  uint64 idle_d_bps = 18;
-  uint64 serve_floor_bps = 19;
-  uint64 denial_floor_bps = 20;
-  uint64 idle_protect_bps = 21;
-  uint64 idle_untrusted_bps = 22;
-  uint64 trust_min_serves = 23;
-  uint64 trust_max_rate_bps = 24;
-  uint64 idle_traffic_ref_bps_per_mem = 25;
-  uint64 idle_traffic_floor_bps = 26;
 }

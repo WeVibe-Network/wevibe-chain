@@ -7,6 +7,8 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
+	"reflect"
+	"strings"
 	"testing"
 
 	logv2 "cosmossdk.io/log"
@@ -122,10 +124,9 @@ func serveEntry(orgID string, epoch uint64, hash []byte, serveKey, contributorID
 		ModelId:           "qwen3:4b",
 		TurnCount:         3,
 		ContributorWallet: "wallet-1",
-		MatchedKeywords:   []string{"alpha", "beta"},
 		Nonce:             append([]byte(nil), nonce...),
 	}
-	body := types.CanonicalServeBody(orgID, hash, epoch, entry.ServeKeyPubkey, entry.MatchedKeywords, entry.Nonce)
+	body := types.CanonicalServeBody(orgID, hash, epoch, entry.ServeKeyPubkey, entry.Nonce)
 	entry.ServeSig = ed25519.Sign(priv, body)
 	return entry
 }
@@ -148,6 +149,39 @@ func denialEntry(orgID string, epoch uint64, memoryHash []byte, serveKey string,
 	return entry
 }
 
+func eventKeypair(t *testing.T) (ed25519.PublicKey, ed25519.PrivateKey) {
+	t.Helper()
+	pub, priv, err := ed25519.GenerateKey(nil)
+	require.NoError(t, err)
+	return pub, priv
+}
+
+func signEventEntry(t *testing.T, orgID string, epoch uint64, entry *types.EventEntry, priv ed25519.PrivateKey) []byte {
+	t.Helper()
+	body, err := types.CanonicalEventBody(entry.EventType, orgID, entry.MemoryContentHash, epoch, entry.SignerPubkey, entry.Nonce, entry)
+	require.NoError(t, err)
+	entry.Signature = ed25519.Sign(priv, body)
+	return types.ComputeEventFingerprint(body)
+}
+
+func outcomeEventEntry(t *testing.T, orgID string, epoch uint64, h []byte, nonce byte) (*types.EventEntry, []byte) {
+	t.Helper()
+	pub, priv := eventKeypair(t)
+	entry := &types.EventEntry{
+		EventType:         types.EventType_EVENT_TYPE_OUTCOME,
+		MemoryContentHash: h,
+		SignerPubkey:      append([]byte(nil), pub...),
+		Nonce:             nonce32(nonce),
+		Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
+			EpisodeRef:  []byte{0x01, nonce},
+			Worked:      true,
+			EvidenceRef: []byte{0x02, nonce},
+		}},
+	}
+	fp := signEventEntry(t, orgID, epoch, entry, priv)
+	return entry, fp
+}
+
 func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0x11)
@@ -162,9 +196,8 @@ func TestProcessServeBatch_AcceptsValidServe(t *testing.T) {
 	require.Equal(t, uint64(0), dup)
 	require.Equal(t, uint64(0), invalid)
 
-	// Side effects: bandwidth consumed, serve boost applied, reputation recorded.
+	// Side effects: bandwidth consumed, reputation recorded.
 	require.Equal(t, uint64(1), env.band.consumed["org-1"])
-	require.Equal(t, 1, env.mem.boostCalls)
 	require.Equal(t, 1, env.rep.serveCalls)
 
 	// Fingerprint now registered, serve count incremented.
@@ -356,21 +389,6 @@ func TestProcessServeBatch_MaxServesPerMemoryEnforced(t *testing.T) {
 	require.Equal(t, uint64(1), invalid)
 }
 
-func TestProcessServeBatch_BoostFailureNonFatal(t *testing.T) {
-	env := setupKeeper(t)
-	h := hash32(0x99)
-	env.mem.approve("org-1", h)
-	env.mem.boostErr = context.Canceled // boost fails, serve must still be accepted
-	entry := serveEntry("org-1", 1, h, "k1", "c1", nonce32(0x0B))
-
-	accepted, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 1, []*types.ServeEntry{
-		entry,
-	})
-	require.NoError(t, err)
-	require.Equal(t, uint64(1), accepted)
-	require.True(t, env.k.HasServeFingerprint(env.ctx, serveFingerprint(entry, 1)))
-}
-
 func TestProcessServeBatch_ReputationFailureNonFatal(t *testing.T) {
 	env := setupKeeper(t)
 	h := hash32(0xA1)
@@ -409,49 +427,136 @@ func TestProcessServeBatch_MixedBatch(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// Matched keywords
+// ProcessEventBatch — recall-pivot append-only event log
 // ---------------------------------------------------------------------------
 
-func TestStoreAndGetMatchedKeywords(t *testing.T) {
+func TestProcessEventBatch_AcceptsOutcomeAndStoresRoundTrip(t *testing.T) {
 	env := setupKeeper(t)
-	h := hash32(0xC1)
-	cid := hexEncode(h)
+	h := hash32(0x91)
+	env.mem.approve("org-1", h)
+	entry, fp := outcomeEventEntry(t, "org-1", 11, h, 0x91)
 
-	require.NoError(t, env.k.StoreMatchedKeywordsForEpoch(env.ctx, "org-1", h, 1, []string{"x", "y", "z"}))
-
-	got, err := env.k.GetMatchedKeywordsForEpoch(env.ctx, "org-1", cid, 1)
+	accepted, dup, invalid, err := env.k.ProcessEventBatch(env.ctx, "org-1", 11, []*types.EventEntry{entry})
 	require.NoError(t, err)
-	require.Len(t, got, 3)
-	require.True(t, got["x"])
-	require.True(t, got["y"])
-	require.True(t, got["z"])
+	require.Equal(t, uint64(1), accepted)
+	require.Equal(t, uint64(0), dup)
+	require.Equal(t, uint64(0), invalid)
+
+	events, err := env.k.GetEventsForEpoch(env.ctx, "org-1", 11)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, fp, events[0].Fingerprint)
+	require.Equal(t, types.EventType_EVENT_TYPE_OUTCOME, events[0].EventType)
+	require.Equal(t, entry.GetOutcome().EpisodeRef, events[0].GetOutcome().EpisodeRef)
+	require.Equal(t, entry.GetOutcome().Worked, events[0].GetOutcome().Worked)
+	require.Equal(t, entry.GetOutcome().EvidenceRef, events[0].GetOutcome().EvidenceRef)
 }
 
-func TestStoreMatchedKeywords_EmptyRejected(t *testing.T) {
+func TestProcessEventBatch_AcceptsAllConsumedTypes(t *testing.T) {
 	env := setupKeeper(t)
-	err := env.k.StoreMatchedKeywordsForEpoch(env.ctx, "org-1", hash32(0xC2), 1, nil)
-	require.Error(t, err)
+	h := hash32(0x92)
+	env.mem.approve("org-1", h)
+	cases := []struct {
+		name      string
+		eventType types.EventType
+		build     func([]byte, byte) *types.EventEntry
+	}{
+		{"outcome", types.EventType_EVENT_TYPE_OUTCOME, func(pub []byte, n byte) *types.EventEntry {
+			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_OUTCOME, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{EpisodeRef: []byte{n}, Worked: true, EvidenceRef: []byte{n + 1}}}}
+		}},
+		{"validity", types.EventType_EVENT_TYPE_VALIDITY_PREDICATE, func(pub []byte, n byte) *types.EventEntry {
+			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_VALIDITY_PREDICATE, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_ValidityPredicate{ValidityPredicate: &types.ValidityPredicateEventBody{PredicateId: []byte{n}, Result: types.PredicateResult_PREDICATE_RESULT_PASS, EvidenceRef: []byte{n + 1}}}}
+		}},
+		{"cost", types.EventType_EVENT_TYPE_COST_TO_DISCOVER, func(pub []byte, n byte) *types.EventEntry {
+			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_COST_TO_DISCOVER, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_CostToDiscover{CostToDiscover: &types.CostToDiscoverEventBody{Cycles: 10, ToolCalls: 2, AttemptsToGreen: 1, EvidenceRef: []byte{n}}}}
+		}},
+		{"convergence", types.EventType_EVENT_TYPE_CONVERGENCE, func(pub []byte, n byte) *types.EventEntry {
+			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_CONVERGENCE, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_Convergence{Convergence: &types.ConvergenceEventBody{ConvergenceRef: []byte{n}}}}
+		}},
+	}
 
-	err = env.k.StoreMatchedKeywordsForEpoch(env.ctx, "org-1", hash32(0xC2), 1, []string{"ok", ""})
-	require.Error(t, err)
+	for i, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			pub, priv := eventKeypair(t)
+			entry := tc.build(pub, byte(0xA0+i))
+			signEventEntry(t, "org-1", 12, entry, priv)
+			accepted, dup, invalid, err := env.k.ProcessEventBatch(env.ctx, "org-1", 12, []*types.EventEntry{entry})
+			require.NoError(t, err)
+			require.Equal(t, uint64(1), accepted)
+			require.Equal(t, uint64(0), dup)
+			require.Equal(t, uint64(0), invalid)
+		})
+	}
+	events, err := env.k.GetEventsForEpoch(env.ctx, "org-1", 12)
+	require.NoError(t, err)
+	require.Len(t, events, 4)
 }
 
-func TestGetMatchedKeywords_InvalidCID(t *testing.T) {
+func TestProcessEventBatch_RejectionsAndImmutability(t *testing.T) {
 	env := setupKeeper(t)
-	_, err := env.k.GetMatchedKeywordsForEpoch(env.ctx, "org-1", "not-hex!!", 1)
-	require.Error(t, err)
+	h := hash32(0x93)
+	env.mem.approve("org-1", h)
+	e1, fp1 := outcomeEventEntry(t, "org-1", 13, h, 0x93)
+	e2, fp2 := outcomeEventEntry(t, "org-1", 13, h, 0x94)
 
-	// Valid hex but wrong length.
-	_, err = env.k.GetMatchedKeywordsForEpoch(env.ctx, "org-1", "abcd", 1)
-	require.Error(t, err)
+	accepted, dup, invalid, err := env.k.ProcessEventBatch(env.ctx, "org-1", 13, []*types.EventEntry{e1, e2})
+	require.NoError(t, err)
+	require.Equal(t, uint64(2), accepted)
+	require.Equal(t, uint64(0), dup)
+	require.Equal(t, uint64(0), invalid)
+	events, err := env.k.GetEventsForEpoch(env.ctx, "org-1", 13)
+	require.NoError(t, err)
+	require.Len(t, events, 2)
+	require.ElementsMatch(t, [][]byte{fp1, fp2}, [][]byte{events[0].Fingerprint, events[1].Fingerprint})
+
+	accepted, dup, invalid, err = env.k.ProcessEventBatch(env.ctx, "org-1", 13, []*types.EventEntry{e1})
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), accepted)
+	require.Equal(t, uint64(1), dup)
+	require.Equal(t, uint64(0), invalid)
+	events, err = env.k.GetEventsForEpoch(env.ctx, "org-1", 13)
+	require.NoError(t, err)
+	require.Len(t, events, 2)
+
+	badSig, _ := outcomeEventEntry(t, "org-1", 13, h, 0x95)
+	badSig.Signature[0] ^= 0xFF
+	missing, _ := outcomeEventEntry(t, "org-1", 13, hash32(0x96), 0x96)
+	accepted, dup, invalid, err = env.k.ProcessEventBatch(env.ctx, "org-1", 13, []*types.EventEntry{badSig, missing})
+	require.NoError(t, err)
+	require.Equal(t, uint64(0), accepted)
+	require.Equal(t, uint64(0), dup)
+	require.Equal(t, uint64(2), invalid)
 }
 
-func TestGetMemoryServeCountForEpoch_InvalidCID(t *testing.T) {
+func TestPolicyAnchor_StoreImmutabilityAndLatest(t *testing.T) {
 	env := setupKeeper(t)
-	_, err := env.k.GetMemoryServeCountForEpoch(env.ctx, "org-1", "zz", 1)
-	require.Error(t, err)
-	_, err = env.k.GetMemoryServeCountForEpoch(env.ctx, "org-1", "abcd", 1)
-	require.Error(t, err)
+	ctx := env.sdkCtx()
+	h1 := hash32(0xA1)
+	h2 := hash32(0xA2)
+
+	require.NoError(t, env.k.SetPolicyAnchor(ctx, "policy-v1", h1))
+	anchor, found, err := env.k.GetPolicyAnchor(ctx, "policy-v1")
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, h1, anchor.PolicyHash)
+	latest, found, err := env.k.GetLatestPolicyAnchor(ctx)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, "policy-v1", latest.PolicyVersion)
+
+	require.NoError(t, env.k.SetPolicyAnchor(ctx, "policy-v1", h1))
+	require.Error(t, env.k.SetPolicyAnchor(ctx, "policy-v1", h2))
+}
+
+func TestStoredEventBoundaryRule_NoStandingVerdictFields(t *testing.T) {
+	forbidden := []string{"weight", "standing", "score", "trust", "verdict", "archived"}
+	typ := reflect.TypeOf(types.StoredEvent{})
+	for i := 0; i < typ.NumField(); i++ {
+		name := strings.ToLower(typ.Field(i).Name)
+		for _, bad := range forbidden {
+			require.NotContains(t, name, bad)
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -466,9 +571,6 @@ func TestDenialCountIncrement(t *testing.T) {
 	env.k.IncrementDenialCount(env.ctx, "org-1", h, 1)
 	require.Equal(t, uint64(2), env.k.GetMemoryDenialCount(env.ctx, "org-1", h, 1))
 
-	got, err := env.k.GetMemoryDenialCountForEpoch(env.ctx, "org-1", hexEncode(h), 1)
-	require.NoError(t, err)
-	require.Equal(t, uint64(2), got)
 }
 
 // ---------------------------------------------------------------------------
@@ -479,14 +581,6 @@ func TestGetEpochServeStats_NotFound(t *testing.T) {
 	env := setupKeeper(t)
 	_, err := env.k.GetEpochServeStats(env.ctx, "org-1", 99)
 	require.ErrorIs(t, err, types.ErrStatsNotFound)
-}
-
-func TestGetEpochTrafficStats_NotFoundReturnsZero(t *testing.T) {
-	env := setupKeeper(t)
-	serves, denials, err := env.k.GetEpochTrafficStats(env.ctx, "org-1", 99)
-	require.NoError(t, err)
-	require.Equal(t, uint64(0), serves)
-	require.Equal(t, uint64(0), denials)
 }
 
 func TestGetContributorEpochServes_NotFound(t *testing.T) {
@@ -511,34 +605,42 @@ func TestGenesisRoundtrip(t *testing.T) {
 	h := hash32(0xF1)
 	env.mem.approve("org-1", h)
 	entry := serveEntry("org-1", 2, h, "k1", "c1", nonce32(0x10))
+	event, eventFP := outcomeEventEntry(t, "org-1", 2, h, 0xF1)
 
 	// Produce some state via a real serve.
 	_, _, _, err := env.k.ProcessServeBatch(env.ctx, "org-1", 2, []*types.ServeEntry{
 		entry,
 	})
 	require.NoError(t, err)
+	acceptedEvents, _, _, err := env.k.ProcessEventBatch(env.ctx, "org-1", 2, []*types.EventEntry{event})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), acceptedEvents)
+	require.NoError(t, env.k.SetPolicyAnchor(env.sdkCtx(), "policy-v1", hash32(0xF5)))
 
 	exported, err := env.k.ExportGenesis(env.ctx)
 	require.NoError(t, err)
 	require.Len(t, exported.ServeReceipts, 1)
+	require.Len(t, exported.Events, 1)
+	require.Len(t, exported.PolicyAnchors, 1)
 	require.Len(t, exported.EpochStats, 1)
 	require.Len(t, exported.ContributorServes, 1)
 
-	// JSON roundtrip.
-	bz, err := exported.MarshalJSON()
-	require.NoError(t, err)
-	var decoded types.GenesisState
-	require.NoError(t, decoded.UnmarshalJSON(bz))
-	require.Len(t, decoded.ServeReceipts, 1)
-
 	// Import into a fresh keeper and verify state restored.
 	env2 := setupKeeper(t)
-	require.NoError(t, env2.k.InitGenesis(env2.ctx, &decoded))
+	require.NoError(t, env2.k.InitGenesis(env2.ctx, exported))
 
 	require.True(t, env2.k.HasServeFingerprint(env2.ctx, serveFingerprint(entry, 2)))
 	stats, err := env2.k.GetEpochServeStats(env2.ctx, "org-1", 2)
 	require.NoError(t, err)
 	require.Equal(t, uint64(1), stats.TotalServes)
+	events, err := env2.k.GetEventsForEpoch(env2.ctx, "org-1", 2)
+	require.NoError(t, err)
+	require.Len(t, events, 1)
+	require.Equal(t, eventFP, events[0].Fingerprint)
+	anchor, found, err := env2.k.GetLatestPolicyAnchor(env2.ctx)
+	require.NoError(t, err)
+	require.True(t, found)
+	require.Equal(t, "policy-v1", anchor.PolicyVersion)
 }
 
 func TestGenesisInit_DenialReceipts(t *testing.T) {
@@ -555,10 +657,10 @@ func TestGenesisInit_DenialReceipts(t *testing.T) {
 	denialFingerprint := types.ComputeDenialFingerprint("org-1", h, 3, servePub, serveFingerprint)
 	require.True(t, env.k.HasDenialFingerprint(env.ctx, denialFingerprint))
 	require.Equal(t, uint64(1), env.k.GetMemoryDenialCount(env.ctx, "org-1", h, 3))
-	serves, denials, err := env.k.GetEpochTrafficStats(env.ctx, "org-1", 3)
+	stats, err := env.k.GetEpochServeStats(env.ctx, "org-1", 3)
 	require.NoError(t, err)
-	require.Equal(t, uint64(0), serves)
-	require.Equal(t, uint64(1), denials)
+	require.Equal(t, uint64(0), stats.TotalServes)
+	require.Equal(t, uint64(1), stats.TotalDenials)
 }
 
 func TestGetServeReceipts_ListByOrgEpoch(t *testing.T) {

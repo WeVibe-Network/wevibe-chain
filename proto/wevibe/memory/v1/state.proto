@@ -27,22 +27,17 @@ enum RelationType {
   RELATION_TYPE_SUPERSEDES = 4;
 }
 
-message KeywordWeight {
-  string keyword = 1;
-  string weight = 2;
-  uint64 serve_count = 3;
-  uint64 denial_count = 4;
-}
-
 message StoredPendingCommitment {
   string org_id = 1;
   bytes content_hash = 2;
-  repeated KeywordWeight keywords = 3;
+  reserved 3;
   string contributor_id = 4;
   uint64 epoch = 5;
   uint64 submitted_at_height = 6;
   MemoryType memory_type = 7;
   string contributor_address = 8;
+  // Flat label metadata — never weighted, never gating; RECALL-PIVOT joint amendment.
+  repeated string keywords = 9;
   // D-PRODUCER-MODEL-PROVENANCE: immutable canonical producer-model identity (FACT, not policy).
   string producer_model_id = 24;
   // Reference to the source session's StoredSessionAttestation envelope, keyed (org_id, session_hash) in x/attestation. Empty = unattested/legacy.
@@ -55,7 +50,7 @@ message StoredMemoryCommitment {
   string org_id = 1;
   bytes content_hash = 2;
   bytes encrypted_blob = 3;
-  repeated KeywordWeight keywords = 4;
+  reserved 4;
   string contributor_pubkey = 5;
   uint64 epoch = 6;
   uint64 committed_at_height = 7;
@@ -71,9 +66,9 @@ message StoredMemoryCommitment {
   bytes ciphertext_hash = 17;
   bytes wrapped_dek_hash = 18;
   bytes contributor_sig = 19;
-  uint64 serve_count_total = 20;
-  uint64 denial_count_total = 21;
-  uint64 archived_epoch = 22;
+  // Retired by the recall pivot — the chain stores events, never aggregates/verdicts; archival is an edge-computed visibility outcome.
+  reserved 20, 21, 22;
+  reserved "serve_count_total", "denial_count_total", "archived_epoch";
   string contributor_address = 23;
   // D-PRODUCER-MODEL-PROVENANCE: immutable canonical producer-model identity (FACT, not policy).
   string producer_model_id = 24;
@@ -81,6 +76,8 @@ message StoredMemoryCommitment {
   bytes attestation_session_hash = 25;
   // MC-1 chain-leg: Memory Contract schema version.
   uint32 mc_version = 26;
+  // Flat label metadata — never weighted, never gating; RECALL-PIVOT joint amendment.
+  repeated string keywords = 27;
 }
 
 message StoredMemoryRelationship {

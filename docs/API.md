@@ -646,9 +646,9 @@ Get an approved memory.
     "epoch": "100",
     "approved_at_height": "123456",
     "approver": "wevibe1leader...",
-    "state": "MEMORY_STATE_APPROVED",
-    "retrieval_confidence_bps": "10000",
-    "last_decay_epoch": "100"
+    "state": "MEMORY_STATE_COMMITTED",
+    "last_active_epoch": "100",
+    "keywords": ["knowledge", "guide"]
   }
 }
 ```
@@ -840,12 +840,7 @@ Get memory module parameters.
     "max_pending_per_org": "1000",
     "pending_retention_epochs": "30",
     "max_blob_size_bytes": "1048576",
-    "max_keywords_per_memory": "10",
-    "min_retrieval_decay_bps": "10",
-    "stable_threshold_bps": "8000",
-    "degraded_threshold_bps": "5000",
-    "dormant_threshold_bps": "2000",
-    "initial_confidence_bps": "10000",
+    "max_keywords_per_memory": "20",
     "contest_window_epochs": "14"
   }
 }
@@ -873,7 +868,6 @@ Submit a batch of serve receipts.
     {
       "memory_content_hash": "base64-encoded-hash",
       "contributor_id": "wevibe1contributor...",
-      "matched_keywords": ["keyword1", "keyword2"],
       "serve_key_pubkey": "base64-encoded-ed25519-pubkey",
       "serve_sig": "base64-encoded-ed25519-signature",
       "nonce": "base64-encoded-freshness-nonce"
@@ -890,6 +884,93 @@ Submit a batch of serve receipts.
   "rejected_invalid": "0"
 }
 ```
+
+The serve signature preimage is exactly:
+
+```text
+wevibe-serve-v2
+<org_id>
+<hex(memory_content_hash)>
+<epoch>
+<hex(serve_key_pubkey)>
+<hex(nonce)>
+```
+
+---
+
+#### MsgSubmitEventBatch
+
+Submit consumer-signed recall-pivot events. Accepted event types are E3 outcome, E6 validity predicate, E7 cost to discover, and E8 convergence; E4 contest and E5 sponsorship remain parked.
+
+**REST:** `POST /wevibe/serve/v1/tx/submit_event_batch`
+
+**Request Body:**
+```json
+{
+  "signer": "wevibe1servicer...",
+  "org_id": "my-org",
+  "epoch": "100",
+  "events": [
+    {
+      "event_type": "EVENT_TYPE_OUTCOME",
+      "memory_content_hash": "base64-encoded-hash",
+      "signer_pubkey": "base64-encoded-ed25519-pubkey",
+      "nonce": "base64-encoded-freshness-nonce",
+      "signature": "base64-encoded-ed25519-signature",
+      "outcome": {
+        "episode_ref": "base64-encoded-reference",
+        "worked": true,
+        "evidence_ref": "base64-encoded-reference"
+      }
+    }
+  ]
+}
+```
+
+**Response:**
+```json
+{
+  "accepted": "1",
+  "rejected_duplicate": "0",
+  "rejected_invalid": "0"
+}
+```
+
+The event signature preimage is exactly:
+
+```text
+wevibe-event-v1
+<type token>
+<org_id>
+<hex(memory_content_hash)>
+<epoch>
+<hex(signer_pubkey)>
+<type-specific lines…>
+<hex(nonce)>
+```
+
+Type-specific lines are: outcome = `<hex(episode_ref)>`, `worked=<bool>`, `<hex(evidence_ref)>`; validity predicate = `<hex(predicate_id)>`, `result=<pass|fail|absent>`, `<hex(evidence_ref)>`; cost to discover = `cycles=<uint64>`, `tool_calls=<uint64>`, `attempts_to_green=<uint32>`, `<hex(evidence_ref)>`; convergence = `<hex(convergence_ref)>`.
+
+Events are immutable, append-only, content-free facts. They are never verdicts and never carry weights, standing, scores, trust values, archive flags, plaintext, ciphertext, or other content.
+
+---
+
+#### MsgAnchorPolicyVersion
+
+Anchor a published edge-policy version hash. Standing is computed off-chain as `f(events, policy_version)`.
+
+**REST:** `POST /wevibe/serve/v1/tx/anchor_policy_version`
+
+**Request Body:**
+```json
+{
+  "authority": "wevibe1gov...",
+  "policy_version": "recall-policy-2026-07-29",
+  "policy_hash": "base64-encoded-sha256"
+}
+```
+
+**Response:** `{}`
 
 ---
 
@@ -950,6 +1031,61 @@ Get serve count for a specific memory.
   "count": "15"
 }
 ```
+
+---
+
+#### ListEvents
+
+List recall-pivot events for an org epoch.
+
+**REST:** `GET /wevibe/serve/v1/events/{org_id}/{epoch}`
+
+**Response:**
+```json
+{
+  "events": [
+    {
+      "org_id": "my-org",
+      "epoch": "100",
+      "event_type": "EVENT_TYPE_OUTCOME",
+      "memory_content_hash": "base64-encoded-hash",
+      "signer_pubkey": "base64-encoded-ed25519-pubkey",
+      "fingerprint": "base64-encoded-sha256"
+    }
+  ]
+}
+```
+
+---
+
+#### GetPolicyAnchor
+
+Get an anchored edge-policy version hash.
+
+**REST:** `GET /wevibe/serve/v1/policy_anchor/{policy_version}`
+
+**Response:**
+```json
+{
+  "anchor": {
+    "policy_version": "recall-policy-2026-07-29",
+    "policy_hash": "base64-encoded-sha256",
+    "anchored_at_epoch": "0",
+    "anchored_at_height": "123456"
+  },
+  "found": true
+}
+```
+
+---
+
+#### GetLatestPolicyAnchor
+
+Get the latest anchored edge-policy version hash.
+
+**REST:** `GET /wevibe/serve/v1/policy_anchor_latest`
+
+**Response:** Same shape as `GetPolicyAnchor`.
 
 ---
 

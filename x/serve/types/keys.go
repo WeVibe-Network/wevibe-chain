@@ -8,10 +8,16 @@ const (
 	ModuleName = "serve"
 	StoreKey   = "serve"
 
-	// Prefix that indexes matched keywords per memory per epoch.
-	// Key: matched_keywords/{org_id}/{cid_hex}/{epoch}/{keyword}
-	// Value: 1 (presence indicator; absence means not matched)
-	MatchedKeywordsPrefix = "matched_keywords/"
+	// EventPrefix stores the append-only event log.
+	// Key: event/{org_id}/{epoch}/{fingerprint_hex} — append-only event log, RECALL-PIVOT-SPEC §3.
+	EventPrefix = "event/"
+	// EventFingerprintPrefix stores the event dedup presence index.
+	EventFingerprintPrefix = "eventfp/"
+	// PolicyAnchorPrefix stores policy anchors by version.
+	// Key: policy_anchor/{policy_version}.
+	PolicyAnchorPrefix = "policy_anchor/"
+	// LatestPolicyAnchorKey stores the latest policy anchor pointer.
+	LatestPolicyAnchorKey = "policy_anchor_latest"
 )
 
 const (
@@ -22,32 +28,30 @@ const (
 )
 
 type ServeReceipt struct {
-	OrgID           string
-	ContentHash     []byte
-	ServeKey        string
-	ServeKeyPubkey  []byte
-	ContributorID   string
-	Epoch           uint64
-	Fingerprint     []byte
-	IsSelfServe     bool
-	ModelID         string
-	TurnCount       uint32
-	MatchedKeywords []string
+	OrgID          string
+	ContentHash    []byte
+	ServeKey       string
+	ServeKeyPubkey []byte
+	ContributorID  string
+	Epoch          uint64
+	Fingerprint    []byte
+	IsSelfServe    bool
+	ModelID        string
+	TurnCount      uint32
 }
 
-func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32, matchedKeywords []string) *ServeReceipt {
+func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32) *ServeReceipt {
 	return &ServeReceipt{
-		OrgID:           orgID,
-		ContentHash:     contentHash,
-		ServeKey:        serveKey,
-		ServeKeyPubkey:  serveKeyPubkey,
-		ContributorID:   contributorID,
-		Epoch:           epoch,
-		Fingerprint:     fingerprint,
-		IsSelfServe:     isSelfServe,
-		ModelID:         modelID,
-		TurnCount:       turnCount,
-		MatchedKeywords: matchedKeywords,
+		OrgID:          orgID,
+		ContentHash:    contentHash,
+		ServeKey:       serveKey,
+		ServeKeyPubkey: serveKeyPubkey,
+		ContributorID:  contributorID,
+		Epoch:          epoch,
+		Fingerprint:    fingerprint,
+		IsSelfServe:    isSelfServe,
+		ModelID:        modelID,
+		TurnCount:      turnCount,
 	}
 }
 
@@ -135,7 +139,6 @@ func ServeReceiptToStored(sr *ServeReceipt) *StoredServeReceipt {
 		IsSelfServe:       sr.IsSelfServe,
 		ModelId:           sr.ModelID,
 		TurnCount:         sr.TurnCount,
-		MatchedKeywords:   sr.MatchedKeywords,
 		ServeKeyPubkey:    sr.ServeKeyPubkey,
 		Fingerprint:       sr.Fingerprint,
 	}
@@ -143,17 +146,16 @@ func ServeReceiptToStored(sr *ServeReceipt) *StoredServeReceipt {
 
 func StoredToServeReceipt(stored StoredServeReceipt) ServeReceipt {
 	return ServeReceipt{
-		OrgID:           stored.OrgId,
-		ContentHash:     stored.MemoryContentHash,
-		ServeKey:        hex.EncodeToString(stored.ServeKeyPubkey),
-		ServeKeyPubkey:  stored.ServeKeyPubkey,
-		ContributorID:   stored.ContributorId,
-		Epoch:           stored.Epoch,
-		Fingerprint:     stored.Fingerprint,
-		IsSelfServe:     stored.IsSelfServe,
-		ModelID:         stored.ModelId,
-		TurnCount:       stored.TurnCount,
-		MatchedKeywords: stored.MatchedKeywords,
+		OrgID:          stored.OrgId,
+		ContentHash:    stored.MemoryContentHash,
+		ServeKey:       hex.EncodeToString(stored.ServeKeyPubkey),
+		ServeKeyPubkey: stored.ServeKeyPubkey,
+		ContributorID:  stored.ContributorId,
+		Epoch:          stored.Epoch,
+		Fingerprint:    stored.Fingerprint,
+		IsSelfServe:    stored.IsSelfServe,
+		ModelID:        stored.ModelId,
+		TurnCount:      stored.TurnCount,
 	}
 }
 

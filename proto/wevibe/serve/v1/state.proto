@@ -3,6 +3,7 @@ package wevibe.serve.v1;
 
 option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
 
+// E1 serve event record (RECALL-PIVOT-SPEC §3.1).
 message StoredServeReceipt {
   string org_id = 1;
   bytes memory_content_hash = 2;
@@ -15,13 +16,14 @@ message StoredServeReceipt {
   bool is_self_serve = 7;
   string model_id = 8;
   uint32 turn_count = 9;
-  // Matched-keyword set captured from the originating serve TX.
-  // Per D-4.2 Implementation Clarifications (DMO-007).
-  repeated string matched_keywords = 10;
+  // Removed by the recall pivot — the keyword gate rejected 24/24 legitimate serves; RECALL-PIVOT-SPEC §8.2.
+  reserved 10;
+  reserved "matched_keywords";
   bytes serve_key_pubkey = 11;
   bytes fingerprint = 12;
 }
 
+// E2 block event record — serve_fingerprint is the serve_ref (RECALL-PIVOT-SPEC §3.1).
 message StoredDenialReceipt {
   string org_id = 1;
   bytes memory_hash = 2;
@@ -32,6 +34,8 @@ message StoredDenialReceipt {
   reserved "nullifier";
   bytes serve_fingerprint = 7;
   bytes serve_key_pubkey = 8;
+  // E2 contextual-suppression anchor (need-card embedding). INERT — schema slot only; population is REJECTED pending Walter's READ-disclosure ruling (RECALL-PIVOT-SPEC §4). Must be empty.
+  bytes neg_anchor = 9;
 }
 
 message StoredEpochServeStats {

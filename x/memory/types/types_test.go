@@ -281,15 +281,6 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 			}(),
 			wantErr: true,
 		},
-		{
-			name: "invalid params (grace epochs zero)",
-			msg: func() *types.MsgUpdateParams {
-				p := types.DefaultParams()
-				p.GraceEpochs = 0
-				return &types.MsgUpdateParams{Authority: "gov", Params: &p}
-			}(),
-			wantErr: true,
-		},
 	}
 
 	for _, tt := range tests {
@@ -395,7 +386,7 @@ func TestMsgReportMemory_ValidateBasic(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestPendingCommitment_Validate(t *testing.T) {
-	validKeywords := []*types.KeywordWeight{{Keyword: "kw", Weight: "1.0"}}
+	validKeywords := []string{"kw"}
 
 	tests := []struct {
 		name    string
@@ -465,24 +456,13 @@ func TestPendingCommitment_Validate(t *testing.T) {
 			wantErr: types.ErrInvalidMemoryType,
 		},
 		{
-			name: "nil keyword",
-			pc: &types.PendingCommitment{
-				OrgID:       "org1",
-				ContentHash: validHash(),
-				Contributor: "contributor",
-				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
-				Keywords:    []*types.KeywordWeight{nil},
-			},
-			wantErr: types.ErrInvalidKeyword,
-		},
-		{
 			name: "empty keyword string",
 			pc: &types.PendingCommitment{
 				OrgID:       "org1",
 				ContentHash: validHash(),
 				Contributor: "contributor",
 				MemoryType:  types.MemoryType_MEMORY_TYPE_MEMORY,
-				Keywords:    []*types.KeywordWeight{{Keyword: ""}},
+				Keywords:    []string{""},
 			},
 			wantErr: types.ErrInvalidKeyword,
 		},
@@ -501,7 +481,7 @@ func TestPendingCommitment_Validate(t *testing.T) {
 // -----------------------------------------------------------------------------
 
 func TestMemoryCommitment_Validate(t *testing.T) {
-	validKeywords := []*types.KeywordWeight{{Keyword: "kw", Weight: "1.0"}}
+	validKeywords := []string{"kw"}
 
 	tests := []struct {
 		name    string
@@ -576,18 +556,6 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 			wantErr: types.ErrInvalidMemoryType,
 		},
 		{
-			name: "nil keyword entry",
-			mc: &types.MemoryCommitment{
-				OrgID:         "org1",
-				ContentHash:   validHash(),
-				EncryptedBlob: []byte("blob"),
-				Contributor:   "contributor",
-				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
-				Keywords:      []*types.KeywordWeight{nil},
-			},
-			wantErr: types.ErrInvalidKeyword,
-		},
-		{
 			name: "empty keyword string",
 			mc: &types.MemoryCommitment{
 				OrgID:         "org1",
@@ -595,7 +563,7 @@ func TestMemoryCommitment_Validate(t *testing.T) {
 				EncryptedBlob: []byte("blob"),
 				Contributor:   "contributor",
 				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
-				Keywords:      []*types.KeywordWeight{{Keyword: ""}},
+				Keywords:      []string{""},
 			},
 			wantErr: types.ErrInvalidKeyword,
 		},
@@ -622,147 +590,11 @@ func TestDefaultParams_Valid(t *testing.T) {
 	require.Equal(t, uint64(7), p.PendingRetentionEpochs)
 	require.Equal(t, uint64(1048576), p.MaxBlobSizeBytes)
 	require.Equal(t, uint32(20), p.MaxKeywordsPerMemory)
-	require.Equal(t, types.DefaultRetrievalThresholdBps, p.RetrievalThresholdBps)
-	require.Equal(t, types.DefaultGraceEpochs, p.GraceEpochs)
-	require.Equal(t, types.DefaultIdleTrafficRefBps, p.IdleTrafficRefBpsPerMem)
-	require.Equal(t, types.DefaultIdleTrafficFloorBps, p.IdleTrafficFloorBps)
-	require.Equal(t, types.DefaultTrustMinServes, p.TrustMinServes)
-	require.Equal(t, types.DefaultTrustMaxRateBps, p.TrustMaxRateBps)
+	require.Equal(t, uint64(10), p.ContestWindowEpochs)
 }
 
 func TestParams_Validate(t *testing.T) {
-	tests := []struct {
-		name    string
-		mutate  func(p *types.Params)
-		wantErr bool
-	}{
-		{
-			name:    "default valid",
-			mutate:  func(p *types.Params) {},
-			wantErr: false,
-		},
-		{
-			name:    "grace epochs zero",
-			mutate:  func(p *types.Params) { p.GraceEpochs = 0 },
-			wantErr: true,
-		},
-		{
-			name:    "grace epochs one is boundary ok",
-			mutate:  func(p *types.Params) { p.GraceEpochs = 1 },
-			wantErr: false,
-		},
-		{
-			name:    "trust min serves zero",
-			mutate:  func(p *types.Params) { p.TrustMinServes = 0 },
-			wantErr: true,
-		},
-		{
-			name:    "trust min serves one is boundary ok",
-			mutate:  func(p *types.Params) { p.TrustMinServes = 1 },
-			wantErr: false,
-		},
-		{
-			name:    "retrieval threshold over 10000",
-			mutate:  func(p *types.Params) { p.RetrievalThresholdBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "retrieval threshold at 10000 boundary ok",
-			mutate:  func(p *types.Params) { p.RetrievalThresholdBps = 10000 },
-			wantErr: false,
-		},
-		{
-			name:    "initial confidence over 10000",
-			mutate:  func(p *types.Params) { p.InitialConfidenceBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "serve d bps over 10000",
-			mutate:  func(p *types.Params) { p.ServeDBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "denial d bps over 10000",
-			mutate:  func(p *types.Params) { p.DenialDBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle d bps over 10000",
-			mutate:  func(p *types.Params) { p.IdleDBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "serve floor bps over 10000",
-			mutate:  func(p *types.Params) { p.ServeFloorBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "denial floor bps over 10000",
-			mutate:  func(p *types.Params) { p.DenialFloorBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle protect bps over 10000",
-			mutate:  func(p *types.Params) { p.IdleProtectBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle untrusted bps over 10000",
-			mutate:  func(p *types.Params) { p.IdleUntrustedBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle traffic ref bps over 10000",
-			mutate:  func(p *types.Params) { p.IdleTrafficRefBpsPerMem = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle traffic floor bps over 10000",
-			mutate:  func(p *types.Params) { p.IdleTrafficFloorBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name:    "idle traffic ref bps zero",
-			mutate:  func(p *types.Params) { p.IdleTrafficRefBpsPerMem = 0 },
-			wantErr: true,
-		},
-		{
-			name:    "trust max rate bps over 10000",
-			mutate:  func(p *types.Params) { p.TrustMaxRateBps = 10001 },
-			wantErr: true,
-		},
-		{
-			name: "all bps at zero with min epochs ok",
-			mutate: func(p *types.Params) {
-				p.RetrievalThresholdBps = 0
-				p.InitialConfidenceBps = 0
-				p.ServeDBps = 0
-				p.DenialDBps = 0
-				p.IdleDBps = 0
-				p.ServeFloorBps = 0
-				p.DenialFloorBps = 0
-				p.IdleProtectBps = 0
-				p.IdleUntrustedBps = 0
-				p.IdleTrafficRefBpsPerMem = 1
-				p.IdleTrafficFloorBps = 0
-				p.TrustMaxRateBps = 0
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			p := types.DefaultParams()
-			tt.mutate(&p)
-			err := p.Validate()
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	require.NoError(t, types.DefaultParams().Validate())
 }
 
 // -----------------------------------------------------------------------------
@@ -788,7 +620,7 @@ func TestRelationAliases(t *testing.T) {
 
 func TestNewPendingCommitment(t *testing.T) {
 	hash := validHash()
-	kws := []*types.KeywordWeight{{Keyword: "kw", Weight: "1.0"}}
+	kws := []string{"kw"}
 	pc := types.NewPendingCommitment("org1", hash, kws, "contributor", 3, 42, types.MemoryType_MEMORY_TYPE_MEMORY)
 
 	require.Equal(t, "org1", pc.OrgID)
@@ -803,7 +635,7 @@ func TestNewPendingCommitment(t *testing.T) {
 func TestNewMemoryCommitment(t *testing.T) {
 	hash := validHash()
 	blob := []byte("blob")
-	kws := []*types.KeywordWeight{{Keyword: "kw", Weight: "1.0"}}
+	kws := []string{"kw"}
 	mc := types.NewMemoryCommitment(
 		"org1", hash, blob, kws, "contributor", 5, 100, "leader",
 		types.MemoryState_MEMORY_STATE_COMMITTED, 5,

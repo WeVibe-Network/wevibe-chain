@@ -44,7 +44,7 @@ func DeriveProvenanceStatus(producerModelID string, attestationSessionHash []byt
 type PendingCommitment struct {
 	OrgID                  string
 	ContentHash            []byte
-	Keywords               []*KeywordWeight
+	Keywords               []string
 	Contributor            string
 	ContributorAddress     string
 	ProducerModelId        string
@@ -55,7 +55,7 @@ type PendingCommitment struct {
 	McVersion              uint32
 }
 
-func NewPendingCommitment(orgID string, contentHash []byte, keywords []*KeywordWeight, contributor string, epoch, submittedAt uint64, memoryType MemoryType) *PendingCommitment {
+func NewPendingCommitment(orgID string, contentHash []byte, keywords []string, contributor string, epoch, submittedAt uint64, memoryType MemoryType) *PendingCommitment {
 	return &PendingCommitment{
 		OrgID:       orgID,
 		ContentHash: contentHash,
@@ -81,7 +81,7 @@ func (pc *PendingCommitment) Validate() error {
 		return ErrInvalidMemoryType
 	}
 	for _, kw := range pc.Keywords {
-		if kw == nil || kw.Keyword == "" {
+		if kw == "" {
 			return ErrInvalidKeyword
 		}
 	}
@@ -92,7 +92,7 @@ type MemoryCommitment struct {
 	OrgID                  string
 	ContentHash            []byte
 	EncryptedBlob          []byte
-	Keywords               []*KeywordWeight
+	Keywords               []string
 	Contributor            string
 	ContributorAddress     string
 	ProducerModelId        string
@@ -110,9 +110,6 @@ type MemoryCommitment struct {
 	ContributorSig         []byte
 	MemoryType             MemoryType
 	ApprovedAtEpoch        uint64
-	ServeCountTotal        uint64
-	DenialCountTotal       uint64
-	ArchivedEpoch          uint64
 	McVersion              uint32
 }
 
@@ -123,7 +120,7 @@ func (mc *MemoryCommitment) ProvenanceStatus() ProvenanceStatus {
 	return DeriveProvenanceStatus(mc.ProducerModelId, mc.AttestationSessionHash)
 }
 
-func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []*KeywordWeight, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
+func NewMemoryCommitment(orgID string, contentHash, encryptedBlob []byte, keywords []string, contributor string, epoch, committedAtHeight uint64, committingLeader string, state MemoryState, lastActiveEpoch uint64, memoryType MemoryType, approvedAtEpoch uint64) *MemoryCommitment {
 	return &MemoryCommitment{
 		OrgID:             orgID,
 		ContentHash:       contentHash,
@@ -157,7 +154,7 @@ func (mc *MemoryCommitment) Validate() error {
 		return ErrInvalidMemoryType
 	}
 	for _, kw := range mc.Keywords {
-		if kw == nil || kw.Keyword == "" {
+		if kw == "" {
 			return ErrInvalidKeyword
 		}
 	}

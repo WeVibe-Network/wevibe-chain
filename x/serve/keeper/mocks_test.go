@@ -48,12 +48,6 @@ type mockMemoryKeeper struct {
 	validEpoch map[string]bool
 	// validErr forces IsValidInEpoch to error.
 	validErr error
-	// boostCalls / decayCalls record side-effect invocations.
-	boostCalls int
-	decayCalls int
-	// boostErr / decayErr force the boost/decay side effects to fail (non-fatal path).
-	boostErr error
-	decayErr error
 }
 
 func newMockMemoryKeeper() *mockMemoryKeeper {
@@ -96,16 +90,6 @@ func (m *mockMemoryKeeper) IsValidInEpoch(ctx context.Context, orgID string, cid
 	// Default: valid if the memory is approved.
 	_, ok := m.approved[memKey(orgID, cid)]
 	return ok, nil
-}
-
-func (m *mockMemoryKeeper) ApplyServeBoost(ctx context.Context, orgID string, contentHash []byte, epoch uint64) error {
-	m.boostCalls++
-	return m.boostErr
-}
-
-func (m *mockMemoryKeeper) ApplyDenialDecay(ctx context.Context, orgID string, contentHash []byte, epoch uint64) error {
-	m.decayCalls++
-	return m.decayErr
 }
 
 // mockBandwidthKeeper implements types.BandwidthKeeper.

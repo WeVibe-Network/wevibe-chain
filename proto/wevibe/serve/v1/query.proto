@@ -4,6 +4,7 @@ package wevibe.serve.v1;
 option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
 
 import "google/api/annotations.proto";
+import "wevibe/serve/v1/event.proto";
 import "wevibe/serve/v1/params.proto";
 import "wevibe/serve/v1/state.proto";
 
@@ -16,6 +17,15 @@ service Query {
   }
   rpc GetMemoryServeCount(QueryGetMemoryServeCountRequest) returns (QueryGetMemoryServeCountResponse) {
     option (google.api.http).get = "/wevibe/serve/v1/memory/{org_id}/{content_hash}/{epoch}";
+  }
+  rpc ListEvents(QueryListEventsRequest) returns (QueryListEventsResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/events/{org_id}/{epoch}";
+  }
+  rpc GetPolicyAnchor(QueryGetPolicyAnchorRequest) returns (QueryGetPolicyAnchorResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/policy_anchor/{policy_version}";
+  }
+  rpc GetLatestPolicyAnchor(QueryGetLatestPolicyAnchorRequest) returns (QueryGetLatestPolicyAnchorResponse) {
+    option (google.api.http).get = "/wevibe/serve/v1/policy_anchor_latest";
   }
   rpc Params(QueryParamsRequest) returns (QueryParamsResponse) {
     option (google.api.http).get = "/wevibe/serve/v1/params";
@@ -48,6 +58,31 @@ message QueryGetMemoryServeCountRequest {
 
 message QueryGetMemoryServeCountResponse {
   uint64 count = 1;
+}
+
+message QueryListEventsRequest {
+  string org_id = 1;
+  uint64 epoch = 2;
+}
+
+message QueryListEventsResponse {
+  repeated StoredEvent events = 1;
+}
+
+message QueryGetPolicyAnchorRequest {
+  string policy_version = 1;
+}
+
+message QueryGetPolicyAnchorResponse {
+  StoredPolicyAnchor anchor = 1;
+  bool found = 2;
+}
+
+message QueryGetLatestPolicyAnchorRequest {}
+
+message QueryGetLatestPolicyAnchorResponse {
+  StoredPolicyAnchor anchor = 1;
+  bool found = 2;
 }
 
 message QueryParamsRequest {}

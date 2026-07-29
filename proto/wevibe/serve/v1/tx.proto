@@ -4,12 +4,15 @@ package wevibe.serve.v1;
 option go_package = "github.com/wevibe-network/wevibe-chain/x/serve/types";
 
 import "cosmos/msg/v1/msg.proto";
+import "wevibe/serve/v1/event.proto";
 import "wevibe/serve/v1/params.proto";
 
 service Msg {
   option (cosmos.msg.v1.service) = true;
   rpc SubmitServeBatch(MsgSubmitServeBatch) returns (MsgSubmitServeBatchResponse);
   rpc SubmitDenialBatch(MsgSubmitDenialBatch) returns (MsgSubmitDenialBatchResponse);
+  rpc SubmitEventBatch(MsgSubmitEventBatch) returns (MsgSubmitEventBatchResponse);
+  rpc AnchorPolicyVersion(MsgAnchorPolicyVersion) returns (MsgAnchorPolicyVersionResponse);
   rpc UpdateParams(MsgUpdateParams) returns (MsgUpdateParamsResponse);
 }
 
@@ -23,10 +26,9 @@ message ServeEntry {
   string model_id = 5;
   uint32 turn_count = 6;
   string contributor_wallet = 7;
-  // Matched-keyword set for this serve event - the intersection of the
-  // memory's keywords and the query's keyword set. Required, non-empty.
-  // Per D-4.2 Implementation Clarifications (DMO-007).
-  repeated string matched_keywords = 8;
+  // Removed by the recall pivot — the keyword gate rejected 24/24 legitimate serves; RECALL-PIVOT-SPEC §8.2.
+  reserved 8;
+  reserved "matched_keywords";
   bytes serve_key_pubkey = 9;
   bytes serve_sig = 10;
   bytes nonce = 11;
@@ -57,7 +59,32 @@ message DenialEntry {
   bytes serve_sig = 6;
   bytes serve_fingerprint = 7;
   bytes nonce = 8;
+  // E2 contextual-suppression anchor (need-card embedding). INERT — schema slot only; population is REJECTED pending Walter's READ-disclosure ruling (RECALL-PIVOT-SPEC §4). Must be empty.
+  bytes neg_anchor = 9;
 }
+
+message MsgSubmitEventBatch {
+  option (cosmos.msg.v1.signer) = "signer";
+  string signer = 1;
+  string org_id = 2;
+  uint64 epoch = 3;
+  repeated EventEntry events = 4;
+}
+
+message MsgSubmitEventBatchResponse {
+  uint64 accepted = 1;
+  uint64 rejected_duplicate = 2;
+  uint64 rejected_invalid = 3;
+}
+
+message MsgAnchorPolicyVersion {
+  option (cosmos.msg.v1.signer) = "authority";
+  string authority = 1;
+  string policy_version = 2;
+  bytes policy_hash = 3;
+}
+
+message MsgAnchorPolicyVersionResponse {}
 
 message MsgSubmitDenialBatch {
   option (cosmos.msg.v1.signer) = "signer";

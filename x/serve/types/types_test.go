@@ -1,6 +1,8 @@
 package types_test
 
 import (
+	"crypto/sha256"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -39,7 +41,6 @@ func validServeEntry() *types.ServeEntry {
 		ServeSig:          sig64(0x20),
 		ContributorId:     "contrib",
 		Nonce:             []byte{0x01},
-		MatchedKeywords:   []string{"alpha"},
 	}
 }
 
@@ -63,8 +64,6 @@ func TestMsgSubmitServeBatch_ValidateBasic(t *testing.T) {
 		{"short serve pubkey", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeKeyPubkey = []byte{1} }},
 		{"short serve signature", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeSig = []byte{1} }},
 		{"empty contributor", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ContributorId = "" }},
-		{"nil matched keywords", func(m *types.MsgSubmitServeBatch) { m.Serves[0].MatchedKeywords = nil }},
-		{"empty keyword string", func(m *types.MsgSubmitServeBatch) { m.Serves[0].MatchedKeywords = []string{""} }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -76,6 +75,113 @@ func TestMsgSubmitServeBatch_ValidateBasic(t *testing.T) {
 			require.Error(t, msg.ValidateBasic())
 		})
 	}
+}
+
+func hexRepeat(b byte, count int) string {
+	return strings.Repeat(string([]byte{hexDigit(b >> 4), hexDigit(b & 0x0f)}), count)
+}
+
+func hexDigit(n byte) byte {
+	if n < 10 {
+		return '0' + n
+	}
+	return 'a' + (n - 10)
+}
+
+func validOutcomeEvent() *types.EventEntry {
+	return &types.EventEntry{
+		EventType:         types.EventType_EVENT_TYPE_OUTCOME,
+		MemoryContentHash: hash32(0x01),
+		SignerPubkey:      hash32(0x02),
+		Nonce:             []byte{0x03},
+		Signature:         sig64(0x04),
+		Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
+			EpisodeRef:  []byte{0x10},
+			Worked:      true,
+			EvidenceRef: []byte{0x11},
+		}},
+	}
+}
+
+func TestCanonicalServeBodyV2_GoldenVector(t *testing.T) {
+	body := string(types.CanonicalServeBody("org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}))
+	expected := "wevibe-serve-v2\n" +
+		"org-a\n" +
+		hexRepeat(0x01, 32) + "\n" +
+		"7\n" +
+		hexRepeat(0x02, 32) + "\n" +
+		"0304"
+	require.Equal(t, expected, body)
+	require.True(t, strings.HasPrefix(body, "wevibe-serve-v2"))
+	require.NotContains(t, body, ",")
+	require.Equal(t, 5, strings.Count(body, "\n"))
+}
+
+func TestCanonicalEventBody_GoldenVectors(t *testing.T) {
+	memory := hash32(0x01)
+	pubkey := hash32(0x02)
+	nonce := []byte{0x03, 0x04}
+
+	tests := []struct {
+		name      string
+		eventType types.EventType
+		entry     *types.EventEntry
+		expected  string
+	}{
+		{
+			name:      "outcome",
+			eventType: types.EventType_EVENT_TYPE_OUTCOME,
+			entry: &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
+				EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12},
+			}}},
+			expected: "wevibe-event-v1\noutcome\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n1011\nworked=true\n12\n0304",
+		},
+		{
+			name:      "validity predicate",
+			eventType: types.EventType_EVENT_TYPE_VALIDITY_PREDICATE,
+			entry: &types.EventEntry{Body: &types.EventEntry_ValidityPredicate{ValidityPredicate: &types.ValidityPredicateEventBody{
+				PredicateId: []byte{0x20}, Result: types.PredicateResult_PREDICATE_RESULT_ABSENT, EvidenceRef: []byte{0x21, 0x22},
+			}}},
+			expected: "wevibe-event-v1\nvalidity_predicate\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n20\nresult=absent\n2122\n0304",
+		},
+		{
+			name:      "cost to discover",
+			eventType: types.EventType_EVENT_TYPE_COST_TO_DISCOVER,
+			entry: &types.EventEntry{Body: &types.EventEntry_CostToDiscover{CostToDiscover: &types.CostToDiscoverEventBody{
+				Cycles: 5, ToolCalls: 6, AttemptsToGreen: 7, EvidenceRef: []byte{0x30},
+			}}},
+			expected: "wevibe-event-v1\ncost_to_discover\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\ncycles=5\ntool_calls=6\nattempts_to_green=7\n30\n0304",
+		},
+		{
+			name:      "convergence",
+			eventType: types.EventType_EVENT_TYPE_CONVERGENCE,
+			entry: &types.EventEntry{Body: &types.EventEntry_Convergence{Convergence: &types.ConvergenceEventBody{
+				ConvergenceRef: []byte{0x40, 0x41},
+			}}},
+			expected: "wevibe-event-v1\nconvergence\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n4041\n0304",
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			body, err := types.CanonicalEventBody(tc.eventType, "org-a", memory, 7, pubkey, nonce, tc.entry)
+			require.NoError(t, err)
+			require.Equal(t, tc.expected, string(body))
+		})
+	}
+
+	_, err := types.CanonicalEventBody(types.EventType_EVENT_TYPE_CONTEST, "org-a", memory, 7, pubkey, nonce, &types.EventEntry{})
+	require.Error(t, err)
+	_, err = types.CanonicalEventBody(types.EventType_EVENT_TYPE_OUTCOME, "org-a", memory, 7, pubkey, nonce, &types.EventEntry{Body: &types.EventEntry_Convergence{Convergence: &types.ConvergenceEventBody{}}})
+	require.Error(t, err)
+	_, err = types.CanonicalEventBody(types.EventType_EVENT_TYPE_VALIDITY_PREDICATE, "org-a", memory, 7, pubkey, nonce, &types.EventEntry{Body: &types.EventEntry_ValidityPredicate{ValidityPredicate: &types.ValidityPredicateEventBody{}}})
+	require.Error(t, err)
+}
+
+func TestComputeEventFingerprint(t *testing.T) {
+	body := []byte("event-body")
+	expected := sha256.Sum256(body)
+	require.Equal(t, expected[:], types.ComputeEventFingerprint(body))
 }
 
 func TestMsgSubmitDenialBatch_ValidateBasic(t *testing.T) {
@@ -113,13 +219,68 @@ func TestMsgSubmitDenialBatch_ValidateBasic(t *testing.T) {
 	}
 }
 
+func TestMsgSubmitDenialBatch_NegAnchorInert(t *testing.T) {
+	msg := &types.MsgSubmitDenialBatch{
+		Signer: "s", OrgId: "org", Epoch: 1,
+		Entries: []*types.DenialEntry{{
+			MemoryHash:       hash32(0x02),
+			ServeKeyPubkey:   hash32(0x03),
+			ServeSig:         sig64(0x04),
+			ServeFingerprint: fingerprint32(0x05),
+			NegAnchor:        []byte{0x01},
+		}},
+	}
+	require.Error(t, msg.ValidateBasic())
+}
+
+func TestMsgSubmitEventBatch_ValidateBasic(t *testing.T) {
+	validMsg := func() *types.MsgSubmitEventBatch {
+		return &types.MsgSubmitEventBatch{
+			Signer: "s", OrgId: "org", Epoch: 1,
+			Events: []*types.EventEntry{validOutcomeEvent()},
+		}
+	}
+	require.NoError(t, validMsg().ValidateBasic())
+
+	cases := []struct {
+		name   string
+		mutate func(*types.MsgSubmitEventBatch)
+	}{
+		{"parked contest", func(m *types.MsgSubmitEventBatch) { m.Events[0].EventType = types.EventType_EVENT_TYPE_CONTEST }},
+		{"parked sponsorship", func(m *types.MsgSubmitEventBatch) { m.Events[0].EventType = types.EventType_EVENT_TYPE_SPONSORSHIP }},
+		{"serve receipt path", func(m *types.MsgSubmitEventBatch) { m.Events[0].EventType = types.EventType_EVENT_TYPE_SERVE }},
+		{"block receipt path", func(m *types.MsgSubmitEventBatch) { m.Events[0].EventType = types.EventType_EVENT_TYPE_BLOCK }},
+		{"oversize episode ref", func(m *types.MsgSubmitEventBatch) { m.Events[0].GetOutcome().EpisodeRef = make([]byte, 65) }},
+		{"bad hash len", func(m *types.MsgSubmitEventBatch) { m.Events[0].MemoryContentHash = []byte{1} }},
+		{"bad pubkey len", func(m *types.MsgSubmitEventBatch) { m.Events[0].SignerPubkey = []byte{1} }},
+		{"bad sig len", func(m *types.MsgSubmitEventBatch) { m.Events[0].Signature = []byte{1} }},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := validMsg()
+			tc.mutate(msg)
+			require.Error(t, msg.ValidateBasic())
+		})
+	}
+}
+
+func TestMsgAnchorPolicyVersion_ValidateBasic(t *testing.T) {
+	valid := &types.MsgAnchorPolicyVersion{Authority: "gov", PolicyVersion: "v1", PolicyHash: hash32(0x01)}
+	require.NoError(t, valid.ValidateBasic())
+	require.Error(t, (&types.MsgAnchorPolicyVersion{PolicyVersion: "v1", PolicyHash: hash32(0x01)}).ValidateBasic())
+	require.Error(t, (&types.MsgAnchorPolicyVersion{Authority: "gov", PolicyHash: hash32(0x01)}).ValidateBasic())
+	require.Error(t, (&types.MsgAnchorPolicyVersion{Authority: "gov", PolicyVersion: strings.Repeat("a", 129), PolicyHash: hash32(0x01)}).ValidateBasic())
+	require.Error(t, (&types.MsgAnchorPolicyVersion{Authority: "gov", PolicyVersion: "v1", PolicyHash: []byte{1}}).ValidateBasic())
+}
+
 func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 	require.NoError(t, (&types.MsgUpdateParams{Authority: "gov"}).ValidateBasic())
 	require.Error(t, (&types.MsgUpdateParams{Authority: ""}).ValidateBasic())
 }
 
 func TestServeReceipt_Validate(t *testing.T) {
-	valid := types.NewServeReceipt("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2, []string{"k"})
+	valid := types.NewServeReceipt("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2)
 	require.NoError(t, valid.Validate())
 
 	require.Error(t, (&types.ServeReceipt{}).Validate())                                   // empty org
@@ -139,13 +300,12 @@ func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
 }
 
 func TestServeReceipt_StoredRoundtrip(t *testing.T) {
-	sr := types.NewServeReceipt("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3, []string{"x", "y"})
+	sr := types.NewServeReceipt("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3)
 	stored := types.ServeReceiptToStored(sr)
 	back := types.StoredToServeReceipt(*stored)
 	require.Equal(t, sr.OrgID, back.OrgID)
 	require.Equal(t, sr.ContentHash, back.ContentHash)
 	require.Equal(t, sr.IsSelfServe, back.IsSelfServe)
-	require.Equal(t, sr.MatchedKeywords, back.MatchedKeywords)
 	require.Equal(t, sr.ServeKeyPubkey, back.ServeKeyPubkey)
 	require.Equal(t, sr.Fingerprint, back.Fingerprint)
 }
@@ -190,8 +350,8 @@ func TestContentHashToHex(t *testing.T) {
 
 func TestGenesisJSONRoundtrip(t *testing.T) {
 	gs := types.NewGenesisState(
-		[]*types.ServeReceipt{types.NewServeReceipt("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1, []string{"k"})},
-		nil, nil, nil,
+		[]*types.ServeReceipt{types.NewServeReceipt("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1)},
+		nil, nil, nil, nil, nil,
 	)
 	bz, err := gs.MarshalJSON()
 	require.NoError(t, err)

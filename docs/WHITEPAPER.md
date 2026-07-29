@@ -5,7 +5,7 @@
 
 ## Abstract
 
-WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's encrypted organizational memory system. It extends beyond static data storage to provide retrieval confidence scoring with automatic decay, rich lifecycle state transitions, semantic memory relationships, validity metadata with automatic expiry, stake-backed economic dispute resolution, and epoch-driven emissions. These mechanisms ensure knowledge used by AI agents decays when idle, deprecates when superseded, and can be challenged when incorrect—without requiring network forks.
+WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's encrypted organizational memory system. It stores encrypted approved memories, append-only recall-pivot events, policy-version hash anchors, semantic memory relationships, validity metadata with automatic expiry, stake-backed economic dispute resolution, and epoch-driven emissions. Recall standing is computed at the edge as `f(events, policy_version)`; consensus stores facts and anchors, never verdicts or derived scores.
 
 ---
 
@@ -14,7 +14,7 @@ WeVibe Chain is the sovereign Cosmos SDK application anchoring WeVibe Network's 
 | Goal | Mechanism | Anti-Gaming |
 |------|-----------|-------------|
 | **Encrypted availability** | On-chain ciphertext storage with per-epoch Merkle roots for data availability proofs | blob size limits prevent storage griefing |
-| **Retrieval pressure** | Automatic confidence decay when no serves, recovery via serve receipts | per-memory serve caps, self-serve detection with reduced XP |
+| **Retrieval provenance** | Consumer-signed event log plus anchored edge-policy versions | immutable content-free events; no on-chain verdicts or derived scores |
 | **Authoritative curation** | Leader/moderator approvals, relationship effects, manual archival | leader-only rejections prevent arbitrary removal |
 | **Dispute resolution** | Stake-backed contests with escrow/burn mechanics | contest stake prevents frivolous challenges |
 | **Composable economics** | Bandwidth throttling, reputation tracking, epoch payouts via emissions | treasury sufficiency checks prevent negative balances |
@@ -75,7 +75,7 @@ Treasury balances are mirrored as `StoredTreasury` in the `treasury/{org}` KV pr
 
 ---
 
-## 3. Memory Module: Lifecycle & Confidence
+## 3. Memory Module: Lifecycle & Recall Provenance
 
 ### 3.1 Memory States
 
@@ -113,20 +113,13 @@ PENDING ──────────► APPROVED
 | `ARCHIVED` | Manual, upheld contest, or expiry | No | Not recalled |
 | `REJECTED` | `MsgRejectMemory` | No | Not stored |
 
-### 3.2 Retrieval Confidence Mechanics
+### 3.2 Recall Provenance Mechanics
 
-Confidence is stored as basis points (0–10,000). At epoch end, `ApplyEpochDecay` adjusts:
+The recall pivot moved standing out of consensus. The chain stores immutable, append-only, content-free, consumer-signed events and governance-anchored edge-policy hashes. Edge consumers compute standing as `f(events, policy_version)`.
 
-```
-Per serve:           +100 bps (configurable via org decay_rate_bps)
-No serves in epoch:  −max(org.decay_rate_bps, min_retrieval_decay_bps)
-```
+**Boundary rule:** events are never verdicts and must not carry weights, standing, scores, trust values, archive flags, plaintext, ciphertext, or other content.
 
-**Why per-serve increment?** Each serve indicates the memory was actually used by an AI agent. Frequent usage should increase prominence.
-
-**Why no-serve decay?** Memories that aren't being retrieved become stale. The decay incentivizes organizations to surface useful knowledge.
-
-**Self-serve discount:** When `serve_key == contributor_id`, the serve counts at 50% for reputation purposes (configurable via `self_serve_discount_percent` in serve params). This prevents contributors from inflating their own confidence scores.
+**Policy anchoring:** `StoredPolicyAnchor` records the policy version and hash. The hash proves which published edge policy a consumer used; it does not itself rank or hide memories.
 
 ### 3.3 Per-Memory Serve Cap
 
@@ -435,17 +428,16 @@ Currently returns `(false, "unverified: ...")`:
 │    - ProcessOrgPayouts (debit treasuries)                   │
 ├─────────────────────────────────────────────────────────────┤
 │ 2. MemoryKeeper.AfterEpochEnd                               │
-│    - ApplyEpochDecay (confidence adjustments)               │
-│    - CheckEpochExpiry (archive expired memories)            │
-│    - CheckContestExpiry (auto-reject stale contests)        │
+│    - Set current epoch                                      │
+│    - CheckEpochExpiry (validity-window expiry)              │
 │    - ComputeEpochMerkleRoot                                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
 **Why emissions before memory?**
-- Payout debits happen before decay calculations
+- Payout debits happen before memory epoch maintenance
 - Treasury debits are atomic with minting
-- Merkle root reflects post-decay state
+- Merkle root reflects the approved-memory set after epoch maintenance
 
 ### 11.3 Merkle Root Computation
 
@@ -653,11 +645,6 @@ AfterEpochEnd (Emissions)
 | `pending_retention_epochs` | 30 | Auto-purge window |
 | `max_blob_size_bytes` | 1,048,576 | 1 MiB blob limit |
 | `max_keywords_per_memory` | 10 | Keyword cap |
-| `min_retrieval_decay_bps` | 10 | Minimum no-serve decay |
-| `stable_threshold_bps` | 8,000 | STABLE threshold |
-| `degraded_threshold_bps` | 5,000 | DEGRADED threshold |
-| `dormant_threshold_bps` | 2,000 | DORMANT threshold |
-| `initial_confidence_bps` | 10,000 | Starting confidence |
 | `contest_window_epochs` | 14 | Auto-reject contests |
 
 ### 15.3 Serve Module
@@ -758,20 +745,16 @@ Extended to accept new state objects:
 ### 18.2 Why Epoch-Driven?
 
 Time-based logic tied to `wevibe_epoch`:
-- Memory decay per-epoch
+- Memory validity maintenance per epoch
 - Emissions mint per-epoch
 - Bandwidth resets per-epoch
 - Merkle roots per-epoch
 
 This allows the entire system to advance atomically without block-level complexity.
 
-### 18.3 Why Confidence in Basis Points?
+### 18.3 Why Edge-Computed Recall Standing?
 
-Integer arithmetic avoids floating-point inconsistency:
-- `retrieval_confidence_bps` is 0–10,000
-- Decay rates in basis points
-- Thresholds in basis points
-- All arithmetic is integer, deterministic across implementations
+Recall quality changes faster than consensus rules. The chain therefore stores signed facts and anchors policy hashes while edge consumers compute standing from those facts. This preserves auditability without baking mutable ranking policy into consensus.
 
 ### 18.4 Why Decimal String for Treasury?
 

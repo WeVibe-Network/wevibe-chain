@@ -6,13 +6,13 @@ import (
 	"crypto/ed25519"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"fmt"
 
 	"cosmossdk.io/core/store"
 	"cosmossdk.io/log"
 	storetypes "cosmossdk.io/store/types"
 
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/gogoproto/proto"
 	"github.com/wevibe-network/wevibe-chain/x/serve/types"
 )
@@ -75,6 +75,28 @@ func denialReceiptPrefix(orgID string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("denial/%s/%d/", orgID, epoch))
 }
 
+// eventKey stores the immutable recall-pivot event log entry.
+// Layout: event/{org_id}/{epoch}/{fingerprint_hex} -> StoredEvent.
+func eventKey(orgID string, epoch uint64, fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("%s%s/%d/%s", types.EventPrefix, orgID, epoch, types.ContentHashToHex(fingerprint)))
+}
+
+func eventPrefix(orgID string, epoch uint64) []byte {
+	return []byte(fmt.Sprintf("%s%s/%d/", types.EventPrefix, orgID, epoch))
+}
+
+// eventFingerprintKey stores global event dedup presence.
+// Layout: eventfp/{fingerprint_hex} -> 0x01.
+func eventFingerprintKey(fingerprint []byte) []byte {
+	return []byte(fmt.Sprintf("%s%s", types.EventFingerprintPrefix, types.ContentHashToHex(fingerprint)))
+}
+
+// policyAnchorKey stores policy anchors by published edge-policy version.
+// Layout: policy_anchor/{policy_version} -> StoredPolicyAnchor.
+func policyAnchorKey(policyVersion string) []byte {
+	return []byte(fmt.Sprintf("%s%s", types.PolicyAnchorPrefix, policyVersion))
+}
+
 func statsKey(orgID string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("stats/%s/%d", orgID, epoch))
 }
@@ -97,17 +119,6 @@ func memFirstKey(orgID string, contentHash []byte, epoch uint64) []byte {
 
 func keyFirstKey(orgID string, serveKey string, epoch uint64) []byte {
 	return []byte(fmt.Sprintf("keyfirst/%s/%s/%d", orgID, serveKey, epoch))
-}
-
-func matchedKeywordPrefix(orgID, cidHex string, epoch uint64) []byte {
-	return []byte(fmt.Sprintf("%s%s/%s/%d/", types.MatchedKeywordsPrefix, orgID, cidHex, epoch))
-}
-
-func extractKeywordFromKey(key, prefix []byte) string {
-	if !bytes.HasPrefix(key, prefix) {
-		return ""
-	}
-	return string(key[len(prefix):])
 }
 
 const ParamsKey = "params"
@@ -217,7 +228,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 			continue
 		}
 
-		canonicalBody := types.CanonicalServeBody(orgID, serve.MemoryContentHash, epoch, serve.ServeKeyPubkey, serve.MatchedKeywords, serve.Nonce)
+		canonicalBody := types.CanonicalServeBody(orgID, serve.MemoryContentHash, epoch, serve.ServeKeyPubkey, serve.Nonce)
 		if !ed25519.Verify(ed25519.PublicKey(serve.ServeKeyPubkey), canonicalBody, serve.ServeSig) {
 			rejectedInvalid++
 			continue
@@ -256,7 +267,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		store := k.getStore(ctx)
 
-		receipt := types.NewServeReceipt(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount, serve.MatchedKeywords)
+		receipt := types.NewServeReceipt(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount)
 		receiptBz, err := proto.Marshal(types.ServeReceiptToStored(receipt))
 		if err != nil {
 			return 0, 0, 0, fmt.Errorf("marshal receipt: %w", err)
@@ -265,10 +276,6 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 		store.Set(receiptStoreKey, receiptBz)
 		store.Set(serveFingerprintKey(serveFingerprint), receiptStoreKey)
 
-		if err := k.StoreMatchedKeywordsForEpoch(ctx, orgID, serve.MemoryContentHash, epoch, serve.MatchedKeywords); err != nil {
-			return 0, 0, 0, err
-		}
-
 		k.incrementMemoryServeCount(ctx, orgID, serve.MemoryContentHash, epoch)
 
 		k.updateEpochStats(ctx, orgID, epoch, serve.MemoryContentHash, serveKeyID, isSelfServe, serve.ModelId)
@@ -276,18 +283,6 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 		k.updateContributorServes(ctx, serve.ContributorId, epoch, orgID, isSelfServe, serve.TurnCount)
 
 		accepted++
-
-		if err := k.memoryKeeper.ApplyServeBoost(ctx, orgID, serve.MemoryContentHash, epoch); err != nil {
-			// Non-fatal: the serve receipt is primary. The boost is a secondary
-			// side effect that may fail if the memory is archived or otherwise
-			// no longer eligible. Match the emissions pattern (payout failures
-			// do not roll back the epoch).
-			k.logger.Warn("ApplyServeBoost failed",
-				"org", orgID,
-				"hash", types.ContentHashToHex(serve.MemoryContentHash),
-				"err", err,
-			)
-		}
 
 		if mem, memErr := k.memoryKeeper.GetApprovedMemory(ctx, orgID, serve.MemoryContentHash); memErr != nil || mem == nil || mem.Contributor == "" {
 			// Attribution is derived solely from the authoritative committed
@@ -451,17 +446,6 @@ func (k *Keeper) GetEpochServeStatsRaw(ctx context.Context, orgID string, epoch 
 	return stats.TotalServes, stats.UniqueMemoriesServed, stats.SelfServes, stats.ModelBreakdown, nil
 }
 
-func (k *Keeper) GetEpochTrafficStats(ctx context.Context, orgID string, epoch uint64) (serves uint64, denials uint64, err error) {
-	stats, err := k.GetEpochServeStats(ctx, orgID, epoch)
-	if err != nil {
-		if errors.Is(err, types.ErrStatsNotFound) {
-			return 0, 0, nil
-		}
-		return 0, 0, err
-	}
-	return stats.TotalServes, stats.TotalDenials, nil
-}
-
 func (k *Keeper) GetContributorEpochServesRaw(ctx context.Context, contributorID string, epoch uint64) (uint64, uint64, uint64, []string, error) {
 	cs, err := k.GetContributorEpochServes(ctx, contributorID, epoch)
 	if err != nil {
@@ -502,72 +486,153 @@ func (k *Keeper) IncrementDenialCount(ctx context.Context, orgID string, content
 	store.Set(key, bz)
 }
 
-func (k *Keeper) StoreMatchedKeywordsForEpoch(ctx context.Context, orgID string, contentHash []byte, epoch uint64, matchedKeywords []string) error {
-	if len(matchedKeywords) == 0 {
-		return fmt.Errorf("matched keywords cannot be empty")
-	}
-
+func (k *Keeper) ProcessEventBatch(ctx context.Context, orgID string, epoch uint64, events []*types.EventEntry) (accepted, rejectedDuplicate, rejectedInvalid uint64, err error) {
 	store := k.getStore(ctx)
-	cidHex := types.ContentHashToHex(contentHash)
-	for _, keyword := range matchedKeywords {
-		if keyword == "" {
-			return fmt.Errorf("matched keyword cannot be empty")
+
+	for _, entry := range events {
+		body, err := types.CanonicalEventBody(entry.EventType, orgID, entry.MemoryContentHash, epoch, entry.SignerPubkey, entry.Nonce, entry)
+		if err != nil {
+			rejectedInvalid++
+			continue
 		}
-		store.Set(matchedKeywordKey(orgID, cidHex, epoch, keyword), []byte{0x01})
+		if !ed25519.Verify(ed25519.PublicKey(entry.SignerPubkey), body, entry.Signature) {
+			rejectedInvalid++
+			continue
+		}
+
+		fingerprint := types.ComputeEventFingerprint(body)
+		has, err := store.Has(eventFingerprintKey(fingerprint))
+		if err != nil {
+			return accepted, rejectedDuplicate, rejectedInvalid, fmt.Errorf("check event fingerprint: %w", err)
+		}
+		if has {
+			rejectedDuplicate++
+			continue
+		}
+
+		if _, err := k.memoryKeeper.GetApprovedMemory(ctx, orgID, entry.MemoryContentHash); err != nil {
+			rejectedInvalid++
+			continue
+		}
+
+		stored := storedEventFromEntry(orgID, epoch, entry, fingerprint)
+		bz, err := proto.Marshal(stored)
+		if err != nil {
+			return accepted, rejectedDuplicate, rejectedInvalid, fmt.Errorf("marshal event: %w", err)
+		}
+		store.Set(eventKey(orgID, epoch, fingerprint), bz)
+		store.Set(eventFingerprintKey(fingerprint), []byte{0x01})
+		accepted++
 	}
 
-	return nil
+	return accepted, rejectedDuplicate, rejectedInvalid, nil
 }
 
-func (k *Keeper) GetMemoryServeCountForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (uint64, error) {
-	contentHash, err := hex.DecodeString(memoryCID)
-	if err != nil {
-		return 0, fmt.Errorf("decode memory cid: %w", err)
+func storedEventFromEntry(orgID string, epoch uint64, entry *types.EventEntry, fingerprint []byte) *types.StoredEvent {
+	stored := &types.StoredEvent{
+		OrgId:             orgID,
+		Epoch:             epoch,
+		EventType:         entry.EventType,
+		MemoryContentHash: entry.MemoryContentHash,
+		SignerPubkey:      entry.SignerPubkey,
+		Nonce:             entry.Nonce,
+		Signature:         entry.Signature,
+		Fingerprint:       fingerprint,
 	}
-	if len(contentHash) != 32 {
-		return 0, fmt.Errorf("invalid content hash length: %d", len(contentHash))
+	switch body := entry.GetBody().(type) {
+	case *types.EventEntry_Outcome:
+		stored.Body = &types.StoredEvent_Outcome{Outcome: body.Outcome}
+	case *types.EventEntry_ValidityPredicate:
+		stored.Body = &types.StoredEvent_ValidityPredicate{ValidityPredicate: body.ValidityPredicate}
+	case *types.EventEntry_CostToDiscover:
+		stored.Body = &types.StoredEvent_CostToDiscover{CostToDiscover: body.CostToDiscover}
+	case *types.EventEntry_Convergence:
+		stored.Body = &types.StoredEvent_Convergence{Convergence: body.Convergence}
 	}
-	return k.GetMemoryServeCount(ctx, orgID, contentHash, epoch), nil
+	return stored
 }
 
-func (k *Keeper) GetMemoryDenialCountForEpoch(ctx context.Context, orgID string, memoryCID string, epoch uint64) (uint64, error) {
-	contentHash, err := hex.DecodeString(memoryCID)
-	if err != nil {
-		return 0, fmt.Errorf("decode memory cid: %w", err)
-	}
-	if len(contentHash) != 32 {
-		return 0, fmt.Errorf("invalid content hash length: %d", len(contentHash))
-	}
-	return k.GetMemoryDenialCount(ctx, orgID, contentHash, epoch), nil
-}
-
-func (k *Keeper) GetMatchedKeywordsForEpoch(ctx context.Context, orgID, memoryCID string, epoch uint64) (map[string]bool, error) {
-	contentHash, err := hex.DecodeString(memoryCID)
-	if err != nil {
-		return nil, fmt.Errorf("decode memory cid: %w", err)
-	}
-	if len(contentHash) != 32 {
-		return nil, fmt.Errorf("invalid content hash length: %d", len(contentHash))
-	}
-
-	cidHex := types.ContentHashToHex(contentHash)
+func (k *Keeper) GetEventsForEpoch(ctx context.Context, orgID string, epoch uint64) ([]*types.StoredEvent, error) {
 	store := k.getStore(ctx)
-	prefix := matchedKeywordPrefix(orgID, cidHex, epoch)
+	prefix := eventPrefix(orgID, epoch)
 	iter, err := store.Iterator(prefix, storetypes.PrefixEndBytes(prefix))
 	if err != nil {
-		return nil, fmt.Errorf("iterate matched keywords: %w", err)
+		return nil, err
 	}
 	defer iter.Close()
 
-	result := make(map[string]bool)
+	var events []*types.StoredEvent
 	for ; iter.Valid(); iter.Next() {
-		keyword := extractKeywordFromKey(iter.Key(), prefix)
-		if keyword != "" {
-			result[keyword] = true
+		var stored types.StoredEvent
+		if err := proto.Unmarshal(iter.Value(), &stored); err != nil {
+			continue
 		}
+		copied := stored
+		events = append(events, &copied)
+	}
+	return events, nil
+}
+
+func (k *Keeper) SetPolicyAnchor(ctx context.Context, policyVersion string, policyHash []byte) error {
+	store := k.getStore(ctx)
+	key := policyAnchorKey(policyVersion)
+	existingBz, err := store.Get(key)
+	if err != nil {
+		return fmt.Errorf("get policy anchor: %w", err)
+	}
+	if existingBz != nil {
+		var existing types.StoredPolicyAnchor
+		if err := proto.Unmarshal(existingBz, &existing); err != nil {
+			return fmt.Errorf("unmarshal policy anchor: %w", err)
+		}
+		if !bytes.Equal(existing.PolicyHash, policyHash) {
+			return fmt.Errorf("policy anchor already exists with different hash")
+		}
+		return nil
 	}
 
-	return result, nil
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	anchor := &types.StoredPolicyAnchor{
+		PolicyVersion:    policyVersion,
+		PolicyHash:       append([]byte(nil), policyHash...),
+		AnchoredAtEpoch:  0, // x/serve has no epoch source; height is the authoritative on-chain ordinal.
+		AnchoredAtHeight: sdkCtx.BlockHeight(),
+	}
+	bz, err := proto.Marshal(anchor)
+	if err != nil {
+		return fmt.Errorf("marshal policy anchor: %w", err)
+	}
+	store.Set(key, bz)
+	store.Set([]byte(types.LatestPolicyAnchorKey), []byte(policyVersion))
+	return nil
+}
+
+func (k *Keeper) GetPolicyAnchor(ctx context.Context, policyVersion string) (*types.StoredPolicyAnchor, bool, error) {
+	store := k.getStore(ctx)
+	bz, err := store.Get(policyAnchorKey(policyVersion))
+	if err != nil {
+		return nil, false, fmt.Errorf("get policy anchor: %w", err)
+	}
+	if bz == nil {
+		return nil, false, nil
+	}
+	var anchor types.StoredPolicyAnchor
+	if err := proto.Unmarshal(bz, &anchor); err != nil {
+		return nil, false, fmt.Errorf("unmarshal policy anchor: %w", err)
+	}
+	return &anchor, true, nil
+}
+
+func (k *Keeper) GetLatestPolicyAnchor(ctx context.Context) (*types.StoredPolicyAnchor, bool, error) {
+	store := k.getStore(ctx)
+	versionBz, err := store.Get([]byte(types.LatestPolicyAnchorKey))
+	if err != nil {
+		return nil, false, fmt.Errorf("get latest policy anchor pointer: %w", err)
+	}
+	if len(versionBz) == 0 {
+		return nil, false, nil
+	}
+	return k.GetPolicyAnchor(ctx, string(versionBz))
 }
 
 func (k *Keeper) GetServeReceipts(ctx context.Context, orgID string, epoch uint64) ([]*types.ServeReceipt, error) {
@@ -599,11 +664,6 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		receiptStoreKey := receiptKey(receipt.OrgID, receipt.Epoch, receipt.Fingerprint)
 		store.Set(receiptStoreKey, receiptBz)
 		store.Set(serveFingerprintKey(receipt.Fingerprint), receiptStoreKey)
-		if len(receipt.MatchedKeywords) > 0 {
-			if err := k.StoreMatchedKeywordsForEpoch(ctx, receipt.OrgID, receipt.ContentHash, receipt.Epoch, receipt.MatchedKeywords); err != nil {
-				return err
-			}
-		}
 	}
 
 	for _, denial := range state.DenialReceipts {
@@ -619,6 +679,30 @@ func (k *Keeper) InitGenesis(ctx context.Context, state *types.GenesisState) err
 		store.Set(denialReceiptKey(denial.OrgId, denial.Epoch, denialFingerprint), denialBz)
 		k.IncrementDenialCount(ctx, denial.OrgId, denial.MemoryHash, denial.Epoch)
 		k.updateEpochDenialStats(ctx, denial.OrgId, denial.Epoch)
+	}
+
+	for _, event := range state.Events {
+		if event == nil {
+			continue
+		}
+		eventBz, err := proto.Marshal(event)
+		if err != nil {
+			return fmt.Errorf("marshal event: %w", err)
+		}
+		store.Set(eventKey(event.OrgId, event.Epoch, event.Fingerprint), eventBz)
+		store.Set(eventFingerprintKey(event.Fingerprint), []byte{0x01})
+	}
+
+	for _, anchor := range state.PolicyAnchors {
+		if anchor == nil {
+			continue
+		}
+		anchorBz, err := proto.Marshal(anchor)
+		if err != nil {
+			return fmt.Errorf("marshal policy anchor: %w", err)
+		}
+		store.Set(policyAnchorKey(anchor.PolicyVersion), anchorBz)
+		store.Set([]byte(types.LatestPolicyAnchorKey), []byte(anchor.PolicyVersion))
 	}
 
 	for _, es := range state.EpochStats {
@@ -669,6 +753,36 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 		denialReceipts = append(denialReceipts, &copied)
 	}
 
+	var events []*types.StoredEvent
+	eventIter, err := store.Iterator([]byte(types.EventPrefix), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer eventIter.Close()
+	for ; eventIter.Valid(); eventIter.Next() {
+		var stored types.StoredEvent
+		if err := proto.Unmarshal(eventIter.Value(), &stored); err != nil {
+			continue
+		}
+		copied := stored
+		events = append(events, &copied)
+	}
+
+	var policyAnchors []*types.StoredPolicyAnchor
+	anchorIter, err := store.Iterator([]byte(types.PolicyAnchorPrefix), nil)
+	if err != nil {
+		return nil, err
+	}
+	defer anchorIter.Close()
+	for ; anchorIter.Valid(); anchorIter.Next() {
+		var stored types.StoredPolicyAnchor
+		if err := proto.Unmarshal(anchorIter.Value(), &stored); err != nil {
+			continue
+		}
+		copied := stored
+		policyAnchors = append(policyAnchors, &copied)
+	}
+
 	var epochStats []*types.EpochServeStats
 	statsPrefix := []byte("stats/")
 	statsIter, err := store.Iterator(statsPrefix, nil)
@@ -704,6 +818,8 @@ func (k *Keeper) ExportGenesis(ctx context.Context) (*types.GenesisState, error)
 	return &types.GenesisState{
 		ServeReceipts:     receipts,
 		DenialReceipts:    denialReceipts,
+		Events:            events,
+		PolicyAnchors:     policyAnchors,
 		EpochStats:        epochStats,
 		ContributorServes: contributorServes,
 	}, nil

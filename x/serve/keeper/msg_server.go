@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/ed25519"
+	"encoding/hex"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -12,10 +13,6 @@ import (
 
 type MsgServer struct {
 	keeper *Keeper
-}
-
-func matchedKeywordKey(orgID, cidHex string, epoch uint64, keyword string) []byte {
-	return []byte(fmt.Sprintf("%s%s/%s/%d/%s", types.MatchedKeywordsPrefix, orgID, cidHex, epoch, keyword))
 }
 
 var _ types.MsgServer = (*MsgServer)(nil)
@@ -100,7 +97,6 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 	var rejectedDupFingerprint uint64
 	var rejectedInvalidSignature uint64
 	var rejectedNoReceipt uint64
-	var rejectedNoKeywords uint64
 	var rejectedHashMismatch uint64
 	var rejectedServeKeyMismatch uint64
 	var rejectedNoMemory uint64
@@ -136,11 +132,6 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 			rejectedNoReceipt++
 			continue
 		}
-		if len(originatingReceipt.MatchedKeywords) == 0 {
-			rejected++
-			rejectedNoKeywords++
-			continue
-		}
 		if !bytes.Equal(entry.MemoryHash, originatingReceipt.MemoryContentHash) {
 			rejected++
 			rejectedHashMismatch++
@@ -164,33 +155,16 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 		if err := s.keeper.StoreDenialReceipt(ctx, msg.OrgId, msg.Epoch, denialFingerprint, entry); err != nil {
 			return nil, err
 		}
-		cidHex := types.ContentHashToHex(originatingReceipt.MemoryContentHash)
-		for _, keyword := range originatingReceipt.MatchedKeywords {
-			if keyword == "" {
-				return nil, fmt.Errorf("originating receipt has empty matched keyword")
-			}
-			store.Set(matchedKeywordKey(msg.OrgId, cidHex, msg.Epoch, keyword), []byte{0x01})
-		}
 		accepted++
 
-		if err := s.keeper.memoryKeeper.ApplyDenialDecay(ctx, msg.OrgId, originatingReceipt.MemoryContentHash, msg.Epoch); err != nil {
-			// Non-fatal: the denial receipt is primary. The decay is a
-			// secondary side effect that may fail if the memory is already
-			// archived. Match the emissions pattern (payout failures do not
-			// roll back the epoch).
-			s.keeper.logger.Warn("ApplyDenialDecay failed",
-				"org", msg.OrgId,
-				"hash", types.ContentHashToHex(originatingReceipt.MemoryContentHash),
-				"err", err,
-			)
-		}
 	}
 
 	// Emit denial_batch_submitted event — follows MsgRemoveMember pattern (CO-016)
 	sdkCtx := sdk.UnwrapSDKContext(ctx)
 	s.keeper.logger.Info(fmt.Sprintf(
+		"denial batch submitted: org=%s epoch=%d entries=%d accepted=%d rejected=%d duplicate_fingerprint=%d invalid_signature=%d no_receipt=%d hash_mismatch=%d serve_key_mismatch=%d no_memory=%d",
 		msg.OrgId, msg.Epoch, len(msg.Entries), accepted, rejected,
-		rejectedDupFingerprint, rejectedInvalidSignature, rejectedNoReceipt, rejectedNoKeywords, rejectedHashMismatch, rejectedServeKeyMismatch, rejectedNoMemory,
+		rejectedDupFingerprint, rejectedInvalidSignature, rejectedNoReceipt, rejectedHashMismatch, rejectedServeKeyMismatch, rejectedNoMemory,
 	))
 	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
 		types.EventTypeDenialBatchSubmitted,
@@ -206,6 +180,79 @@ func (s *MsgServer) SubmitDenialBatch(ctx context.Context, msg *types.MsgSubmitD
 		Accepted: accepted,
 		Rejected: rejected,
 	}, nil
+}
+
+func (s *MsgServer) SubmitEventBatch(ctx context.Context, msg *types.MsgSubmitEventBatch) (*types.MsgSubmitEventBatchResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	hasOrg, err := s.keeper.orgKeeper.HasOrg(ctx, msg.OrgId)
+	if err != nil {
+		return nil, err
+	}
+	if !hasOrg {
+		return nil, types.ErrOrgNotFound
+	}
+
+	if err := s.requireServingKeySigner(ctx, msg.OrgId, msg.Signer); err != nil {
+		return nil, err
+	}
+
+	params, err := s.keeper.GetParams(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if len(msg.Events) > int(params.MaxServesPerBatch) {
+		return nil, types.ErrBatchTooLarge
+	}
+
+	accepted, rejectedDuplicate, rejectedInvalid, err := s.keeper.ProcessEventBatch(ctx, msg.OrgId, msg.Epoch, msg.Events)
+	if err != nil {
+		return nil, err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypeEventBatchSubmitted,
+		sdk.NewAttribute(types.AttributeKeyOrgID, msg.OrgId),
+		sdk.NewAttribute(types.AttributeKeySubmitter, msg.Signer),
+		sdk.NewAttribute(types.AttributeKeyEpoch, fmt.Sprintf("%d", msg.Epoch)),
+		sdk.NewAttribute(types.AttributeKeyAcceptedCount, fmt.Sprintf("%d", accepted)),
+		sdk.NewAttribute(types.AttributeKeyRejectedDuplicateCount, fmt.Sprintf("%d", rejectedDuplicate)),
+		sdk.NewAttribute(types.AttributeKeyRejectedInvalidCount, fmt.Sprintf("%d", rejectedInvalid)),
+		sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+	))
+
+	return &types.MsgSubmitEventBatchResponse{
+		Accepted:          accepted,
+		RejectedDuplicate: rejectedDuplicate,
+		RejectedInvalid:   rejectedInvalid,
+	}, nil
+}
+
+func (s *MsgServer) AnchorPolicyVersion(ctx context.Context, msg *types.MsgAnchorPolicyVersion) (*types.MsgAnchorPolicyVersionResponse, error) {
+	if err := msg.ValidateBasic(); err != nil {
+		return nil, err
+	}
+
+	if msg.Authority != s.keeper.authority {
+		return nil, types.ErrUnauthorized
+	}
+
+	if err := s.keeper.SetPolicyAnchor(ctx, msg.PolicyVersion, msg.PolicyHash); err != nil {
+		return nil, err
+	}
+
+	sdkCtx := sdk.UnwrapSDKContext(ctx)
+	sdkCtx.EventManager().EmitEvent(sdk.NewEvent(
+		types.EventTypePolicyVersionAnchored,
+		sdk.NewAttribute(types.AttributeKeyPolicyVersion, msg.PolicyVersion),
+		sdk.NewAttribute(types.AttributeKeyPolicyHash, hex.EncodeToString(msg.PolicyHash)),
+		sdk.NewAttribute(types.AttributeKeyBlockHeight, fmt.Sprintf("%d", sdkCtx.BlockHeight())),
+	))
+
+	return &types.MsgAnchorPolicyVersionResponse{}, nil
 }
 
 func (s *MsgServer) UpdateParams(ctx context.Context, msg *types.MsgUpdateParams) (*types.MsgUpdateParamsResponse, error) {

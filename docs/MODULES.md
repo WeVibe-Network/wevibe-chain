@@ -307,7 +307,7 @@ message StoredMemoryCommitment {
   string approver = 8;
   MemoryState state = 9;
   uint64 retrieval_confidence_bps = 10;  // 0-10000 basis points
-  uint64 last_decay_epoch = 12;
+  uint64 last_active_epoch = 12;
 }
 ```
 
@@ -396,11 +396,6 @@ message Params {
   uint64 pending_retention_epochs = 2;
   uint64 max_blob_size_bytes = 3;
   uint32 max_keywords_per_memory = 4;
-  uint64 min_retrieval_decay_bps = 5;
-  uint64 stable_threshold_bps = 6;
-  uint64 degraded_threshold_bps = 7;
-  uint64 dormant_threshold_bps = 8;
-  uint64 initial_confidence_bps = 9;
   uint64 contest_window_epochs = 10;
 }
 ```
@@ -410,12 +405,7 @@ message Params {
 | `max_pending_per_org` | Maximum pending commitments per org |
 | `pending_retention_epochs` | Epochs before stale pending commitments purged |
 | `max_blob_size_bytes` | Maximum encrypted blob size |
-| `max_keywords_per_memory` | Maximum keywords per memory commitment |
-| `min_retrieval_decay_bps` | Minimum decay rate (basis points) |
-| `stable_threshold_bps` | Confidence threshold for STABLE state |
-| `degraded_threshold_bps` | Confidence threshold for DEGRADED state |
-| `dormant_threshold_bps` | Confidence threshold for DORMANT state |
-| `initial_confidence_bps` | Initial confidence on approval (default 10000) |
+| `max_keywords_per_memory` | Maximum flat keyword labels per memory commitment |
 | `contest_window_epochs` | Epochs before auto-rejecting stale contests |
 
 ### Messages
@@ -458,7 +448,7 @@ message MsgApproveMemory {
 
 **Effects:**
 - Record promoted to approved
-- Retrieval confidence seeded at `initial_confidence_bps`
+- Flat keyword labels and cryptographic verification fields are preserved; recall standing is computed at the edge from events plus policy version
 - Approved counter incremented
 
 #### MsgRejectMemory
@@ -624,21 +614,9 @@ message MsgReportMemory {
                     Approval
 PENDING ──────────► APPROVED
                         │
-                        │ Confidence ≥ stable_threshold
+                        │ Explicit chain action / validity-window expiry
                         ▼
-                     STABLE
-                        │
-                        │ Confidence < stable_threshold
-                        ▼
-                     DEGRADED
-                        │
-                        │ Confidence < dormant_threshold
-                        ▼
-                     DORMANT
-                        │
-                        │ Expiry / Archive / Contest Upheld
-                        ▼
-                    ARCHIVED
+                     ARCHIVED
 ```
 
 **Contest Path:**
@@ -650,22 +628,22 @@ APPROVED/STABLE/DEGRADED/DORMANT ──► CONTESTED
                        UPHELD                        REJECTED
                           │                             │
                           ▼                             ▼
-                      ARCHIVED               Confidence re-evaluated
+                       ARCHIVED               No recall score mutation
 ```
 
 ### Epoch Hook Operations
 
 The memory module's `AfterEpochEnd` hook performs:
 
-1. **ApplyEpochDecay**: Adjusts confidence based on serves and org decay rate
-   - +100 bps per serve (configurable)
-   - -max(org decay_rate_bps, min_retrieval_decay_bps) when no serves
+1. **Current epoch tracking**: Records the latest `wevibe_epoch` ordinal for module use.
 
-2. **CheckEpochExpiry**: Archives memories past validity window
+2. **CheckEpochExpiry**: Handles validity-window expiry for memories that carry validity metadata.
 
 3. **CheckContestExpiry**: Auto-rejects contests older than contest_window_epochs
 
 4. **Merkle Root Computation**: Computes and stores epoch Merkle root
+
+Recall-pivot standing is not updated in this hook. The chain stores events; edge policy computes standing as `f(events, policy_version)`.
 
 ---
 
@@ -689,7 +667,7 @@ message StoredServeReceipt {
   bool is_self_serve = 7;
   string model_id = 8;     // Model that produced the session
   uint32 turn_count = 9;   // Number of turns in the session
-  repeated string matched_keywords = 10;  // Query-memory keyword intersection
+  reserved 10;
   bytes serve_key_pubkey = 11;
   bytes fingerprint = 12;
 }
@@ -754,7 +732,7 @@ message ServeEntry {
   string model_id = 5;    // Model that produced the session
   uint32 turn_count = 6;  // Number of turns in the session
   string contributor_wallet = 7;
-  repeated string matched_keywords = 8;  // Required, non-empty
+  reserved 8;
   bytes serve_key_pubkey = 9;
   bytes serve_sig = 10;
   bytes nonce = 11;
@@ -788,6 +766,7 @@ message MsgSubmitServeBatchResponse {
 - Fingerprints not previously seen (x/serve computes `SHA256(memory_content_hash ‖ serve_key_pubkey ‖ BigEndianUint64(epoch))`)
 - Memories are approved
 - Per-memory serve cap not exceeded
+- Consumer signature verifies over `wevibe-serve-v2\n<org_id>\n<hex(memory_content_hash)>\n<epoch>\n<hex(serve_key_pubkey)>\n<hex(nonce)>`
 
 **Effects:**
 - Attestations stored
@@ -796,6 +775,48 @@ message MsgSubmitServeBatchResponse {
 - Per-contributor serves tracked
 - Reputation keeper notified
 
+#### MsgSubmitEventBatch
+Submit consumer-signed recall-pivot events (E3 outcome, E6 validity predicate, E7 cost to discover, E8 convergence). E4 contest and E5 sponsorship remain parked schema slots.
+
+```protobuf
+message MsgSubmitEventBatch {
+  string signer = 1;
+  string org_id = 2;
+  uint64 epoch = 3;
+  repeated EventEntry events = 4;
+}
+```
+
+**Response:**
+```protobuf
+message MsgSubmitEventBatchResponse {
+  uint64 accepted = 1;
+  uint64 rejected_duplicate = 2;
+  uint64 rejected_invalid = 3;
+}
+```
+
+**Validation:**
+- Signer must be authorized for the org serving key.
+- Event signature verifies over `wevibe-event-v1\n<type token>\n<org_id>\n<hex(memory_content_hash)>\n<epoch>\n<hex(signer_pubkey)>\n<type-specific lines…>\n<hex(nonce)>`.
+- Event fingerprint `SHA256(CanonicalEventBody)` must not already exist under `eventfp/`.
+- Referenced memory must be approved.
+
+**Boundary rule:** events are immutable, append-only, content-free facts. They must not carry weights, standing, scores, trust values, archive flags, derived judgments, plaintext, ciphertext, or other content.
+
+#### MsgAnchorPolicyVersion
+Anchor a published edge-policy version hash. Standing is computed at the edge as `f(events, policy_version)`; this transaction records only the policy hash.
+
+```protobuf
+message MsgAnchorPolicyVersion {
+  string authority = 1;
+  string policy_version = 2;
+  bytes policy_hash = 3;
+}
+```
+
+**Response:** `{}`
+
 ### Query Endpoints
 
 | Endpoint | REST Path | Response |
@@ -803,6 +824,9 @@ message MsgSubmitServeBatchResponse {
 | `GetEpochServeStats` | `/wevibe/serve/v1/stats/{org_id}/{epoch}` | `QueryGetEpochServeStatsResponse` |
 | `GetContributorServes` | `/wevibe/serve/v1/contributor/{contributor_id}/{epoch}` | `QueryGetContributorServesResponse` |
 | `GetMemoryServeCount` | `/wevibe/serve/v1/memory/{org_id}/{content_hash}/{epoch}` | `QueryGetMemoryServeCountResponse` |
+| `ListEvents` | `/wevibe/serve/v1/events/{org_id}/{epoch}` | `QueryListEventsResponse` |
+| `GetPolicyAnchor` | `/wevibe/serve/v1/policy_anchor/{policy_version}` | `QueryGetPolicyAnchorResponse` |
+| `GetLatestPolicyAnchor` | `/wevibe/serve/v1/policy_anchor_latest` | `QueryGetLatestPolicyAnchorResponse` |
 | `Params` | `/wevibe/serve/v1/params` | `QueryParamsResponse` |
 
 ### Self-Serve Detection

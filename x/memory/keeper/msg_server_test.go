@@ -104,14 +104,6 @@ func makeTestMsgServer(t *testing.T) (types.MsgServer, *Keeper, *mockOrgKeeperSe
 	return NewMsgServerImpl(k), k, mockOrg, sdk.WrapSDKContext(sdkCtx)
 }
 
-func keywordsToKeywordWeights(keywords []string) []*types.KeywordWeight {
-	result := make([]*types.KeywordWeight, len(keywords))
-	for i, kw := range keywords {
-		result[i] = &types.KeywordWeight{Keyword: kw, Weight: "1.0", ServeCount: 0, DenialCount: 0}
-	}
-	return result
-}
-
 func makeApproveMemoryFixture(memoryType types.MemoryType) (*types.MsgSubmitCommitment, *types.MsgApproveMemory, []byte, []byte, []byte, []byte, []byte) {
 	seed := []byte("12345678901234567890123456789012")
 	privateKey := ed25519.NewKeyFromSeed(seed)
@@ -146,7 +138,7 @@ func makeApproveMemoryFixture(memoryType types.MemoryType) (*types.MsgSubmitComm
 		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   submissionHash,
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: contributorPubkeyHex,
 		MemoryType:    memoryType,
 	}
@@ -226,7 +218,7 @@ func TestMsgSubmitCommitment_Success(t *testing.T) {
 		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: "contributor",
 		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
@@ -248,7 +240,7 @@ func TestMsgSubmitCommitment_EmitsProvenanceEventAttributes(t *testing.T) {
 		Signer:                 "leader-pubkey",
 		OrgId:                  "test-org",
 		ContentHash:            []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"),
-		Keywords:               keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:               []string{"kw1"},
 		ContributorId:          "contributor",
 		MemoryType:             types.MemoryType_MEMORY_TYPE_MEMORY,
 		ProducerModelId:        "openai/gpt-5.2",
@@ -296,7 +288,7 @@ func TestMsgSubmitCommitment_EmitsUnattestedFallbackEventAttributes(t *testing.T
 		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   []byte("bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: "contributor",
 		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
@@ -343,7 +335,7 @@ func TestMsgSubmitCommitment_MalformedProvenanceRejectedBeforePersistence(t *tes
 		Signer:                 "leader-pubkey",
 		OrgId:                  "test-org",
 		ContentHash:            contentHash,
-		Keywords:               keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:               []string{"kw1"},
 		ContributorId:          "contributor",
 		MemoryType:             types.MemoryType_MEMORY_TYPE_MEMORY,
 		ProducerModelId:        "openai/gpt-5.2",
@@ -431,7 +423,7 @@ func TestMsgSubmitCommitment_RequiresContributionCapability(t *testing.T) {
 				Signer:        "leader-pubkey",
 				OrgId:         "test-org",
 				ContentHash:   []byte("12345678901234567890123456789012"),
-				Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+				Keywords:      []string{"kw1"},
 				ContributorId: tt.contributorID,
 				MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 			}
@@ -458,7 +450,7 @@ func TestMsgSubmitCommitment_InvalidMemoryType(t *testing.T) {
 		Signer:        "leader-pubkey",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: "contributor",
 		MemoryType:    types.MemoryType_MEMORY_TYPE_UNSPECIFIED,
 	}
@@ -537,7 +529,7 @@ func TestMsgApproveMemory_InvalidMemoryType(t *testing.T) {
 		Signer:        "signer",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: "contributor",
 		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}
@@ -658,7 +650,7 @@ func TestMsgSubmitCommitment_RejectsNonLeaderWalletSigner(t *testing.T) {
 		Signer:        "hub-serving-key",
 		OrgId:         "test-org",
 		ContentHash:   []byte("12345678901234567890123456789012"),
-		Keywords:      keywordsToKeywordWeights([]string{"kw1"}),
+		Keywords:      []string{"kw1"},
 		ContributorId: "contributor",
 		MemoryType:    types.MemoryType_MEMORY_TYPE_MEMORY,
 	}

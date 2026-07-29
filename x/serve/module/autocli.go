@@ -38,6 +38,28 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					},
 				},
 				{
+					RpcMethod: "ListEvents",
+					Use:       "list-events [org-id] [epoch]",
+					Short:     "List immutable recall-pivot events for an org epoch",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "org_id"},
+						{ProtoField: "epoch"},
+					},
+				},
+				{
+					RpcMethod: "GetPolicyAnchor",
+					Use:       "get-policy-anchor [policy-version]",
+					Short:     "Get an anchored edge-policy version hash",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "policy_version"},
+					},
+				},
+				{
+					RpcMethod: "GetLatestPolicyAnchor",
+					Use:       "get-latest-policy-anchor",
+					Short:     "Get the latest anchored edge-policy version hash",
+				},
+				{
 					RpcMethod: "Params",
 					Use:       "params",
 					Short:     "Query serve module params",
@@ -63,6 +85,24 @@ func (m *Module) AutoCLIOptions() *autocliv1.ModuleOptions {
 					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
 						{ProtoField: "org_id"},
 						{ProtoField: "epoch"},
+					},
+				},
+				{
+					RpcMethod: "SubmitEventBatch",
+					Use:       "submit-events [org-id] [epoch]",
+					Short:     "Submit a batch of consumer-signed recall-pivot events",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "org_id"},
+						{ProtoField: "epoch"},
+					},
+				},
+				{
+					RpcMethod: "AnchorPolicyVersion",
+					Use:       "anchor-policy-version [policy-version] [policy-hash]",
+					Short:     "Anchor a published edge-policy version hash (governance only)",
+					PositionalArgs: []*autocliv1.PositionalArgDescriptor{
+						{ProtoField: "policy_version"},
+						{ProtoField: "policy_hash"},
 					},
 				},
 				{

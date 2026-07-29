@@ -18,7 +18,6 @@ type Keeper struct {
 	logger           log.Logger
 	authority        string
 	orgKeeper        types.OrgKeeper
-	serveKeeper      types.ServeKeeper
 	reputationKeeper types.ReputationKeeper
 }
 
@@ -28,16 +27,8 @@ func NewKeeper(storeService store.KVStoreService, logger log.Logger, authority s
 		logger:           logger,
 		authority:        authority,
 		orgKeeper:        orgKeeper,
-		serveKeeper:      nil,
 		reputationKeeper: reputationKeeper,
 	}
-}
-
-func (k *Keeper) SetServeKeeper(serveKeeper types.ServeKeeper) {
-	if serveKeeper == nil {
-		panic("serve keeper cannot be nil")
-	}
-	k.serveKeeper = serveKeeper
 }
 
 func (k *Keeper) getStore(ctx context.Context) store.KVStore {
@@ -861,9 +852,6 @@ func memoryToStored(con *types.MemoryCommitment) *types.StoredMemoryCommitment {
 		ContributorSig:         con.ContributorSig,
 		MemoryType:             con.MemoryType,
 		ApprovedAtEpoch:        con.ApprovedAtEpoch,
-		ServeCountTotal:        con.ServeCountTotal,
-		DenialCountTotal:       con.DenialCountTotal,
-		ArchivedEpoch:          con.ArchivedEpoch,
 		McVersion:              con.McVersion,
 	}
 }
@@ -891,9 +879,6 @@ func storedToMemory(stored types.StoredMemoryCommitment) types.MemoryCommitment 
 		ContributorSig:         stored.ContributorSig,
 		MemoryType:             stored.MemoryType,
 		ApprovedAtEpoch:        stored.ApprovedAtEpoch,
-		ServeCountTotal:        stored.ServeCountTotal,
-		DenialCountTotal:       stored.DenialCountTotal,
-		ArchivedEpoch:          stored.ArchivedEpoch,
 		McVersion:              stored.McVersion,
 	}
 }

@@ -21,4 +21,7 @@ var (
 	ErrStatsNotFound              = errors.New("epoch serve stats not found")
 	ErrContributorNotFound        = errors.New("contributor serves not found")
 	ErrUnauthorized               = errors.New("unauthorized")
+	ErrEventParked                = errors.New("event type parked — activation deferred (RECALL-PIVOT-SPEC §3.1)")
+	ErrInvalidEventType           = errors.New("invalid event type")
+	ErrNegAnchorInert             = errors.New("neg_anchor must be empty — INERT pending Walter's READ-disclosure ruling (RECALL-PIVOT-SPEC §4)")
 )

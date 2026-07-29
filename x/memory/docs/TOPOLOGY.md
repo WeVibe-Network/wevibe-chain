@@ -2,8 +2,9 @@
 
 ## Scope
 
-This module owns commitment lifecycle state for pending/approved memories and
-applies Earned Trust decay to per-keyword weights.
+This module owns commitment lifecycle state for pending/approved memories.
+Standing and visibility outcomes are computed at the edge from event logs and
+anchored policy, not by consensus memory state.
 
 ## Active Message Handlers
 
@@ -20,17 +21,12 @@ applies Earned Trust decay to per-keyword weights.
 
 ### `StoredMemoryCommitment` (`approved/{org}/{hash}`)
 
-Stores encrypted memory payload + decay state:
+Stores encrypted memory payload + lifecycle state:
 
-- Per-keyword state: `repeated KeywordWeight keywords` (`keyword`, `weight`,
-  `serve_count`, `denial_count`).
+- Keyword labels: flat `repeated string keywords`.
 - Lifecycle state: `state`, `last_active_epoch`, `approved_at_epoch`.
 - Canonical-body verification fields: `plaintext_hash`, `salt`,
   `ciphertext_hash`, `wrapped_dek_hash`, `contributor_sig`.
-- **CO-031 Rev 2 additions:**
-  - `serve_count_total` (proto tag 20)
-  - `denial_count_total` (proto tag 21)
-  - `archived_epoch` (proto tag 22)
 
 ### Other live state
 
@@ -40,48 +36,15 @@ Stores encrypted memory payload + decay state:
 - `merkle/{org}/{epoch}`: `StoredEpochMerkleRoot`.
 - `count/{org}`: approved-memory counter.
 
-## Params (Earned Trust)
+## Params
 
-`x/memory/types/params.go` defaults now use the D-4.2 Earned Trust parameter
-set:
+`x/memory/types/params.go` owns only storage/review bounds:
 
-- `serve_d_bps`, `denial_d_bps`, `idle_d_bps`
-- `serve_floor_bps`, `denial_floor_bps`
-- `idle_protect_bps`, `idle_untrusted_bps`
-- `trust_min_serves`, `trust_max_rate_bps`
-- `grace_epochs`, `retrieval_threshold_bps`
-
-Legacy flat-count params (`serve_boost_bps`, `denial_decay_bps`,
-`idle_decay_rate_bps`, `max_serve_boost_per_epoch`, `bootstrap_grace_epochs`)
-were removed from business logic.
-
-## Decay Execution Path
-
-Canonical decay function: `x/memory/keeper/lifecycle.go:applyDecay`.
-
-Wrappers:
-
-- `ApplyServeBoost` (event-time serve path)
-- `ApplyDenialDecay` (event-time denial path)
-- `ApplyIdleDecay` (epoch-end idle sweep)
-
-Cross-module inputs from `ServeKeeper`:
-
-- `GetMemoryServeCountForEpoch`
-- `GetMemoryDenialCountForEpoch`
-- `GetMatchedKeywordsForEpoch`
-
-Behavior:
-
-- Serve and denial operations apply only to keywords present in
-  `matched_keywords` for the memory+epoch.
-- Unmatched keywords on active memories still receive idle decay.
-- `ApplyServeBoost` increments `KeywordWeight.serve_count` for matched keywords
-  and increments `memory.serve_count_total` once per handler invocation.
-- `ApplyDenialDecay` increments `KeywordWeight.denial_count` for matched
-  keywords and increments `memory.denial_count_total` once per invocation.
-- Archive transition uses D-4.4 `.every()` semantics: memory archives when all
-  keyword weights are `<= retrieval_threshold_bps`; `archived_epoch` is set.
+- `max_pending_per_org`
+- `pending_retention_epochs`
+- `max_blob_size_bytes`
+- `max_keywords_per_memory`
+- `contest_window_epochs`
 
 ## Query Endpoints
 

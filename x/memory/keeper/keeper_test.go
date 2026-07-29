@@ -57,11 +57,7 @@ func makeTestKeeper(t *testing.T) (*Keeper, *mockOrgKeeper, *mockReputationKeepe
 }
 
 func newPendingCommitment(orgID string, contentHash []byte, keywords []string, contributor string, epoch, submittedAt uint64) *types.PendingCommitment {
-	keywordWeights := make([]*types.KeywordWeight, len(keywords))
-	for i, kw := range keywords {
-		keywordWeights[i] = &types.KeywordWeight{Keyword: kw, Weight: "1.0", ServeCount: 0, DenialCount: 0}
-	}
-	return types.NewPendingCommitment(orgID, contentHash, keywordWeights, contributor, epoch, submittedAt, types.MemoryType_MEMORY_TYPE_MEMORY)
+	return types.NewPendingCommitment(orgID, contentHash, keywords, contributor, epoch, submittedAt, types.MemoryType_MEMORY_TYPE_MEMORY)
 }
 
 func approveMemory(k *Keeper, ctx context.Context, orgID string, contentHash, encryptedBlob []byte, leader string, wrappedDekEnc []byte) error {
@@ -409,24 +405,6 @@ func TestApproveMemory_NotLeader(t *testing.T) {
 	}
 }
 
-func TestGetActiveMemoryCountByOrg_ExcludesArchivedAndDenied(t *testing.T) {
-	k, _, _ := makeTestKeeper(t)
-	ctx := context.Background()
-
-	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("11111111111111111111111111111111"), types.MemoryState_MEMORY_STATE_COMMITTED, 0)
-	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("22222222222222222222222222222222"), types.MemoryState_MEMORY_STATE_ARCHIVED, 0)
-	storeMemoryWithKeywords(t, k, ctx, "test-org", []byte("33333333333333333333333333333333"), types.MemoryState_MEMORY_STATE_DENIED, 0)
-	storeMemoryWithKeywords(t, k, ctx, "other-org", []byte("44444444444444444444444444444444"), types.MemoryState_MEMORY_STATE_COMMITTED, 0)
-
-	count, err := k.GetActiveMemoryCountByOrg(ctx, "test-org")
-	if err != nil {
-		t.Fatalf("GetActiveMemoryCountByOrg failed: %v", err)
-	}
-	if count != 1 {
-		t.Fatalf("active count mismatch: got %d want 1", count)
-	}
-}
-
 func TestApproveMemory_NoPending(t *testing.T) {
 	k, _, _ := makeTestKeeper(t)
 	ctx := context.Background()
@@ -762,53 +740,5 @@ func TestContentAddressedDedup(t *testing.T) {
 	err := approveMemory(k, ctx, "test-org", contentHash, []byte("new-blob"), "leader-pubkey", nil)
 	if err != types.ErrMemoryExists {
 		t.Fatalf("expected ErrMemoryExists, got: %v", err)
-	}
-}
-
-func TestStoreMemoryWithParameterizedHelpers(t *testing.T) {
-	k, _, _ := makeTestKeeper(t)
-	ctx := context.Background()
-
-	contentHash := []byte("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
-	cid := storeMemoryWithKeywords(
-		t,
-		k,
-		ctx,
-		"test-org",
-		contentHash,
-		types.MemoryState_MEMORY_STATE_COMMITTED,
-		2,
-		withMemoryServeTotal(7),
-		withMemoryDenialTotal(3),
-		withKeywords(
-			&types.KeywordWeight{Keyword: "kw1", Weight: "0.50"},
-			&types.KeywordWeight{Keyword: "kw2", Weight: "0.25"},
-		),
-		withKeywordWeight("kw1", "0.75"),
-	)
-
-	mock := attachMockServeKeeper(k, "test-org", cid,
-		withServeCount(5, 2),
-		withDenialCount(5, 1),
-		withMatchedKeywords(5, "kw1"),
-	)
-
-	matches, err := mock.GetMatchedKeywordsForEpoch(ctx, "test-org", cid, 5)
-	if err != nil {
-		t.Fatalf("GetMatchedKeywordsForEpoch failed: %v", err)
-	}
-	if !matches["kw1"] {
-		t.Fatalf("expected kw1 to be matched")
-	}
-
-	memory, err := k.GetApprovedMemory(ctx, "test-org", contentHash)
-	if err != nil {
-		t.Fatalf("GetApprovedMemory failed: %v", err)
-	}
-	if memory.ServeCountTotal != 7 {
-		t.Fatalf("ServeCountTotal mismatch: got %d, want 7", memory.ServeCountTotal)
-	}
-	if memory.DenialCountTotal != 3 {
-		t.Fatalf("DenialCountTotal mismatch: got %d, want 3", memory.DenialCountTotal)
 	}
 }

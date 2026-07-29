@@ -51,9 +51,6 @@ func (q *queryServer) GetMemory(ctx context.Context, req *types.QueryGetMemoryRe
 			McVersion:              memory.McVersion,
 			MemoryType:             memory.MemoryType,
 			ApprovedAtEpoch:        memory.ApprovedAtEpoch,
-			ServeCountTotal:        memory.ServeCountTotal,
-			DenialCountTotal:       memory.DenialCountTotal,
-			ArchivedEpoch:          memory.ArchivedEpoch,
 		},
 	}, nil
 }
@@ -195,9 +192,6 @@ func (q *queryServer) GetMemoriesBatch(ctx context.Context, req *types.QueryGetM
 			McVersion:              memory.McVersion,
 			MemoryType:             memory.MemoryType,
 			ApprovedAtEpoch:        memory.ApprovedAtEpoch,
-			ServeCountTotal:        memory.ServeCountTotal,
-			DenialCountTotal:       memory.DenialCountTotal,
-			ArchivedEpoch:          memory.ArchivedEpoch,
 		})
 	}
 

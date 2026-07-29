@@ -129,7 +129,7 @@ With default values after 5 orgs created:
 
 ## Memory Module
 
-Memory commitment lifecycle, decay, and dispute resolution.
+Memory commitment queue/blob limits and dispute retention. Recall-pivot standing is computed at the edge from events plus an anchored policy version; no memory parameter stores recall weights, trust, confidence, or archive policy.
 
 ### Parameter Schema
 
@@ -139,11 +139,6 @@ Memory commitment lifecycle, decay, and dispute resolution.
   "pending_retention_epochs": "uint64",
   "max_blob_size_bytes": "uint64",
   "max_keywords_per_memory": "uint32",
-  "min_retrieval_decay_bps": "uint64",
-  "stable_threshold_bps": "uint64",
-  "degraded_threshold_bps": "uint64",
-  "dormant_threshold_bps": "uint64",
-  "initial_confidence_bps": "uint64",
   "contest_window_epochs": "uint64"
 }
 ```
@@ -177,48 +172,7 @@ Maximum size of the encrypted blob stored on approval. Blobs exceeding this size
 **Default:** 10
 
 Maximum number of keywords per memory commitment. Keywords exceeding this count will be truncated.
-
-#### min_retrieval_decay_bps
-
-**Type:** uint64  
-**Default:** 10
-
-Minimum decay rate in basis points when a memory receives no serves. Applied per epoch.
-
-#### stable_threshold_bps
-
-**Type:** uint64  
-**Default:** 8,000
-
-Confidence threshold for STABLE state. Memories with confidence ≥ 8000 bps are considered stable.
-
-**State Transition:**
-```
-confidence >= 8000 → STABLE
-5000 <= confidence < 8000 → DEGRADED
-2000 <= confidence < 5000 → DORMANT
-```
-
-#### degraded_threshold_bps
-
-**Type:** uint64  
-**Default:** 5,000
-
-Confidence threshold for DEGRADED state.
-
-#### dormant_threshold_bps
-
-**Type:** uint64  
-**Default:** 2,000
-
-Confidence threshold for DORMANT state. Memories below this are hidden from default recall.
-
-#### initial_confidence_bps
-
-**Type:** uint64  
-**Default:** 10,000
-
-Initial retrieval confidence (in basis points) when a memory is approved. Represents maximum confidence.
+These are flat labels only. They are never weighted and never gate consensus behavior.
 
 #### contest_window_epochs
 
@@ -520,7 +474,7 @@ Organizations can configure certain parameters per-org via `MsgSetOrgConfig`:
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `serve_receipt_required` | bool | Whether org requires serve receipts for payouts |
-| `decay_rate_bps` | uint64 | Organization-specific decay rate (overrides module minimum) |
+| `decay_rate_bps` | uint64 | Legacy org-config field; recall standing now comes from edge policy over events |
 | `contest_stake_vibe` | uint64 | Stake amount required to contest a memory |
 
 ### Reputation Tiers
@@ -596,11 +550,11 @@ wevibed tx org update-params wevibe1gov... '{
 ### Update Memory Module Parameters
 
 ```bash
-# Adjust decay thresholds
+# Adjust queue/blob limits; recall policy hashes are anchored through x/serve.
 wevibed tx memory update-params wevibe1gov... '{
-  "stable_threshold_bps": "8500",
-  "degraded_threshold_bps": "5500",
-  "dormant_threshold_bps": "2500"
+  "max_pending_per_org": "1500",
+  "max_keywords_per_memory": 20,
+  "contest_window_epochs": "10"
 }' --from gov --chain-id wevibe-local-1
 ```
 

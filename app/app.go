@@ -407,7 +407,6 @@ func NewWeVibeApp(
 	app.ServeKeeper = servekeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["serve"]), logger, govAuthority, app.OrgKeeper, app.MemoryKeeper, app.BandwidthKeeper, app.ReputationKeeper)
 	app.EmissionsKeeper = emissionskeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["emissions"]), logger, govAuthority, app.ServeKeeper, app.MemoryKeeper, app.OrgKeeper, app.ReputationKeeper)
 	app.AttestationKeeper = attestationkeeper.NewKeeper(runtime.NewKVStoreService(wevibeKeys["attestation"]), logger, govAuthority, app.OrgKeeper)
-	app.MemoryKeeper.SetServeKeeper(app.ServeKeeper)
 	app.OrgKeeper.SetMemoryKeeper(app.MemoryKeeper)
 	app.OrgKeeper.SetServeKeeper(app.ServeKeeper)
 	app.OrgKeeper.SetBandwidthKeeper(app.BandwidthKeeper)

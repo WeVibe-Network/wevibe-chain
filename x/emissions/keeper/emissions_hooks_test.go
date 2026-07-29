@@ -10,7 +10,7 @@ import (
 // emission pool exists, AfterEpochEnd logs and returns nil rather than
 // propagating an error. Returning an error here would cause the Cosmos SDK
 // epoch dispatcher to discard ALL cached writes for the epoch-end hook batch
-// (including x/memory's ApplyEpochDecay) — the CO-039 zero-decay bug.
+// (e.g. x/memory's epoch bookkeeping) — the CO-039 lost-writes bug class.
 func TestAfterEpochEnd_NoPool_ReturnsNil(t *testing.T) {
 	k, ctx := newTestKeeper(t)
 

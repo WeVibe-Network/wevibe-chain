@@ -343,6 +343,30 @@ Get memory serve count.
 wevibed query serve memory-count <org_id> <content_hash> <epoch> [flags]
 ```
 
+#### wevibed query serve list-events
+
+List recall-pivot events for an org epoch.
+
+```bash
+wevibed query serve list-events <org_id> <epoch> [flags]
+```
+
+#### wevibed query serve get-policy-anchor
+
+Get an anchored edge-policy version hash.
+
+```bash
+wevibed query serve get-policy-anchor <policy_version> [flags]
+```
+
+#### wevibed query serve get-latest-policy-anchor
+
+Get the latest anchored edge-policy version hash.
+
+```bash
+wevibed query serve get-latest-policy-anchor [flags]
+```
+
 #### wevibed query serve params
 
 Get module parameters.
@@ -634,7 +658,7 @@ wevibed tx org set-org-config [org_id] [flags] [flags]
 | Flag | Type | Description |
 |------|------|-------------|
 | `--serve-receipt-required` | bool | Require serve receipts |
-| `--decay-rate-bps` | uint | Decay rate in basis points |
+| `--decay-rate-bps` | uint | Legacy org-config field; recall standing is edge-computed from events and anchored policy version |
 | `--contest-stake-vibe` | uint | Contest stake amount |
 
 **Example:**
@@ -773,7 +797,6 @@ wevibed tx serve submit-serve-batch [org_id] [epoch] [serve_json_file_or_json_st
   {
     "memory_content_hash": "0a1b2c...",
     "contributor_id": "wevibe1contributor...",
-    "matched_keywords": ["keyword1", "keyword2"],
     "serve_key_pubkey": "base64-encoded-ed25519-pubkey",
     "serve_sig": "base64-encoded-ed25519-signature",
     "nonce": "base64-encoded-freshness-nonce"
@@ -783,7 +806,45 @@ wevibed tx serve submit-serve-batch [org_id] [epoch] [serve_json_file_or_json_st
 
 **Example:**
 ```bash
-wevibed tx serve submit-serve-batch my-org 100 '[{"memory_content_hash":"0a1b2c...","contributor_id":"wevibe1abc...","matched_keywords":["topic-a","topic-b"],"serve_key_pubkey":"base64-pubkey1...","serve_sig":"base64-signature1...","nonce":"base64-nonce1..."}]' --from my-key
+wevibed tx serve submit-serve-batch my-org 100 '[{"memory_content_hash":"0a1b2c...","contributor_id":"wevibe1abc...","serve_key_pubkey":"base64-pubkey1...","serve_sig":"base64-signature1...","nonce":"base64-nonce1..."}]' --from my-key
+```
+
+The serve signature preimage is exactly `wevibe-serve-v2\n<org_id>\n<hex(memory_content_hash)>\n<epoch>\n<hex(serve_key_pubkey)>\n<hex(nonce)>`.
+
+#### wevibed tx serve submit-events
+
+Submit consumer-signed recall-pivot events (E3/E6/E7/E8). E4 contest and E5 sponsorship are parked.
+
+```bash
+wevibed tx serve submit-events [org_id] [epoch] [events_json_file_or_json_string] [flags]
+```
+
+**Event JSON Format:**
+```json
+[
+  {
+    "event_type": "EVENT_TYPE_OUTCOME",
+    "memory_content_hash": "0a1b2c...",
+    "signer_pubkey": "base64-encoded-ed25519-pubkey",
+    "nonce": "base64-encoded-freshness-nonce",
+    "signature": "base64-encoded-ed25519-signature",
+    "outcome": {
+      "episode_ref": "base64-reference",
+      "worked": true,
+      "evidence_ref": "base64-reference"
+    }
+  }
+]
+```
+
+The event signature preimage is exactly `wevibe-event-v1\n<type token>\n<org_id>\n<hex(memory_content_hash)>\n<epoch>\n<hex(signer_pubkey)>\n<type-specific lines…>\n<hex(nonce)>`.
+
+#### wevibed tx serve anchor-policy-version
+
+Anchor a published edge-policy version hash (governance only). Standing is computed at the edge as `f(events, policy_version)`.
+
+```bash
+wevibed tx serve anchor-policy-version [policy_version] [policy_hash] [flags]
 ```
 
 ---

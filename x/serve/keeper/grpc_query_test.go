@@ -89,3 +89,31 @@ func TestQueryGetMemoryServeCount(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, uint64(0), resp0.Count)
 }
+
+func TestQueryListEventsAndPolicyAnchors(t *testing.T) {
+	env := setupKeeper(t)
+	q := keeper.NewQueryServerImpl(env.k)
+	h := hash32(0x71)
+	env.mem.approve("org-1", h)
+	entry, fp := outcomeEventEntry(t, "org-1", 7, h, 0x71)
+	accepted, _, _, err := env.k.ProcessEventBatch(env.ctx, "org-1", 7, []*types.EventEntry{entry})
+	require.NoError(t, err)
+	require.Equal(t, uint64(1), accepted)
+
+	eventsResp, err := q.ListEvents(env.ctx, &types.QueryListEventsRequest{OrgId: "org-1", Epoch: 7})
+	require.NoError(t, err)
+	require.Len(t, eventsResp.Events, 1)
+	require.Equal(t, fp, eventsResp.Events[0].Fingerprint)
+
+	ctx := env.sdkCtx()
+	policyHash := hash32(0x72)
+	require.NoError(t, env.k.SetPolicyAnchor(ctx, "policy-v1", policyHash))
+	anchorResp, err := q.GetPolicyAnchor(ctx, &types.QueryGetPolicyAnchorRequest{PolicyVersion: "policy-v1"})
+	require.NoError(t, err)
+	require.True(t, anchorResp.Found)
+	require.Equal(t, policyHash, anchorResp.Anchor.PolicyHash)
+	latestResp, err := q.GetLatestPolicyAnchor(ctx, &types.QueryGetLatestPolicyAnchorRequest{})
+	require.NoError(t, err)
+	require.True(t, latestResp.Found)
+	require.Equal(t, "policy-v1", latestResp.Anchor.PolicyVersion)
+}
