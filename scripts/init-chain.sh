@@ -135,11 +135,16 @@ jq --arg dur "$EPOCH_DURATION" '.app_state.epochs.epochs += [{
 mv /tmp/genesis_epoch.json "$HOME_DIR/config/genesis.json"
 echo "Configured wevibe_epoch with duration=$EPOCH_DURATION"
 
-# Configure governance params for local dev (shorter periods)
+# Configure governance params for local dev (short proposal cycle for smoke tests).
 jq '.app_state.gov.params.min_deposit[0].denom = "uvibe" |
     .app_state.gov.params.min_deposit[0].amount = "10000000" |
     .app_state.gov.params.max_deposit_period = "172800s" |
-    .app_state.gov.params.voting_period = "172800s"' \
+    .app_state.gov.params.voting_period = "30s" |
+    if .app_state.gov.params | has("expedited_voting_period") then
+      .app_state.gov.params.expedited_voting_period = "15s"
+    else
+      .
+    end' \
     "$HOME_DIR/config/genesis.json" > /tmp/genesis_gov.json
 mv /tmp/genesis_gov.json "$HOME_DIR/config/genesis.json"
 
