@@ -13,6 +13,7 @@ const (
 	// These must match x/serve's registered message type URLs.
 	msgTypeURLSubmitServeBatch  = "/wevibe.serve.v1.MsgSubmitServeBatch"
 	msgTypeURLSubmitDenialBatch = "/wevibe.serve.v1.MsgSubmitDenialBatch"
+	msgTypeURLSubmitEventBatch  = "/wevibe.serve.v1.MsgSubmitEventBatch"
 
 	// These must match x/org and x/memory registered message type URLs
 	// (verified against x/org/types/tx.pb.go and x/memory/types/tx.pb.go).
@@ -63,7 +64,7 @@ func (k *Keeper) grantServingFeegrant(ctx context.Context, orgAccountAddr sdk.Ac
 
 	allowance, err := feegrant.NewAllowedMsgAllowance(
 		&feegrant.BasicAllowance{},
-		[]string{msgTypeURLSubmitServeBatch, msgTypeURLSubmitDenialBatch},
+		[]string{msgTypeURLSubmitServeBatch, msgTypeURLSubmitDenialBatch, msgTypeURLSubmitEventBatch},
 	)
 	if err != nil {
 		return fmt.Errorf("build serving feegrant allowance: %w", err)

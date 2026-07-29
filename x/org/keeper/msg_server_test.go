@@ -82,7 +82,7 @@ func assertServingFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowanc
 	allowed, ok := allowance.(*feegrant.AllowedMsgAllowance)
 	require.True(t, ok)
 	require.ElementsMatch(t,
-		[]string{"/wevibe.serve.v1.MsgSubmitServeBatch", "/wevibe.serve.v1.MsgSubmitDenialBatch"},
+		[]string{"/wevibe.serve.v1.MsgSubmitServeBatch", "/wevibe.serve.v1.MsgSubmitDenialBatch", "/wevibe.serve.v1.MsgSubmitEventBatch"},
 		allowed.AllowedMessages,
 	)
 
