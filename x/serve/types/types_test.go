@@ -2,6 +2,7 @@ package types_test
 
 import (
 	"crypto/sha256"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -99,6 +100,7 @@ func validOutcomeEvent() *types.EventEntry {
 			EpisodeRef:  []byte{0x10},
 			Worked:      true,
 			EvidenceRef: []byte{0x11},
+			ServeRef:    fingerprint32(0x12),
 		}},
 	}
 }
@@ -132,9 +134,9 @@ func TestCanonicalEventBody_GoldenVectors(t *testing.T) {
 			name:      "outcome",
 			eventType: types.EventType_EVENT_TYPE_OUTCOME,
 			entry: &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
-				EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12},
+				EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12}, ServeRef: []byte{0x13, 0x14},
 			}}},
-			expected: "wevibe-event-v1\noutcome\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n1011\nworked=true\n12\n0304",
+			expected: "wevibe-event-v1\noutcome\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n1011\nworked=true\n12\n1314\n0304",
 		},
 		{
 			name:      "validity predicate",
@@ -182,6 +184,33 @@ func TestComputeEventFingerprint(t *testing.T) {
 	body := []byte("event-body")
 	expected := sha256.Sum256(body)
 	require.Equal(t, expected[:], types.ComputeEventFingerprint(body))
+}
+
+func TestOutcomeEventPreimageIncludesServeRefBeforeNonce(t *testing.T) {
+	body, err := types.CanonicalEventBody(types.EventType_EVENT_TYPE_OUTCOME, "org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}, &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
+		EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12}, ServeRef: fingerprint32(0x13),
+	}}})
+	require.NoError(t, err)
+	require.Equal(t, 10, strings.Count(string(body), "\n"))
+	require.Equal(t, "wevibe-event-v1\noutcome\norg-a\n"+hexRepeat(0x01, 32)+"\n7\n"+hexRepeat(0x02, 32)+"\n1011\nworked=true\n12\n"+hexRepeat(0x13, 32)+"\n0304", string(body))
+}
+
+func TestOutcomeServeRefValidationRequiresSha256Size(t *testing.T) {
+	for _, size := range []int{0, 31, 33} {
+		t.Run(strconv.Itoa(size), func(t *testing.T) {
+			msg := &types.MsgSubmitEventBatch{Signer: "s", OrgId: "org", Epoch: 1, Events: []*types.EventEntry{validOutcomeEvent()}}
+			msg.Events[0].GetOutcome().ServeRef = make([]byte, size)
+			require.EqualError(t, msg.ValidateBasic(), "outcome serve_ref must be exactly 32 bytes")
+		})
+	}
+}
+
+func TestComputeServeFingerprintBindsServePubkey(t *testing.T) {
+	memory := hash32(0x01)
+	epoch := uint64(7)
+	serveRefA := types.ComputeServeFingerprint(memory, hash32(0x02), epoch)
+	serveRefB := types.ComputeServeFingerprint(memory, hash32(0x03), epoch)
+	require.NotEqual(t, serveRefA, serveRefB)
 }
 
 func TestMsgSubmitDenialBatch_ValidateBasic(t *testing.T) {

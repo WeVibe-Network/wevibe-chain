@@ -81,6 +81,7 @@ func canonicalEventSpecificLines(eventType EventType, entry *EventEntry) (string
 			hex.EncodeToString(body.EpisodeRef),
 			"worked=" + strconv.FormatBool(body.Worked),
 			hex.EncodeToString(body.EvidenceRef),
+			hex.EncodeToString(body.ServeRef),
 		}, nil
 	case EventType_EVENT_TYPE_VALIDITY_PREDICATE:
 		body := entry.GetValidityPredicate()

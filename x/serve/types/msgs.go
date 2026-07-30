@@ -1,6 +1,7 @@
 package types
 
 import (
+	"crypto/sha256"
 	"fmt"
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
@@ -125,6 +126,9 @@ func validateEventBody(entry *EventEntry) error {
 		body := entry.GetOutcome()
 		if body == nil {
 			return fmt.Errorf("outcome event body is required")
+		}
+		if len(body.ServeRef) != sha256.Size {
+			return fmt.Errorf("outcome serve_ref must be exactly 32 bytes")
 		}
 		return validateRefCaps(body.EpisodeRef, body.EvidenceRef)
 	case EventType_EVENT_TYPE_VALIDITY_PREDICATE:

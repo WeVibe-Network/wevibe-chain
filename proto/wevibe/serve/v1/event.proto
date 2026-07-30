@@ -39,6 +39,8 @@ message OutcomeEventBody {
   bool worked = 2;
   // GSTV-sealed pattern reference.
   bytes evidence_ref = 3;
+  // Fingerprint of the originating serve (ComputeServeFingerprint) — the pairing reference. Content-free.
+  bytes serve_ref = 4;
 }
 
 message ValidityPredicateEventBody {
