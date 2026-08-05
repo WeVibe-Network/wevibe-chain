@@ -196,6 +196,42 @@ jq '.app_state.reputation = {"active": true}' \
 mv /tmp/genesis_reputation.json "$HOME_DIR/config/genesis.json"
 echo "Seeded app_state.reputation (active=true)"
 
+# serve: seed the edge-policy anchor at genesis so the hub's startup anchor
+# verification passes from height zero — no governance proposal, no manual step.
+# The hash is derived HERE, at init time, from the exact policy bytes the
+# running hub loads (the same workspace file, mounted read-only into this
+# container by wevibe-server/docker-compose.yml and COPYed into the hub image
+# by wevibe-server/Dockerfile.hub). Never transcribe a hash by hand.
+# Env-gated: standalone chain dev (wevibe-chain/docker-compose.yml) does not
+# set WEVIBE_EDGE_POLICY_FILE and keeps the previous unanchored behaviour.
+POLICY_FILE="${WEVIBE_EDGE_POLICY_FILE:-}"
+if [ -n "$POLICY_FILE" ]; then
+    if [ ! -f "$POLICY_FILE" ]; then
+        echo "FATAL: WEVIBE_EDGE_POLICY_FILE is set but not a readable file: $POLICY_FILE" >&2
+        exit 1
+    fi
+    POLICY_VERSION="$(jq -r '.policy_version // empty' "$POLICY_FILE")"
+    if [ -z "$POLICY_VERSION" ]; then
+        echo "FATAL: policy file has no policy_version field: $POLICY_FILE" >&2
+        exit 1
+    fi
+    POLICY_HASH_HEX="$(sha256sum "$POLICY_FILE" | cut -d' ' -f1)"
+    # StoredPolicyAnchor.policy_hash is a proto bytes field → genesis JSON
+    # expects base64 of the raw 32 digest bytes (encoding/json []byte rules).
+    # Convert hex → raw bytes → base64 without capturing binary in a variable
+    # (command substitution would strip NUL bytes); the escape text is ASCII.
+    POLICY_HASH_B64="$(printf '%b' "$(printf '%s' "$POLICY_HASH_HEX" | sed 's/\(..\)/\\x\1/g')" | base64 -w0)"
+    jq --arg ver "$POLICY_VERSION" --arg hash "$POLICY_HASH_B64" \
+        '.app_state.serve.policy_anchors = [{
+            "policy_version": $ver,
+            "policy_hash": $hash,
+            "anchored_at_epoch": 0,
+            "anchored_at_height": 0
+        }]' "$HOME_DIR/config/genesis.json" > /tmp/genesis_anchor.json
+    mv /tmp/genesis_anchor.json "$HOME_DIR/config/genesis.json"
+    echo "Seeded app_state.serve.policy_anchors (version=$POLICY_VERSION sha256=$POLICY_HASH_HEX)"
+fi
+
 "$WEVIBED_BINARY" genesis validate-genesis --home "$HOME_DIR" 2>&1 | tail -1
 
 echo "=== Chain initialized successfully ==="
