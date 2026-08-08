@@ -30,6 +30,12 @@ func (m *MsgSubmitServeBatch) ValidateBasic() error {
 		if serve.ContributorId == "" {
 			return ErrInvalidContributor
 		}
+		if len(serve.EpisodeRef) == 0 {
+			return ErrInvalidServeEpisodeRef
+		}
+		if len(serve.EpisodeRef) > 64 {
+			return ErrServeEpisodeRefTooLong
+		}
 	}
 	return nil
 }

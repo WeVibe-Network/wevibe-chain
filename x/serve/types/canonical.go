@@ -11,24 +11,28 @@ import (
 
 // CanonicalServeBody encodes the exact serve signing preimage:
 //
-//	wevibe-serve-v2
+//	wevibe-serve-v3
 //	<org_id>
 //	<hex(memory_content_hash)>
 //	<epoch>
 //	<hex(serve_key_pubkey)>
 //	<hex(nonce)>
+//	<hex(episode_ref)>
 //
 // v1→v2 (RECALL-PIVOT joint amendment 2026-07-29): matched keywords left the signed preimage — the keyword gate rejected 24/24 legitimate serves (RECALL-PIVOT-SPEC §3.1 E1).
 //
+// v2→v3 (WO-TRIGGER-BUILD A3): episode_ref added to the signed preimage.
+//
 // Fields are joined with a single '\n' and no trailing newline.
-func CanonicalServeBody(orgID string, memoryHash []byte, epoch uint64, serveKeyPubkey []byte, nonce []byte) []byte {
+func CanonicalServeBody(orgID string, memoryHash []byte, epoch uint64, serveKeyPubkey []byte, nonce []byte, episodeRef []byte) []byte {
 	lines := []string{
-		"wevibe-serve-v2",
+		"wevibe-serve-v3",
 		orgID,
 		hex.EncodeToString(memoryHash),
 		strconv.FormatUint(epoch, 10),
 		hex.EncodeToString(serveKeyPubkey),
 		hex.EncodeToString(nonce),
+		hex.EncodeToString(episodeRef),
 	}
 
 	return []byte(strings.Join(lines, "\n"))

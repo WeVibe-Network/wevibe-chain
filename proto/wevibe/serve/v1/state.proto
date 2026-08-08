@@ -21,6 +21,7 @@ message StoredServeReceipt {
   reserved "matched_keywords";
   bytes serve_key_pubkey = 11;
   bytes fingerprint = 12;
+  bytes episode_ref = 13;
 }
 
 // E2 block event record — serve_fingerprint is the serve_ref (RECALL-PIVOT-SPEC §3.1).

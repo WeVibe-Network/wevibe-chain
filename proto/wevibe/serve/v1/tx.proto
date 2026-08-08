@@ -32,6 +32,7 @@ message ServeEntry {
   bytes serve_key_pubkey = 9;
   bytes serve_sig = 10;
   bytes nonce = 11;
+  bytes episode_ref = 12;
 }
 
 message MsgSubmitServeBatch {

@@ -38,9 +38,10 @@ type ServeReceipt struct {
 	IsSelfServe    bool
 	ModelID        string
 	TurnCount      uint32
+	EpisodeRef     []byte
 }
 
-func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32) *ServeReceipt {
+func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKeyPubkey []byte, contributorID string, epoch uint64, fingerprint []byte, isSelfServe bool, modelID string, turnCount uint32, episodeRef []byte) *ServeReceipt {
 	return &ServeReceipt{
 		OrgID:          orgID,
 		ContentHash:    contentHash,
@@ -52,6 +53,7 @@ func NewServeReceipt(orgID string, contentHash []byte, serveKey string, serveKey
 		IsSelfServe:    isSelfServe,
 		ModelID:        modelID,
 		TurnCount:      turnCount,
+		EpisodeRef:     episodeRef,
 	}
 }
 
@@ -141,6 +143,7 @@ func ServeReceiptToStored(sr *ServeReceipt) *StoredServeReceipt {
 		TurnCount:         sr.TurnCount,
 		ServeKeyPubkey:    sr.ServeKeyPubkey,
 		Fingerprint:       sr.Fingerprint,
+		EpisodeRef:        sr.EpisodeRef,
 	}
 }
 
@@ -156,6 +159,7 @@ func StoredToServeReceipt(stored StoredServeReceipt) ServeReceipt {
 		IsSelfServe:    stored.IsSelfServe,
 		ModelID:        stored.ModelId,
 		TurnCount:      stored.TurnCount,
+		EpisodeRef:     stored.EpisodeRef,
 	}
 }
 

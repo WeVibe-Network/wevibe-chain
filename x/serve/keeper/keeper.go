@@ -228,7 +228,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 			continue
 		}
 
-		canonicalBody := types.CanonicalServeBody(orgID, serve.MemoryContentHash, epoch, serve.ServeKeyPubkey, serve.Nonce)
+		canonicalBody := types.CanonicalServeBody(orgID, serve.MemoryContentHash, epoch, serve.ServeKeyPubkey, serve.Nonce, serve.EpisodeRef)
 		if !ed25519.Verify(ed25519.PublicKey(serve.ServeKeyPubkey), canonicalBody, serve.ServeSig) {
 			rejectedInvalid++
 			continue
@@ -267,7 +267,7 @@ func (k *Keeper) ProcessServeBatch(ctx context.Context, orgID string, epoch uint
 
 		store := k.getStore(ctx)
 
-		receipt := types.NewServeReceipt(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount)
+		receipt := types.NewServeReceipt(orgID, serve.MemoryContentHash, serveKeyID, serve.ServeKeyPubkey, serve.ContributorId, epoch, serveFingerprint, isSelfServe, serve.ModelId, serve.TurnCount, serve.EpisodeRef)
 		receiptBz, err := proto.Marshal(types.ServeReceiptToStored(receipt))
 		if err != nil {
 			return 0, 0, 0, fmt.Errorf("marshal receipt: %w", err)

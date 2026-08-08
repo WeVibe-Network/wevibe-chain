@@ -354,8 +354,9 @@ func TestSubmitServeBatch_FixedSignedVectorRejectsTampered(t *testing.T) {
 	priv := ed25519.NewKeyFromSeed(seed)
 	pub := priv.Public().(ed25519.PublicKey)
 	nonce := []byte{0xDE, 0xAD, 0xBE, 0xEF}
+	episodeRef := []byte{0xAA, 0xBB, 0xCC, 0xDD}
 
-	body := types.CanonicalServeBody(orgID, hash, epoch, pub, nonce)
+	body := types.CanonicalServeBody(orgID, hash, epoch, pub, nonce, episodeRef)
 	sig := ed25519.Sign(priv, body)
 	require.True(t, ed25519.Verify(pub, body, sig))
 	fingerprint := types.ComputeServeFingerprint(hash, pub, epoch)
@@ -376,6 +377,7 @@ func TestSubmitServeBatch_FixedSignedVectorRejectsTampered(t *testing.T) {
 		TurnCount:         2,
 		ContributorWallet: "wallet-1",
 		Nonce:             nonce,
+		EpisodeRef:        episodeRef,
 	}
 
 	resp, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
@@ -399,6 +401,7 @@ func TestSubmitServeBatch_FixedSignedVectorRejectsTampered(t *testing.T) {
 		TurnCount:         2,
 		ContributorWallet: "wallet-1",
 		Nonce:             nonce,
+		EpisodeRef:        episodeRef,
 	}
 
 	tamperedResp, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
@@ -428,7 +431,8 @@ func TestSubmitDenialBatch_FixedSignedVector(t *testing.T) {
 	priv := ed25519.NewKeyFromSeed(seed)
 	pub := priv.Public().(ed25519.PublicKey)
 	serveNonce := []byte{0xDE, 0xAD, 0xBE, 0xEF}
-	serveBody := types.CanonicalServeBody(orgID, hash, epoch, pub, serveNonce)
+	serveEpisodeRef := []byte{0xAA, 0xBB, 0xCC, 0xDD}
+	serveBody := types.CanonicalServeBody(orgID, hash, epoch, pub, serveNonce, serveEpisodeRef)
 	serveSig := ed25519.Sign(priv, serveBody)
 	originatingServe := &types.ServeEntry{
 		MemoryContentHash: hash,
@@ -439,6 +443,7 @@ func TestSubmitDenialBatch_FixedSignedVector(t *testing.T) {
 		TurnCount:         2,
 		ContributorWallet: "wallet-1",
 		Nonce:             serveNonce,
+		EpisodeRef:        serveEpisodeRef,
 	}
 	_, err := srv.SubmitServeBatch(env.ctx, &types.MsgSubmitServeBatch{
 		Signer: "s", OrgId: orgID, Epoch: epoch, Serves: []*types.ServeEntry{originatingServe},

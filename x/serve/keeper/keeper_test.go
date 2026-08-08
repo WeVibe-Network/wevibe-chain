@@ -125,8 +125,9 @@ func serveEntry(orgID string, epoch uint64, hash []byte, serveKey, contributorID
 		TurnCount:         3,
 		ContributorWallet: "wallet-1",
 		Nonce:             append([]byte(nil), nonce...),
+		EpisodeRef:        []byte{0xAA, 0xBB, 0xCC},
 	}
-	body := types.CanonicalServeBody(orgID, hash, epoch, entry.ServeKeyPubkey, entry.Nonce)
+	body := types.CanonicalServeBody(orgID, hash, epoch, entry.ServeKeyPubkey, entry.Nonce, entry.EpisodeRef)
 	entry.ServeSig = ed25519.Sign(priv, body)
 	return entry
 }

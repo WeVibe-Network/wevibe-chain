@@ -24,4 +24,6 @@ var (
 	ErrEventParked                = errors.New("event type parked — activation deferred (RECALL-PIVOT-SPEC §3.1)")
 	ErrInvalidEventType           = errors.New("invalid event type")
 	ErrNegAnchorInert             = errors.New("neg_anchor must be empty — INERT pending Walter's READ-disclosure ruling (RECALL-PIVOT-SPEC §4)")
+	ErrInvalidServeEpisodeRef     = errors.New("serve episode_ref cannot be empty — it is part of the signed serve preimage")
+	ErrServeEpisodeRefTooLong     = errors.New("serve episode_ref must be at most 64 bytes — fingerprints/refs only (RECALL-PIVOT-SPEC §3.2 boundary)")
 )

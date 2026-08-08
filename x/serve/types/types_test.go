@@ -42,6 +42,7 @@ func validServeEntry() *types.ServeEntry {
 		ServeSig:          sig64(0x20),
 		ContributorId:     "contrib",
 		Nonce:             []byte{0x01},
+		EpisodeRef:        []byte{0x11, 0x22, 0x33},
 	}
 }
 
@@ -65,6 +66,8 @@ func TestMsgSubmitServeBatch_ValidateBasic(t *testing.T) {
 		{"short serve pubkey", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeKeyPubkey = []byte{1} }},
 		{"short serve signature", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ServeSig = []byte{1} }},
 		{"empty contributor", func(m *types.MsgSubmitServeBatch) { m.Serves[0].ContributorId = "" }},
+		{"empty episode ref", func(m *types.MsgSubmitServeBatch) { m.Serves[0].EpisodeRef = nil }},
+		{"oversize episode ref", func(m *types.MsgSubmitServeBatch) { m.Serves[0].EpisodeRef = make([]byte, 65) }},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -76,6 +79,20 @@ func TestMsgSubmitServeBatch_ValidateBasic(t *testing.T) {
 			require.Error(t, msg.ValidateBasic())
 		})
 	}
+
+	t.Run("episode ref boundary", func(t *testing.T) {
+		// A well-formed episode_ref of exactly 64 bytes is accepted.
+		entry := validServeEntry()
+		entry.EpisodeRef = make([]byte, 64)
+		msg := &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org", Epoch: 1, Serves: []*types.ServeEntry{entry}}
+		require.NoError(t, msg.ValidateBasic())
+
+		// 64-byte accepted, 65-byte rejected (asserted in the reject table above).
+		entry65 := validServeEntry()
+		entry65.EpisodeRef = make([]byte, 65)
+		msg65 := &types.MsgSubmitServeBatch{Signer: "s", OrgId: "org", Epoch: 1, Serves: []*types.ServeEntry{entry65}}
+		require.Error(t, msg65.ValidateBasic())
+	})
 }
 
 func hexRepeat(b byte, count int) string {
@@ -106,18 +123,26 @@ func validOutcomeEvent() *types.EventEntry {
 	}
 }
 
-func TestCanonicalServeBodyV2_GoldenVector(t *testing.T) {
-	body := string(types.CanonicalServeBody("org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}))
-	expected := "wevibe-serve-v2\n" +
+func TestCanonicalServeBodyV3_GoldenVector(t *testing.T) {
+	// episodeRef: 32 bytes of a fixed repeating pattern.
+	episodeRef := make([]byte, 32)
+	for i := range episodeRef {
+		episodeRef[i] = 0xAB
+	}
+	body := string(types.CanonicalServeBody("org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}, episodeRef))
+	expected := "wevibe-serve-v3\n" +
 		"org-a\n" +
 		hexRepeat(0x01, 32) + "\n" +
 		"7\n" +
 		hexRepeat(0x02, 32) + "\n" +
-		"0304"
+		"0304\n" +
+		hexRepeat(0xAB, 32)
 	require.Equal(t, expected, body)
-	require.True(t, strings.HasPrefix(body, "wevibe-serve-v2"))
+	require.True(t, strings.HasPrefix(body, "wevibe-serve-v3"))
 	require.NotContains(t, body, ",")
-	require.Equal(t, 5, strings.Count(body, "\n"))
+	require.Equal(t, 6, strings.Count(body, "\n"))
+	// episode_ref must be present in the v3 preimage, as its hex-encoded line.
+	require.Contains(t, body, "\n"+hexRepeat(0xAB, 32))
 }
 
 func TestCanonicalEventBody_GoldenVectors(t *testing.T) {
@@ -310,7 +335,7 @@ func TestMsgUpdateParams_ValidateBasic(t *testing.T) {
 }
 
 func TestServeReceipt_Validate(t *testing.T) {
-	valid := types.NewServeReceipt("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2)
+	valid := types.NewServeReceipt("org", hash32(0x03), "sk", hash32(0x30), "c", 1, fingerprint32(0x03), false, "model", 2, []byte{0xaa})
 	require.NoError(t, valid.Validate())
 
 	require.Error(t, (&types.ServeReceipt{}).Validate())                                   // empty org
@@ -330,7 +355,7 @@ func TestContributorEpochServes_AddOrgID_Dedup(t *testing.T) {
 }
 
 func TestServeReceipt_StoredRoundtrip(t *testing.T) {
-	sr := types.NewServeReceipt("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3)
+	sr := types.NewServeReceipt("org", hash32(0x04), "sk", hash32(0x41), "c", 7, fingerprint32(0x04), true, "m", 3, []byte{0xbb})
 	stored := types.ServeReceiptToStored(sr)
 	back := types.StoredToServeReceipt(*stored)
 	require.Equal(t, sr.OrgID, back.OrgID)
@@ -380,7 +405,7 @@ func TestContentHashToHex(t *testing.T) {
 
 func TestGenesisJSONRoundtrip(t *testing.T) {
 	gs := types.NewGenesisState(
-		[]*types.ServeReceipt{types.NewServeReceipt("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1)},
+		[]*types.ServeReceipt{types.NewServeReceipt("org", hash32(5), "sk", hash32(0x51), "c", 1, fingerprint32(5), false, "m", 1, []byte{0xcc})},
 		nil, nil, nil, nil, nil,
 	)
 	bz, err := gs.MarshalJSON()
