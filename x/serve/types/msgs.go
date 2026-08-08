@@ -130,6 +130,12 @@ func validateEventBody(entry *EventEntry) error {
 		if len(body.ServeRef) != sha256.Size {
 			return fmt.Errorf("outcome serve_ref must be exactly 32 bytes")
 		}
+		if _, err := outcomeResolutionToken(body.Resolution); err != nil {
+			return err
+		}
+		if _, err := outcomeSourceToken(body.Source); err != nil {
+			return err
+		}
 		return validateRefCaps(body.EpisodeRef, body.EvidenceRef)
 	case EventType_EVENT_TYPE_VALIDITY_PREDICATE:
 		body := entry.GetValidityPredicate()

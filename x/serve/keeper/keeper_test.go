@@ -174,7 +174,8 @@ func outcomeEventEntry(t *testing.T, orgID string, epoch uint64, h []byte, nonce
 		Nonce:             nonce32(nonce),
 		Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
 			EpisodeRef:  []byte{0x01, nonce},
-			Worked:      true,
+			Resolution:  types.OutcomeResolution_OUTCOME_RESOLUTION_WORKED,
+			Source:      types.OutcomeSource_OUTCOME_SOURCE_HARVESTED,
 			EvidenceRef: []byte{0x02, nonce},
 			ServeRef:    types.ComputeServeFingerprint(h, pub, epoch),
 		}},
@@ -449,7 +450,8 @@ func TestProcessEventBatch_AcceptsOutcomeAndStoresRoundTrip(t *testing.T) {
 	require.Equal(t, fp, events[0].Fingerprint)
 	require.Equal(t, types.EventType_EVENT_TYPE_OUTCOME, events[0].EventType)
 	require.Equal(t, entry.GetOutcome().EpisodeRef, events[0].GetOutcome().EpisodeRef)
-	require.Equal(t, entry.GetOutcome().Worked, events[0].GetOutcome().Worked)
+	require.Equal(t, entry.GetOutcome().Resolution, events[0].GetOutcome().Resolution)
+	require.Equal(t, entry.GetOutcome().Source, events[0].GetOutcome().Source)
 	require.Equal(t, entry.GetOutcome().EvidenceRef, events[0].GetOutcome().EvidenceRef)
 	require.Equal(t, entry.GetOutcome().ServeRef, events[0].GetOutcome().ServeRef)
 }
@@ -464,7 +466,7 @@ func TestProcessEventBatch_AcceptsAllConsumedTypes(t *testing.T) {
 		build     func([]byte, byte) *types.EventEntry
 	}{
 		{"outcome", types.EventType_EVENT_TYPE_OUTCOME, func(pub []byte, n byte) *types.EventEntry {
-			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_OUTCOME, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{EpisodeRef: []byte{n}, Worked: true, EvidenceRef: []byte{n + 1}, ServeRef: types.ComputeServeFingerprint(h, pub, 12)}}}
+			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_OUTCOME, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{EpisodeRef: []byte{n}, Resolution: types.OutcomeResolution_OUTCOME_RESOLUTION_WORKED, Source: types.OutcomeSource_OUTCOME_SOURCE_HARVESTED, EvidenceRef: []byte{n + 1}, ServeRef: types.ComputeServeFingerprint(h, pub, 12)}}}
 		}},
 		{"validity", types.EventType_EVENT_TYPE_VALIDITY_PREDICATE, func(pub []byte, n byte) *types.EventEntry {
 			return &types.EventEntry{EventType: types.EventType_EVENT_TYPE_VALIDITY_PREDICATE, MemoryContentHash: h, SignerPubkey: pub, Nonce: nonce32(n), Body: &types.EventEntry_ValidityPredicate{ValidityPredicate: &types.ValidityPredicateEventBody{PredicateId: []byte{n}, Result: types.PredicateResult_PREDICATE_RESULT_PASS, EvidenceRef: []byte{n + 1}}}}

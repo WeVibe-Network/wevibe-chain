@@ -98,7 +98,8 @@ func validOutcomeEvent() *types.EventEntry {
 		Signature:         sig64(0x04),
 		Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
 			EpisodeRef:  []byte{0x10},
-			Worked:      true,
+			Resolution:  types.OutcomeResolution_OUTCOME_RESOLUTION_WORKED,
+			Source:      types.OutcomeSource_OUTCOME_SOURCE_HARVESTED,
 			EvidenceRef: []byte{0x11},
 			ServeRef:    fingerprint32(0x12),
 		}},
@@ -134,9 +135,9 @@ func TestCanonicalEventBody_GoldenVectors(t *testing.T) {
 			name:      "outcome",
 			eventType: types.EventType_EVENT_TYPE_OUTCOME,
 			entry: &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
-				EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12}, ServeRef: []byte{0x13, 0x14},
+				EpisodeRef: []byte{0x10, 0x11}, Resolution: types.OutcomeResolution_OUTCOME_RESOLUTION_WORKED, Source: types.OutcomeSource_OUTCOME_SOURCE_HARVESTED, EvidenceRef: []byte{0x12}, ServeRef: []byte{0x13, 0x14},
 			}}},
-			expected: "wevibe-event-v1\noutcome\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n1011\nworked=true\n12\n1314\n0304",
+			expected: "wevibe-event-v1\noutcome\norg-a\n" + hexRepeat(0x01, 32) + "\n7\n" + hexRepeat(0x02, 32) + "\n1011\n12\n1314\nresolution=worked\nsource=harvested\n0304",
 		},
 		{
 			name:      "validity predicate",
@@ -188,11 +189,11 @@ func TestComputeEventFingerprint(t *testing.T) {
 
 func TestOutcomeEventPreimageIncludesServeRefBeforeNonce(t *testing.T) {
 	body, err := types.CanonicalEventBody(types.EventType_EVENT_TYPE_OUTCOME, "org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}, &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
-		EpisodeRef: []byte{0x10, 0x11}, Worked: true, EvidenceRef: []byte{0x12}, ServeRef: fingerprint32(0x13),
+		EpisodeRef: []byte{0x10, 0x11}, Resolution: types.OutcomeResolution_OUTCOME_RESOLUTION_WORKED, Source: types.OutcomeSource_OUTCOME_SOURCE_HARVESTED, EvidenceRef: []byte{0x12}, ServeRef: fingerprint32(0x13),
 	}}})
 	require.NoError(t, err)
-	require.Equal(t, 10, strings.Count(string(body), "\n"))
-	require.Equal(t, "wevibe-event-v1\noutcome\norg-a\n"+hexRepeat(0x01, 32)+"\n7\n"+hexRepeat(0x02, 32)+"\n1011\nworked=true\n12\n"+hexRepeat(0x13, 32)+"\n0304", string(body))
+	require.Equal(t, 11, strings.Count(string(body), "\n"))
+	require.Equal(t, "wevibe-event-v1\noutcome\norg-a\n"+hexRepeat(0x01, 32)+"\n7\n"+hexRepeat(0x02, 32)+"\n1011\n12\n"+hexRepeat(0x13, 32)+"\nresolution=worked\nsource=harvested\n0304", string(body))
 }
 
 func TestOutcomeServeRefValidationRequiresSha256Size(t *testing.T) {
@@ -388,4 +389,34 @@ func TestGenesisJSONRoundtrip(t *testing.T) {
 	require.NoError(t, decoded.UnmarshalJSON(bz))
 	require.Len(t, decoded.ServeReceipts, 1)
 	require.Equal(t, "org", decoded.ServeReceipts[0].OrgID)
+}
+
+func TestOutcomeResolutionSourceValidation(t *testing.T) {
+	cases := []struct {
+		name    string
+		mutate  func(m *types.MsgSubmitEventBatch)
+		wantErr string
+	}{
+		{"resolution unspecified", func(m *types.MsgSubmitEventBatch) {
+			m.Events[0].GetOutcome().Resolution = types.OutcomeResolution_OUTCOME_RESOLUTION_UNSPECIFIED
+		}, "outcome resolution must be worked, didnt_work, or unobserved"},
+		{"source unspecified", func(m *types.MsgSubmitEventBatch) {
+			m.Events[0].GetOutcome().Source = types.OutcomeSource_OUTCOME_SOURCE_UNSPECIFIED
+		}, "outcome source must be harvested or user"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			msg := &types.MsgSubmitEventBatch{Signer: "s", OrgId: "org", Epoch: 1, Events: []*types.EventEntry{validOutcomeEvent()}}
+			tc.mutate(msg)
+			require.EqualError(t, msg.ValidateBasic(), tc.wantErr)
+		})
+	}
+}
+
+func TestOutcomeUnobservedPreimageToken(t *testing.T) {
+	body, err := types.CanonicalEventBody(types.EventType_EVENT_TYPE_OUTCOME, "org-a", hash32(0x01), 7, hash32(0x02), []byte{0x03, 0x04}, &types.EventEntry{Body: &types.EventEntry_Outcome{Outcome: &types.OutcomeEventBody{
+		EpisodeRef: []byte{0x10, 0x11}, Resolution: types.OutcomeResolution_OUTCOME_RESOLUTION_UNOBSERVED, Source: types.OutcomeSource_OUTCOME_SOURCE_HARVESTED, EvidenceRef: []byte{0x12}, ServeRef: fingerprint32(0x13),
+	}}})
+	require.NoError(t, err)
+	require.Equal(t, "wevibe-event-v1\noutcome\norg-a\n"+hexRepeat(0x01, 32)+"\n7\n"+hexRepeat(0x02, 32)+"\n1011\n12\n"+hexRepeat(0x13, 32)+"\nresolution=unobserved\nsource=harvested\n0304", string(body))
 }

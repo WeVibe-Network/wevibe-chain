@@ -32,15 +32,39 @@ enum PredicateResult {
   PREDICATE_RESULT_ABSENT = 3;
 }
 
+// E3 resolution tri-state (WO-ATTRIB, 2026-08-07): an unobserved use is
+// recordable as UNOBSERVED — an observed fact about the episode close, never
+// an inferred verdict. Silence is not a vote.
+enum OutcomeResolution {
+  OUTCOME_RESOLUTION_UNSPECIFIED = 0;
+  OUTCOME_RESOLUTION_WORKED = 1;
+  OUTCOME_RESOLUTION_DIDNT_WORK = 2;
+  // The episode closed with no resolution signal observed. Non-claiming in the
+  // edge standing engine: the serve stays pending until a real outcome pairs
+  // or the policy window voids it.
+  OUTCOME_RESOLUTION_UNOBSERVED = 3;
+}
+
+// E3 provenance: harvested = plugin-observed tool signals; user = the
+// consumer's explicit confirm/deny report (the fallback/dispute path).
+enum OutcomeSource {
+  OUTCOME_SOURCE_UNSPECIFIED = 0;
+  OUTCOME_SOURCE_HARVESTED = 1;
+  OUTCOME_SOURCE_USER = 2;
+}
+
 message OutcomeEventBody {
   // Fingerprint of session identity + need reference — content-free.
   bytes episode_ref = 1;
-  // Raw observed fact bound to evidence — never a verdict.
-  bool worked = 2;
   // GSTV-sealed pattern reference.
   bytes evidence_ref = 3;
   // Fingerprint of the originating serve (ComputeServeFingerprint) — the pairing reference. Content-free.
   bytes serve_ref = 4;
+  // Raw observed fact bound to evidence — never a verdict.
+  OutcomeResolution resolution = 5;
+  OutcomeSource source = 6;
+  reserved 2;
+  reserved "worked";
 }
 
 message ValidityPredicateEventBody {

@@ -77,11 +77,20 @@ func canonicalEventSpecificLines(eventType EventType, entry *EventEntry) (string
 		if body == nil {
 			return "", nil, fmt.Errorf("outcome event body is required")
 		}
+		resolution, err := outcomeResolutionToken(body.Resolution)
+		if err != nil {
+			return "", nil, err
+		}
+		source, err := outcomeSourceToken(body.Source)
+		if err != nil {
+			return "", nil, err
+		}
 		return "outcome", []string{
 			hex.EncodeToString(body.EpisodeRef),
-			"worked=" + strconv.FormatBool(body.Worked),
 			hex.EncodeToString(body.EvidenceRef),
 			hex.EncodeToString(body.ServeRef),
+			"resolution=" + resolution,
+			"source=" + source,
 		}, nil
 	case EventType_EVENT_TYPE_VALIDITY_PREDICATE:
 		body := entry.GetValidityPredicate()
@@ -129,6 +138,33 @@ func predicateResultToken(result PredicateResult) (string, error) {
 		return "absent", nil
 	default:
 		return "", fmt.Errorf("predicate result must be pass, fail, or absent")
+	}
+}
+
+// outcomeResolutionToken maps the E3 tri-state to its preimage token. An
+// unobserved use is recorded as unobserved — silence is not a vote (WO-ATTRIB,
+// 2026-08-07). UNSPECIFIED is rejected: an outcome must say what was observed.
+func outcomeResolutionToken(resolution OutcomeResolution) (string, error) {
+	switch resolution {
+	case OutcomeResolution_OUTCOME_RESOLUTION_WORKED:
+		return "worked", nil
+	case OutcomeResolution_OUTCOME_RESOLUTION_DIDNT_WORK:
+		return "didnt_work", nil
+	case OutcomeResolution_OUTCOME_RESOLUTION_UNOBSERVED:
+		return "unobserved", nil
+	default:
+		return "", fmt.Errorf("outcome resolution must be worked, didnt_work, or unobserved")
+	}
+}
+
+func outcomeSourceToken(source OutcomeSource) (string, error) {
+	switch source {
+	case OutcomeSource_OUTCOME_SOURCE_HARVESTED:
+		return "harvested", nil
+	case OutcomeSource_OUTCOME_SOURCE_USER:
+		return "user", nil
+	default:
+		return "", fmt.Errorf("outcome source must be harvested or user")
 	}
 }
 
