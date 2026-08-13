@@ -33,3 +33,6 @@ AGENTS.md
 MANAGER.md
 WORKER.md
 SESSIONCONTINUANCE.md
+
+# Local run artifacts (build/test logs, pids) — never committed
+runs/
