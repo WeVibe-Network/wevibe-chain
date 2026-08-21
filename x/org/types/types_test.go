@@ -292,30 +292,6 @@ func TestMsgGrantTrialAllowance_ValidateBasic(t *testing.T) {
 }
 
 // ---------------------------------------------------------------------------
-// MsgRotateEpoch.ValidateBasic
-// ---------------------------------------------------------------------------
-
-func TestMsgRotateEpoch_ValidateBasic(t *testing.T) {
-	valid := &types.MsgRotateEpoch{
-		Signer: "cosmos1signer",
-		OrgId:  "org1",
-	}
-	require.NoError(t, valid.ValidateBasic())
-
-	t.Run("empty signer", func(t *testing.T) {
-		m := *valid
-		m.Signer = ""
-		require.Error(t, m.ValidateBasic())
-	})
-
-	t.Run("empty org id", func(t *testing.T) {
-		m := *valid
-		m.OrgId = ""
-		require.ErrorIs(t, m.ValidateBasic(), types.ErrInvalidOrgID)
-	})
-}
-
-// ---------------------------------------------------------------------------
 // MsgTransferLeadership.ValidateBasic
 // ---------------------------------------------------------------------------
 

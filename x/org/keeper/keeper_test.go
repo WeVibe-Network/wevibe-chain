@@ -927,25 +927,6 @@ func TestMsgRemoveMember_RejectsNonLeaderWalletSigner(t *testing.T) {
 	require.ErrorIs(t, err, types.ErrNotLeader)
 }
 
-func TestMsgRotateEpoch_RejectsNonLeaderWalletSigner(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
-
-	orgID := registerMsgServerOrgWithLeaderWallet(
-		t,
-		srv,
-		ctx,
-		"cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
-		"leader_pubkey_12345678901234567890123456789012",
-		"cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
-	)
-
-	_, err := srv.RotateEpoch(ctx, &types.MsgRotateEpoch{
-		Signer: "cosmos1vq0svzat0jyknkc6rfp40l8tr5cz4qxd6m6tyx",
-		OrgId:  orgID,
-	})
-	require.ErrorIs(t, err, types.ErrNotLeader)
-}
-
 func TestMsgAddMember_RejectsLeaderRole(t *testing.T) {
 	srv, ctx, _, _ := setupMsgServer(t)
 
@@ -989,14 +970,6 @@ func TestOrgDecisionMsgs_AcceptsLeaderWalletSigner(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, addResp)
-
-	rotateResp, err := srv.RotateEpoch(ctx, &types.MsgRotateEpoch{
-		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",
-		OrgId:  orgID,
-	})
-	require.NoError(t, err)
-	require.NotNil(t, rotateResp)
-	require.Equal(t, uint64(1), rotateResp.NewEpoch)
 
 	removeResp, err := srv.RemoveMember(ctx, &types.MsgRemoveMember{
 		Signer: "cosmos1t9xdz4tvmsm2qj8fxadue6yx5ysp30zv4rnau6",

@@ -67,17 +67,6 @@ func (k *Keeper) IncrementLeaderUpheldReport(ctx context.Context, leaderPubkey, 
 	return k.SetLeaderProfile(ctx, profile)
 }
 
-func (k *Keeper) RecordEpochRotation(ctx context.Context, leaderPubkey, orgID string, rotation *types.EpochRotation) error {
-	profile, err := k.GetLeaderProfile(ctx, leaderPubkey, orgID)
-	if err != nil {
-		return err
-	}
-
-	profile.EpochRotations = append(profile.EpochRotations, rotation)
-
-	return k.SetLeaderProfile(ctx, profile)
-}
-
 func (k *Keeper) SetLeaderCurrent(ctx context.Context, leaderPubkey, orgID string, current bool) error {
 	profile, err := k.GetLeaderProfile(ctx, leaderPubkey, orgID)
 	if err != nil {

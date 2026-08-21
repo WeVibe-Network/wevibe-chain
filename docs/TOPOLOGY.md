@@ -80,7 +80,6 @@ WeVibe Dashboard is the interactive client for organization leaders, contributor
   - `MsgRegisterOrg` burns the dynamic price through `BankKeeper`, writes `StoredOrg`, auto-adds the leader as a member, and refreshes the dynamic price counter via `updateDynamicPriceOnCreation`.
   - `MsgAddMember` and `MsgRemoveMember` gate membership mutations.
   - `MsgSetMemberCapabilities` lets the leader toggle `can_contribute` / `can_moderate` on a member record while roles stay `leader` or `member`.
-  - `MsgRotateEpoch` (CO-011b) increments the epoch rotation counter after member removal. Chain-side record only; cryptographic rotation happens hub-side via Umbral sidecar.
   - `MsgTransferLeadership` (CO-011b) transfers leadership to another existing member; old leader becomes "member".
   - `MsgCloseOrg` (CO-011b) permanently closes an org by setting status to `OrgStatus_CLOSED` (3).
   - `MsgUpdateParams` is authority gated and rewrites `Params`.

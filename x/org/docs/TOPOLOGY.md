@@ -12,18 +12,6 @@ Leader sets per-member capability flags (`can_contribute`, `can_moderate`) while
   2. Read StoredMemberRecord from `member/{org_id}/{pubkey}`, verify exists
   3. Update member.CanContribute / member.CanModerate, marshal and store
 
-### MsgRotateEpoch
-Leader increments the epoch rotation counter after member removal. This is the chain-side record of a rotation; the actual cryptographic rotation (new keypair, kfrags) happens hub-side via the Umbral sidecar.
-
-- **Signer authority:** Leader of the org
-- **ValidateBasic:** signer not empty, org_id not empty
-- **State mutations:**
-  1. Read StoredOrg from `org/{org_id}`, verify signer == leader
-  2. Verify org.Status == OrgStatus_ACTIVE (cannot rotate a closed/dormant org)
-  3. Increment org.TotalEpochRotations += 1
-  4. Marshal and store updated org
-  5. Return MsgRotateEpochResponse{NewEpoch: org.TotalEpochRotations}
-
 ### MsgTransferLeadership
 Leader transfers leadership to another existing member. Old leader's role changes from "leader" to "member".
 

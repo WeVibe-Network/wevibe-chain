@@ -24,13 +24,6 @@ func (k *Keeper) IncrementOrgUpheldReports(ctx context.Context, orgID string) er
 	})
 }
 
-func (k *Keeper) IncrementOrgEpochRotations(ctx context.Context, orgID string) error {
-	return k.modifyOrgAggregate(ctx, orgID, func(stored *types.StoredOrg, currentEpoch uint64) {
-		stored.TotalEpochRotations++
-		stored.LastActivityEpoch = currentEpoch
-	})
-}
-
 func (k *Keeper) SetOrgLastActivityEpoch(ctx context.Context, orgID string, epoch uint64) error {
 	return k.modifyOrgAggregate(ctx, orgID, func(stored *types.StoredOrg, _ uint64) {
 		stored.LastActivityEpoch = epoch

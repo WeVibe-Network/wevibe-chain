@@ -60,18 +60,11 @@ message StoredModeratorProfile {
   uint64 last_approval_epoch = 7;
 }
 
-message EpochRotation {
-  uint64 epoch = 1;
-  string reason = 2;
-  int64 timestamp = 3;
-}
-
 message StoredLeaderProfile {
   string leader_pubkey = 1;
   string org_id = 2;
   uint64 total_chain_commits_signed = 3;
   uint64 total_upheld_reports_committed = 4;
-  repeated EpochRotation epoch_rotations = 5;
   uint64 first_leadership_epoch = 6;
   bool current_leader = 7;
 }

@@ -329,27 +329,6 @@ func (m *msgServer) SetMemberCapabilities(ctx context.Context, msg *types.MsgSet
 	return &types.MsgSetMemberCapabilitiesResponse{}, nil
 }
 
-func (m *msgServer) RotateEpoch(ctx context.Context, msg *types.MsgRotateEpoch) (*types.MsgRotateEpochResponse, error) {
-	if err := msg.ValidateBasic(); err != nil {
-		return nil, err
-	}
-
-	has, err := m.keeper.HasOrg(ctx, msg.OrgId)
-	if err != nil {
-		return nil, err
-	}
-	if !has {
-		return nil, types.ErrOrgNotFound
-	}
-
-	newEpoch, err := m.keeper.RotateEpoch(ctx, msg.OrgId, msg.Signer)
-	if err != nil {
-		return nil, err
-	}
-
-	return &types.MsgRotateEpochResponse{NewEpoch: newEpoch}, nil
-}
-
 func (m *msgServer) TransferLeadership(ctx context.Context, msg *types.MsgTransferLeadership) (*types.MsgTransferLeadershipResponse, error) {
 	if err := msg.ValidateBasic(); err != nil {
 		return nil, err

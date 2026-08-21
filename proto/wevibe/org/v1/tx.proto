@@ -15,7 +15,6 @@ service Msg {
   rpc SetOrgConfig(MsgSetOrgConfig) returns (MsgSetOrgConfigResponse);
   rpc GrantTrialAllowance(MsgGrantTrialAllowance) returns (MsgGrantTrialAllowanceResponse);
   rpc SetMemberCapabilities(MsgSetMemberCapabilities) returns (MsgSetMemberCapabilitiesResponse);
-  rpc RotateEpoch(MsgRotateEpoch) returns (MsgRotateEpochResponse);
   rpc TransferLeadership(MsgTransferLeadership) returns (MsgTransferLeadershipResponse);
   rpc CloseOrg(MsgCloseOrg) returns (MsgCloseOrgResponse);
   rpc SetServingKey(MsgSetServingKey) returns (MsgSetServingKeyResponse);
@@ -128,15 +127,6 @@ message MsgSetMemberCapabilities {
   bool can_moderate = 5;
 }
 message MsgSetMemberCapabilitiesResponse {}
-
-message MsgRotateEpoch {
-  option (cosmos.msg.v1.signer) = "signer";
-  string signer = 1;
-  string org_id = 2;
-}
-message MsgRotateEpochResponse {
-  uint64 new_epoch = 1;
-}
 
 message MsgTransferLeadership {
   option (cosmos.msg.v1.signer) = "signer";

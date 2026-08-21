@@ -177,16 +177,6 @@ func (m *MsgSetMemberCapabilities) ValidateBasic() error {
 	return nil
 }
 
-func (m *MsgRotateEpoch) ValidateBasic() error {
-	if m.Signer == "" {
-		return fmt.Errorf("signer cannot be empty")
-	}
-	if m.OrgId == "" {
-		return ErrInvalidOrgID
-	}
-	return nil
-}
-
 func (m *MsgTransferLeadership) ValidateBasic() error {
 	if m.Signer == "" {
 		return fmt.Errorf("signer cannot be empty")

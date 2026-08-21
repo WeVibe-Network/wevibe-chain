@@ -14,7 +14,6 @@ message StoredOrg {
   string domain = 8;
   uint64 total_committed_memories = 9;
   uint64 total_active_members = 10;
-  uint64 total_epoch_rotations = 11;
   uint64 total_upheld_reports = 12;
   uint64 last_activity_epoch = 13;
   // CO-044 (D-S32-CO044-KEY-SEPARATION): the per-org hub serving key's chain

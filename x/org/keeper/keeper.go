@@ -660,49 +660,6 @@ func (k *Keeper) SetMemberCapabilities(ctx context.Context, orgID, pubkey string
 	return nil
 }
 
-func (k *Keeper) RotateEpoch(ctx context.Context, orgID, signer string) (uint64, error) {
-	org, err := k.GetOrg(ctx, orgID)
-	if err != nil {
-		return 0, err
-	}
-
-	if org.LeaderWalletAddress == "" || signer != org.LeaderWalletAddress {
-		return 0, types.ErrNotLeader
-	}
-
-	if org.Status != types.OrgStatus_ACTIVE {
-		return 0, types.ErrOrgNotActive
-	}
-
-	store := k.getStore(ctx)
-	key := orgKey(orgID)
-	bz, err := store.Get(key)
-	if err != nil {
-		return 0, err
-	}
-
-	var stored types.StoredOrg
-	if err := proto.Unmarshal(bz, &stored); err != nil {
-		return 0, fmt.Errorf("unmarshal org: %w", err)
-	}
-
-	stored.TotalEpochRotations++
-
-	bz, err = proto.Marshal(&stored)
-	if err != nil {
-		return 0, fmt.Errorf("marshal org: %w", err)
-	}
-	if err := store.Set(key, bz); err != nil {
-		return 0, err
-	}
-
-	k.logger.Info("epoch rotated",
-		"org_id", orgID,
-		"new_epoch", stored.TotalEpochRotations,
-	)
-	return stored.TotalEpochRotations, nil
-}
-
 func (k *Keeper) TransferLeadership(ctx context.Context, orgID, newLeader, newLeaderWallet, signer string) error {
 	if newLeaderWallet == "" {
 		return fmt.Errorf("new_leader_wallet cannot be empty")

@@ -107,7 +107,6 @@ func assertLeaderFeegrantAllowance(t *testing.T, allowance feegrant.FeeAllowance
 			"/wevibe.org.v1.MsgSetOrgConfig",
 			"/wevibe.org.v1.MsgSetServingKey",
 			"/wevibe.org.v1.MsgSetServingInfo",
-			"/wevibe.org.v1.MsgRotateEpoch",
 			"/wevibe.org.v1.MsgTransferLeadership",
 			"/wevibe.org.v1.MsgCloseOrg",
 			"/wevibe.org.v1.MsgGrantTrialAllowance",
@@ -549,63 +548,6 @@ func TestMsgSetMemberCapabilities_MemberNotFound(t *testing.T) {
 		CanModerate:   true,
 	})
 	require.ErrorIs(t, err, types.ErrMemberNotFound)
-}
-
-func TestMsgRotateEpoch_Success(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
-
-	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
-
-	msg := &types.MsgRotateEpoch{
-		Signer: validLeader,
-		OrgId:  orgID,
-	}
-
-	resp, err := srv.RotateEpoch(ctx, msg)
-	require.NoError(t, err)
-	require.NotNil(t, resp)
-	require.Equal(t, uint64(1), resp.NewEpoch)
-}
-
-func TestMsgRotateEpoch_NotLeader(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
-
-	orgResp, err := srv.RegisterOrg(ctx, &types.MsgRegisterOrg{
-		Signer:          validLeader,
-		Leader:          validLeader,
-		StorageQuota:    1000,
-		RetrievalBudget: 500,
-	})
-	require.NoError(t, err)
-	orgID := orgResp.OrgId
-
-	msg := &types.MsgRotateEpoch{
-		Signer: validSigner,
-		OrgId:  orgID,
-	}
-
-	_, err = srv.RotateEpoch(ctx, msg)
-	require.ErrorIs(t, err, types.ErrNotLeader)
-}
-
-func TestMsgRotateEpoch_ClosedOrg(t *testing.T) {
-	srv, ctx, _, _ := setupMsgServer(t)
-
-	orgID := registerMsgServerOrgWithLeaderWallet(t, srv, ctx, validSigner, validLeader, validLeader)
-
-	_, err := srv.CloseOrg(ctx, &types.MsgCloseOrg{
-		Signer: validLeader,
-		OrgId:  orgID,
-	})
-	require.NoError(t, err)
-
-	msg := &types.MsgRotateEpoch{
-		Signer: validLeader,
-		OrgId:  orgID,
-	}
-
-	_, err = srv.RotateEpoch(ctx, msg)
-	require.ErrorIs(t, err, types.ErrOrgNotActive)
 }
 
 func TestMsgTransferLeadership_Success(t *testing.T) {

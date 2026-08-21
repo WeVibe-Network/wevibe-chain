@@ -23,7 +23,6 @@ const (
 	msgTypeURLOrgSetOrgConfig          = "/wevibe.org.v1.MsgSetOrgConfig"
 	msgTypeURLOrgSetServingKey         = "/wevibe.org.v1.MsgSetServingKey"
 	msgTypeURLOrgSetServingInfo        = "/wevibe.org.v1.MsgSetServingInfo"
-	msgTypeURLOrgRotateEpoch           = "/wevibe.org.v1.MsgRotateEpoch"
 	msgTypeURLOrgTransferLeadership    = "/wevibe.org.v1.MsgTransferLeadership"
 	msgTypeURLOrgCloseOrg              = "/wevibe.org.v1.MsgCloseOrg"
 	msgTypeURLOrgGrantTrialAllowance   = "/wevibe.org.v1.MsgGrantTrialAllowance"
@@ -39,7 +38,6 @@ var leaderAllowedMsgTypeURLs = []string{
 	msgTypeURLOrgSetOrgConfig,
 	msgTypeURLOrgSetServingKey,
 	msgTypeURLOrgSetServingInfo,
-	msgTypeURLOrgRotateEpoch,
 	msgTypeURLOrgTransferLeadership,
 	msgTypeURLOrgCloseOrg,
 	msgTypeURLOrgGrantTrialAllowance,
