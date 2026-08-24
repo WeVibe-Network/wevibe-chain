@@ -13,232 +13,148 @@
 
 ---
 
-WeVibe Chain is WeVibe Network's sovereign Cosmos SDK + CometBFT appchain. It is the source of truth for encrypted organizational memory, membership and role state, serve receipts, contributor reputation aggregates, and VIBE economic state.
+**WeVibe** is a memory layer for AI coding agents: attributed, encrypted, human-gated memory that crosses trust boundaries. Contributed memories carry provenance, and recalled items are decrypted locally under member-held keys — nothing reaches an agent's context without passing human review.
 
-## Overview
+**wevibe-chain** (binary `wevibed`) is the sole durable authority in that system. It is a Cosmos SDK + CometBFT appchain that records organization membership, memory commitments, and consumer-signed evidence events. Everything else — hubs, dashboards, caches, indexes — is disposable and rebuildable from chain state plus the keys members hold.
 
-WeVibe Chain couples the staking, governance, bank, epochs, and distribution foundations of Cosmos SDK with purpose-built modules that orchestrate:
+## Evidence, Not Verdicts
 
-- **Organization Slots & Membership** — Registration, role management, and treasuries
-- **Memory Curation** — Encrypted commitments with lifecycle and epoch hooks
-- **Serve & Denial Receipts** — Delivery/denial evidence, deduplication, and per-epoch stats
-- **Bandwidth Throttling** — Per-org rate limiting for submission and serve traffic
-- **Reputation Tracking** — Contributor XP, serve stats, and cross-org profiles
-- **Emission Accounting** — Fixed-schedule pool math and contributor reward accrual
-- **Session Attestation Surface** — Session attestation schema and APIs (currently disabled)
-- **Identity Linking** — Passkey-to-wallet aliasing used for migration and reward claims
+WeVibe Chain deliberately refuses to judge. It is not a trust-score-in-consensus chain: no standing, weight, score, trust value, or memory content is ever stored on-chain. It is an append-only, content-free, consumer-signed event log.
 
-### Status
-
-WeVibe Chain is in active alpha/testnet development. Core modules are wired and running, while selected economic and attestation paths remain under active rollout (see [ROADMAP.md](ROADMAP.md)).
-
-## Architecture
+Standing is computed at the edge as a deterministic pure function of the evidence and an anchored policy version:
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        WeVibe Chain                                 │
-│  ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐  │
-│  │   org   │ │ memory  │ │  serve  │ │bandwidth│ │   ...   │  │
-│  └────┬────┘ └────┬────┘ └────┬────┘ └────┬────┘ └─────────┘  │
-│       │           │           │           │                     │
-│       └───────────┴─────┬─────┴───────────┘                     │
-│                         │                                       │
-│                    Epoch Hooks                                  │
-│                         │                                       │
-│              ┌─────────┴─────────┐                             │
-│              │  Emissions + Memory  │                            │
-│              └────────────────────┘                             │
-└─────────────────────────────────────────────────────────────────┘
-                          │
-           ┌──────────────┼──────────────┐
-           │              │              │
-           ▼              ▼              ▼
-    ┌──────────┐  ┌──────────┐  ┌──────────┐
-    │WeVibe Hub  │  │WeVibe Dash │  │  Agents  │
-    └──────────┘  └──────────┘  └──────────┘
+standing = f(events, policy_version)
 ```
+
+The policy is versioned code that lives outside consensus; only its hash is anchored on-chain. Because the record is immutable and the interpretation is revisable, rewriting history has nothing to alter. Because nothing is ever deleted, killing knowledge has nothing to grip. Because anyone can recompute standing from public inputs, no operator can quietly decide what a stranger's knowledge is worth.
+
+The chain carries evidence; the edge carries judgment; the bench carries measurement.
+
+## Four Exit Guarantees
+
+The sovereignty contract: no single party — including WeVibe, any hub operator, or any org leader — holds unilateral ability to
+
+1. **READ** a member's memory plaintext from outside;
+2. **WITHHOLD** the network's function from a principal acting within their rights;
+3. **REWRITE** the historical record; or
+4. **KILL** an organization's knowledge or a contributor's standing by withdrawing infrastructure.
+
+The append-only evidence log plus edge-computed standing is what makes (3) and (4) nothing to aim at.
+
+## Status
+
+Alpha / testnet. Core modules are wired and running; selected economics and attestation paths are design-intent or partially wired, not production-complete. Event types E4 (contest) and E5 (sponsorship) are parked — enum slots reserved only. Rollout detail lives in [ROADMAP.md](ROADMAP.md).
+
+## The Event Log
+
+Evidence events are consumer-signed and content-free: hashes and references rather than payloads. They enter the log via the hub relay — the only submission path — where the chain enforces a serving-key signer gate. Serve and denial evidence land as receipts; outcome, validity, cost, and convergence evidence land in the event log:
+
+| Code | Event | Stored as |
+|------|-------|-----------|
+| E1 | Serve — proof of content delivery | `StoredServeReceipt` |
+| E2 | Block — proof of delivery denial | `StoredDenialReceipt` (`neg_anchor` slot reserved, inert) |
+| E3 | Outcome — use-leg: whether a served memory worked in the consuming task (`worked` \| `didnt_work` \| `unobserved`) | `StoredEvent` |
+| E4 | Contest | parked — enum slot only |
+| E5 | Sponsorship | parked — enum slot only |
+| E6 | Validity-predicate result | `StoredEvent` |
+| E7 | Cost-to-discover evidence | `StoredEvent` |
+| E8 | Convergence of independent discoveries | `StoredEvent` |
+
+E3 is the load-bearing event: an unobserved use is recorded as unobserved — silence is not a vote.
+
+## Policy Anchor
+
+Standing is never written on-chain; the policy-version hash is anchored instead. `StoredPolicyAnchor` records `(policy_version, policy_hash, anchored_at_epoch, anchored_at_height)`. The initial anchor is seeded at genesis (env-gated on `WEVIBE_EDGE_POLICY_FILE`); re-anchoring is authority-gated via `MsgAnchorPolicyVersion`.
+
+Current testnet anchor: `edge-policy-v1`, sha256 `2d2faa14461aa51bb72735b05debf30defff039750e5f90c1922ae813c87899e`, anchored at height 45.
 
 ## Modules
 
-| Module | Purpose |
-|--------|---------|
-| `x/org` | Slot-based organization registry, membership roles, treasury balances, and serving configuration |
-| `x/memory` | Encrypted memory commitments, lifecycle transitions, Earned Trust decay, and epoch Merkle roots |
-| `x/serve` | Serve and denial receipt ingestion, fingerprint deduplication, matched-keyword indexing, and epoch stats |
-| `x/emissions` | Emission-pool schedule accounting, per-epoch attribution, and contributor reward ledgers |
-| `x/bandwidth` | Per-org, per-epoch submission/serve rate limits and overrides |
-| `x/reputation` | Contributor XP, serve metrics, and cross-org profile aggregates |
-| `x/attestation` | Session-attestation storage/query surface (message path currently disabled) |
-| `x/identity` | Passkey-to-wallet identity aliasing and migration records |
+21 modules total: 8 custom, plus 13 from Cosmos SDK (auth, bank, staking, distribution, slashing, mint, consensus, genutil, epochs, gov, feegrant, authz, upgrade).
 
-## Key Concepts
+| Module | Role |
+|--------|------|
+| `x/org` | Organization registry and slot registry. A sequential ascending slot-price schedule with 50% of each slot fee burned (module holds the Burner permission). Single fixed epoch. |
+| `x/memory` | Commitment lifecycle (`PENDING` → `PENDING_KEYWORD` / `PENDING_CHAIN` → `COMMITTED`, with `DENIED`, `ARCHIVED`, `REPORTED_DELETED`), provenance fields, validity metadata, per-epoch Merkle roots, relationships, upheld reports. Keywords are inert labels only — no time-based degradation, no trust scores, no weighting. |
+| `x/serve` | The append-only evidence log (E1–E8) and the `StoredPolicyAnchor` registry. |
+| `x/emissions` | Flat daily mint plus a flat even-split contributor reward over approval-qualified contributors (approval count ≥ threshold). The validator share is accounted, not minted here. |
+| `x/bandwidth` | Per-org, per-epoch caps on memory serves and serve events. |
+| `x/reputation` | Contributor / moderator / leader profile counters: XP, contributions, serve records, bans. |
+| `x/attestation` | Session-attestation receipt store — producer provenance evidence. |
+| `x/identity` | Passkey-first alias registry; wallet binding is optional (bound via `migrate-identity`). |
 
-### Organizations
+## Framework and Ports
 
-Organizations register on WeVibe Chain by burning VIBE tokens via a dynamic pricing curve. Each org maintains:
-- A **leader** who controls approvals and configuration
-- **Members** with roles for collaborative management
-- A **treasury** funded by org administrators for incentive payouts
+- **Stack:** Go 1.25, Cosmos SDK v0.53.5, CometBFT v0.38.20.
+- **Denom / prefix:** `uvibe` (1 VIBE = 1,000,000 uvibe); address prefix `wevibe`; binary `wevibed`.
+- **Time:** the `wevibe_epoch` identifier drives time-based processing. Local development defaults to 60 seconds, configurable through `WEVIBE_EPOCH_DURATION_SECONDS` in `scripts/init-chain.sh`.
 
-### Memory Lifecycle
+SDK defaults bind all client interfaces to loopback. The repo's `scripts/init-chain.sh` opens them up for **local development only**:
 
-Memories progress through defined states based on approval, serve activity, and disputes:
-
-```
-PENDING → APPROVED → STABLE ←→ DEGRADED ←→ DORMANT
-                ↓         ↓
-            CONTESTED   ARCHIVED
-                ↓
-            REJECTED (upheld contest)
-```
-
-### Serve Receipts
-
-Serving agents batch proofs of content delivery. Attestations are:
-- Deduplicated via computed fingerprints to prevent replay
-- Rate-limited per org per epoch
-- Tracked per contributor for reputation and payouts
-
-### Epoch Processing
-
-At the end of each `wevibe_epoch`:
-1. `x/emissions` advances fixed-schedule emission accounting and contributor attribution.
-2. `x/memory` runs lifecycle maintenance (including decay/expiry handling) and stores epoch Merkle roots.
-3. Ongoing economic rollout details are tracked in [ROADMAP.md](ROADMAP.md).
+| Endpoint | Port | SDK default | `init-chain.sh` (local dev) |
+|----------|------|-------------|------------------------------|
+| RPC | 26657 | loopback | `0.0.0.0` (wildcard CORS) |
+| gRPC | 9090 | loopback | `0.0.0.0` |
+| REST | 1317 | loopback | `0.0.0.0` with `enabled-unsafe-cors` |
 
 ## Getting Started
 
-### Prerequisites
-
-- Go 1.22+
-- Docker (for local development)
-- Cosmos SDK dependencies (handled via `go mod`)
-
-### Build
+Prerequisites: Go 1.25+, Docker (for the compose-based localnet).
 
 ```bash
-# Clone and navigate
-cd wevibe-chain
-
-# Download dependencies
+# Dependencies and binary
 make deps
-
-# Build the chain binary
 make build
 ```
 
-### Run Local Network
+Run the single-validator local network (Docker Compose):
 
 ```bash
-# Start a single-validator local network
 make localnet-start
-
-# View logs
 make localnet-logs
-
-# Stop the network
 make localnet-stop
-
-# Reset the network (destroys data)
-make localnet-reset
+make localnet-reset   # destroys chain data
 ```
 
-### Run Tests
+Tests and lint:
 
 ```bash
-# All tests
 make test
-
-# Integration tests only
 make test-integration
-
-# With verbose output
 make test-verbose
-
-# Linting
 make lint
 ```
 
-### CLI Usage
+Basic CLI:
 
 ```bash
-# Initialize a new node
 wevibed init <moniker> --chain-id wevibe-local-1
-
-# Start the node
 wevibed start
-
-# Query org details
 wevibed query wevibe org v1 org <org_id>
-
-# Submit a transaction
-wevibed tx wevibe org register-org [args...]
 ```
 
-## Chain Configuration
-
-### Denomination
-
-- **Token**: VIBE
-- **Smallest unit**: uvibe (1 VIBE = 1,000,000 uvibe)
-- **Address prefix**: `wevibe`
-
-### Epoch Configuration
-
-The `wevibe_epoch` identifier drives all time-based logic:
-- **Local development**: 60 seconds
-- **Production**: 86,400 seconds (daily)
-
-Configure via `scripts/init-chain.sh` using the `EPOCH_DURATION` environment variable.
-
-### Governance
-
-Governance controls critical module parameters. Default periods for local development:
-- **Voting period**: 172,800 seconds (2 days)
-- **Deposit period**: 172,800 seconds (2 days)
-- **Minimum deposit**: 10,000,000 uvibe
-
-## Network Topology
-
-### Validators and Full Nodes
-
-Validators run WeVibe Chain binaries, expose P2P ports, and optionally enable gRPC for client queries. Full nodes mirror this setup without signing blocks. Both expose the gRPC gateway for REST access to module query services.
-
-### WeVibe Hub
-
-Hub is a stateless service that:
-- Subscribes to Tendermint WebSocket events
-- Calls module query endpoints over gRPC
-- Projects results into durable caches and push streams
-- Brokers notifications to Dashboard
-
-### WeVibe Dashboard
-
-Dashboard provides an interactive interface for:
-- Organization leaders to manage membership and treasuries
-- Contributors to submit and track memories
-- Analysts to view metrics and payouts
+Module query and transaction namespaces are discoverable via `wevibed query wevibe --help` and `wevibed tx wevibe --help`.
 
 ## Documentation
 
-- [Architecture](docs/ARCHITECTURE.md) — System topology and data flow
-- [Module Reference](docs/MODULES.md) — Detailed module specifications
-- [API Reference](docs/API.md) — gRPC and REST API endpoints
-- [CLI Reference](docs/CLI.md) — Daemon and client commands
-- [Parameters](docs/PARAMETERS.md) — Module parameter catalogue
-- [Deployment](docs/DEPLOYMENT.md) — Production deployment guide
-- [Contributing](CONTRIBUTING.md) — Development guidelines
-
-## Roadmap
-
-For rollout status and planned milestones, see [ROADMAP.md](ROADMAP.md).
+- [Architecture](docs/ARCHITECTURE.md) — system topology and data flow
+- [Topology](docs/TOPOLOGY.md) — network component layout
+- [Module Reference](docs/MODULES.md) — detailed module specifications
+- [API Reference](docs/API.md) — gRPC and REST endpoints
+- [CLI Reference](docs/CLI.md) — daemon and client commands
+- [Parameters](docs/PARAMETERS.md) — module parameter catalogue
+- [Deployment](docs/DEPLOYMENT.md) — production deployment guide
+- [Contributing](CONTRIBUTING.md) — development guidelines
+- [Roadmap](ROADMAP.md) — rollout status
 
 ## License
 
-Apache 2.0 - see LICENSE file for details.
+Apache 2.0 — see [LICENSE](LICENSE) for details.
 
 ## Links
 
 - Canonical docs: https://github.com/WeVibe-Network/wevibe-docs
 - WeVibe Network org: https://github.com/WeVibe-Network
 - X/Twitter: https://x.com/WeVibe_Network
+
